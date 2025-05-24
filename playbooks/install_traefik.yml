@@ -45,6 +45,8 @@
         src: "{{ playbook_dir }}/files/traefik-values.yaml"
         dest: "{{ traefik_values_file }}"
         force: yes
+      delegate_to: localhost
+      run_once: true
 
     - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
       ansible.builtin.raw: |
