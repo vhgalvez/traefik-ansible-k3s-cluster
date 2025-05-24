@@ -20,14 +20,17 @@
         mode: "0755"
 
     - name: Crear Secret de Kubernetes para Traefik (si no existe)
-      kubectl:
-        api_version: v1
-        kind: Secret
-        name: "{{ traefik_dashboard_secret_name }}"
-        namespace: kube-system
-        data:
-          traefik-dashboard-user: "{{ 'admin' | b64encode }}"
-          traefik-dashboard-pass: "{{ 'MiPasswordSegura' | b64encode }}"
+      k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ traefik_dashboard_secret_name }}"
+            namespace: kube-system
+          data:
+            traefik-dashboard-user: "{{ 'admin' | b64encode }}"
+            traefik-dashboard-pass: "{{ 'MiPasswordSegura' | b64encode }}"
       ignore_errors: true  # Ignorar si ya existe el Secret
 
     - name: Renderizar values.yaml localmente con Jinja2
