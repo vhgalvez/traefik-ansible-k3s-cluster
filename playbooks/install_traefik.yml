@@ -12,6 +12,7 @@
     traefik_dashboard_pass: MiPasswordSegura
 
   tasks:
+
     - name: Asegurarse de que el directorio files/ exista localmente
       delegate_to: localhost
       run_once: true
@@ -35,7 +36,7 @@
         content: "{{ htpasswd_output.stdout }}"
 
     - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
-      ansible.builtin.raw: |
+      raw: |
         kubectl delete helmchart traefik -n kube-system || true
         kubectl delete deployment traefik -n kube-system || true
 
@@ -43,8 +44,8 @@
       delegate_to: localhost
       run_once: true
       shell: |
-        /usr/local/bin/helm repo add traefik https://traefik.github.io/charts || true
-        /usr/local/bin/helm repo update
+        helm repo add traefik https://traefik.github.io/charts || true
+        helm repo update
       args:
         executable: /bin/bash
 
@@ -53,13 +54,12 @@
       run_once: true
       template:
         src: ../templates/traefik/values.yaml.j2
-        dest: /tmp/traefik-values.yaml
+        dest: "/tmp/traefik-values.yaml"
 
     - name: Copiar values.yaml al nodo remoto
       copy:
-        src: /tmp/traefik-values.yaml
+        src: "/tmp/traefik-values.yaml"
         dest: "{{ traefik_values_file }}"
-        mode: "0644"
 
     - name: Crear secret de autenticación básica para dashboard de Traefik
       kubernetes.core.k8s:
@@ -74,13 +74,15 @@
           data:
             users: "{{ htpasswd_output.stdout | b64encode }}"
 
-    - name: Instalar Traefik con Helm en el clúster
+    - name: Instalar Traefik con Helm en el clúster (se ejecuta localmente)
+      delegate_to: localhost
+      run_once: true
       shell: |
         helm upgrade --install {{ traefik_release_name }} traefik/traefik \
           --namespace {{ traefik_namespace }} \
           --create-namespace=false \
           --version {{ traefik_chart_version }} \
-          --values {{ traefik_values_file }}
+          --values "{{ playbook_dir }}/files/htpasswd.txt"
       args:
         executable: /bin/bash
 
