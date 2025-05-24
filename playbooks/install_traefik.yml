@@ -11,7 +11,6 @@
     traefik_dashboard_user: admin
     traefik_dashboard_pass: MiPasswordSegura
   tasks:
-
     - name: Generar hash htpasswd desde Python
       ansible.builtin.command: >
         python3 -c "import crypt; print('{{ traefik_dashboard_user }}:' + crypt.crypt('{{ traefik_dashboard_pass }}', crypt.mksalt(crypt.METHOD_MD5)))"
