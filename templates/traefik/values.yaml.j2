@@ -4,11 +4,13 @@ ports:
     expose: true
     port: 80
     redirectTo: websecure
+
   websecure:
     expose: true
     port: 443
     tls:
       enabled: true
+
   traefik:
     expose: true
     port: 8080
@@ -23,14 +25,22 @@ providers:
   kubernetesIngress:
     enabled: true
 
-certificatesResolvers:
-  selfsigned:
-    acme:
-      email: admin@example.com
-      storage: /data/acme.json
-      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
-      httpChallenge:
-        entryPoint: web
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /ssl/selfsigned.crt
+        keyFile: /ssl/selfsigned.key
+
+additionalVolumeMounts:
+  - name: ssl-certs
+    mountPath: /ssl
+    readOnly: true
+
+additionalVolumes:
+  - name: ssl-certs
+    hostPath:
+      path: /ssl
 
 logs:
   general:

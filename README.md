@@ -4,7 +4,8 @@ Este proyecto instala **Traefik** como controlador de Ingress dentro de un clús
 
 - Desinstalación de Traefik por defecto (K3s).
 - Instalación con Helm (versión 23.1.0).
-- Habilitación de HTTPS (TLS) con Let's Encrypt (staging).
+- generación de certificados autofirmados.
+- Configuración de un VIP para acceso a servicios.
 - Autenticación básica en el dashboard vía middleware.
 
 ---
@@ -171,5 +172,38 @@ Puedes modificar el `values.yaml.j2` para añadir balanceo, rate-limiting, certi
 
 ---
 
-📬 ¿Tienes dudas o necesitas soporte adicional? No dudes en integrarlo con GitOps, monitoreo o alerting en próximos pasos.
+## 🔐 Servicios Internos y Administrativos
 
+Para servicios internos o de administración (por ejemplo: dashboard de Traefik, consola de administración de aplicaciones, backends privados), considera las siguientes opciones:
+
+### Opciones de Protección
+
+1. **Usar otro dominio o subdominio**:
+   - Ejemplo: `admin.cefaslocalserver.com`.
+
+2. **Proteger con**:
+   - Autenticación básica (`htpasswd`).
+   - Lista de IPs permitidas (IP allowlist) en el middleware de Traefik.
+   - Certificados TLS de cliente (para un nivel enterprise).
+
+3. **Opcional**:
+   - Enrutar solo dentro de una VPN o LAN (no exponer por Internet).
+
+---
+
+## 🔒 Recomendaciones de Seguridad
+
+| Tipo de Servicio                     | Exposición                              | Protección Necesaria                          |
+|--------------------------------------|-----------------------------------------|-----------------------------------------------|
+| **Público** (NGINX, APIs públicas)   | A través de Ingress (Traefik) + VIP     | HTTPS, dominios wildcard, firewall           |
+| **Interno** (Traefik UI, Admin APIs) | Solo en VPN/LAN o IP filtrada           | `htpasswd`, firewall, certificados TLS cliente |
+| **Base de datos / servicios internos** | Solo `ClusterIP`                        | Sin Ingress                                   |
+
+---
+
+## ✅ Resumen
+
+- ✅ Tu modelo con VIPs + NodePort es correcto para bare metal.
+- ✅ Usa Ingress para enrutar microservicios públicos con Traefik.
+- ✅ Usa autenticación y filtros para proteger los servicios privados.
+- ✅ Centraliza el acceso a través del VIP `10.17.5.30` con el dominio `*.cefaslocalserver.com`.
