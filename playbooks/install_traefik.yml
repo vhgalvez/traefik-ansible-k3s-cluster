@@ -1,6 +1,6 @@
 ---
 # playbooks/install_traefik.yml
-- name: Instalar Traefik con Helm dentro del clúcster K3s
+- name: Instalar Traefik con Helm dentro del clúster K3s
   hosts: controller
   gather_facts: false
   vars:
@@ -10,6 +10,7 @@
     traefik_values_file: "/tmp/traefik-values.yaml"
     traefik_dashboard_user: admin
     traefik_dashboard_pass: MiPasswordSegura
+    kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) }}"
 
   tasks:
     - name: Asegurarse de que el directorio files/ exista localmente
@@ -55,7 +56,7 @@
       args:
         executable: /bin/bash
 
-    - name: Instalar Traefik con Helm desde localhost hacia el clúcster
+    - name: Instalar Traefik con Helm desde localhost hacia el clúster
       delegate_to: localhost
       run_once: true
       shell: |
@@ -63,6 +64,7 @@
           --namespace {{ traefik_namespace }} \
           --create-namespace=false \
           --version {{ traefik_chart_version }} \
-          --values {{ playbook_dir }}/files/traefik-values.yaml
+          --values {{ playbook_dir }}/files/traefik-values.yaml \
+          --kubeconfig {{ kubeconfig_path }}
       args:
         executable: /bin/bash
