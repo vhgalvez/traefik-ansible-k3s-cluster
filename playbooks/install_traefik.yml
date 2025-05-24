@@ -1,6 +1,5 @@
----
 # playbooks/install_traefik.yml
-- name: Instalar Traefik con Helm dentro del clúcster K3s
+- name: Instalar Traefik con Helm dentro del clúster K3s
   hosts: controller
   gather_facts: false
   vars:
@@ -8,8 +7,7 @@
     traefik_release_name: traefik
     traefik_chart_version: "23.1.0"
     traefik_values_file: "/tmp/traefik-values.yaml"
-    traefik_dashboard_user: admin
-    traefik_dashboard_pass: MiPasswordSegura
+    traefik_dashboard_secret_name: traefik-dashboard-secret  # Nombre del Secret
     kubeconfig_path: "/home/victory/.kube/config"
 
   tasks:
@@ -20,20 +18,6 @@
         path: "{{ playbook_dir }}/files"
         state: directory
         mode: "0755"
-
-    - name: Generar hash htpasswd localmente con Python
-      delegate_to: localhost
-      run_once: true
-      command: >
-        python3 -c "import crypt; print('{{ traefik_dashboard_user }}:' + crypt.crypt('{{ traefik_dashboard_pass }}', crypt.mksalt(crypt.METHOD_MD5)))"
-      register: htpasswd_output
-
-    - name: Guardar hash htpasswd en archivo local
-      delegate_to: localhost
-      run_once: true
-      copy:
-        dest: "{{ playbook_dir }}/files/htpasswd.txt"
-        content: "{{ htpasswd_output.stdout }}"
 
     - name: Renderizar values.yaml localmente con Jinja2
       delegate_to: localhost
@@ -56,7 +40,7 @@
       args:
         executable: /bin/bash
 
-    - name: Generar certificados autofirmados wildcard
+    - name: Crear certificados autofirmados wildcard
       delegate_to: localhost
       run_once: true
       shell: |
@@ -87,7 +71,7 @@
         dest: /ssl/selfsigned.key
         mode: "0600"
 
-    - name: Instalar Traefik con Helm desde localhost hacia el clúcster
+    - name: Instalar Traefik con Helm desde localhost hacia el clúster
       delegate_to: localhost
       run_once: true
       shell: |

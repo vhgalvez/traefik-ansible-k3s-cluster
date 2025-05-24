@@ -56,3 +56,16 @@ resources:
   limits:
     cpu: 200m
     memory: 256Mi
+
+dashboard:
+  enabled: true
+  user:
+    valueFrom:
+      secretKeyRef:
+        name: "{{ traefik_dashboard_secret_name }}"
+        key: traefik-dashboard-user
+  pass:
+    valueFrom:
+      secretKeyRef:
+        name: "{{ traefik_dashboard_secret_name }}"
+        key: traefik-dashboard-pass
