@@ -10,6 +10,7 @@
     traefik_values_file: "/tmp/traefik-values.yaml"
     traefik_dashboard_user: admin
     traefik_dashboard_pass: MiPasswordSegura
+
   tasks:
     - name: Asegurarse de que el directorio files/ exista localmente
       delegate_to: localhost
@@ -44,14 +45,15 @@
       copy:
         src: "{{ playbook_dir }}/files/traefik-values.yaml"
         dest: "{{ traefik_values_file }}"
-        force: yes
+        remote_src: no
+      delegate_to: "{{ inventory_hostname }}"
 
     - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
       ansible.builtin.raw: |
         kubectl delete helmchart traefik -n kube-system || true
         kubectl delete deployment traefik -n kube-system || true
 
-    - name: Asegurarse de que el repo de Traefik esté añadido
+    - name: Asegurarse de que el repo de Traefik esté añadido (se ejecuta localmente)
       delegate_to: localhost
       run_once: true
       shell: |
