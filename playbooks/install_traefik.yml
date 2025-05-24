@@ -10,7 +10,6 @@
     traefik_values_file: "/tmp/traefik-values.yaml"
     traefik_dashboard_user: admin
     traefik_dashboard_pass: MiPasswordSegura
-    helm_path: "/usr/local/bin/helm"
 
   tasks:
     - name: Asegurarse de que el directorio files/ exista localmente
@@ -36,23 +35,31 @@
         content: "{{ htpasswd_output.stdout }}"
 
     - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
-      raw: |
+      ansible.builtin.raw: |
         kubectl delete helmchart traefik -n kube-system || true
         kubectl delete deployment traefik -n kube-system || true
 
-    - name: Asegurarse de que el repo de Traefik esté añadido
+    - name: Asegurarse de que el repo de Traefik esté añadido (se ejecuta localmente)
       delegate_to: localhost
       run_once: true
       shell: |
-        {{ helm_path }} repo add traefik https://traefik.github.io/charts || true
-        {{ helm_path }} repo update
+        helm repo add traefik https://traefik.github.io/charts || true
+        helm repo update
       args:
         executable: /bin/bash
 
-    - name: Plantilla del values.yaml para Traefik
+    - name: Renderizar values.yaml localmente con Jinja2
+      delegate_to: localhost
+      run_once: true
       template:
         src: ../templates/traefik/values.yaml.j2
+        dest: /tmp/traefik-values.yaml
+
+    - name: Copiar values.yaml al nodo remoto
+      copy:
+        src: /tmp/traefik-values.yaml
         dest: "{{ traefik_values_file }}"
+        mode: "0644"
 
     - name: Crear secret de autenticación básica para dashboard de Traefik
       kubernetes.core.k8s:
@@ -68,14 +75,12 @@
             users: "{{ htpasswd_output.stdout | b64encode }}"
 
     - name: Instalar Traefik con Helm en el clúster
-      delegate_to: localhost
-      run_once: true
-      shell: >
-        {{ helm_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
-        --namespace {{ traefik_namespace }}
-        --create-namespace=false
-        --version {{ traefik_chart_version }}
-        --values {{ traefik_values_file }}
+      shell: |
+        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
+          --namespace {{ traefik_namespace }} \
+          --create-namespace=false \
+          --version {{ traefik_chart_version }} \
+          --values {{ traefik_values_file }}
       args:
         executable: /bin/bash
 
