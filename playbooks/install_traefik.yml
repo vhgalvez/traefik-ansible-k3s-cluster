@@ -10,7 +10,16 @@
     traefik_values_file: "/tmp/traefik-values.yaml"
     traefik_dashboard_user: admin
     traefik_dashboard_pass: MiPasswordSegura
+
   tasks:
+    - name: Asegurarse de que el directorio files/ exista localmente
+      delegate_to: localhost
+      run_once: true
+      file:
+        path: "{{ playbook_dir }}/files"
+        state: directory
+        mode: "0755"
+
     - name: Generar hash htpasswd localmente con Python
       delegate_to: localhost
       run_once: true
@@ -20,8 +29,9 @@
 
     - name: Guardar hash htpasswd en archivo local
       delegate_to: localhost
+      run_once: true
       copy:
-        dest: files/htpasswd.txt
+        dest: "{{ playbook_dir }}/files/htpasswd.txt"
         content: "{{ htpasswd_output.stdout }}"
 
     - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
