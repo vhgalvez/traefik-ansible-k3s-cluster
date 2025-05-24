@@ -1,5 +1,5 @@
 # playbooks/install_traefik.yml
-- name: Instalar Traefik con Helm dentro del clúster K3s
+- name: Instalar Traefik con Helm dentro del clúcster K3s
   hosts: controller
   gather_facts: false
   vars:
@@ -9,7 +9,6 @@
     traefik_values_file: "/tmp/traefik-values.yaml"
     traefik_dashboard_user: admin
     traefik_dashboard_pass: MiPasswordSegura
-
   tasks:
     - name: Asegurarse de que el directorio files/ exista localmente
       delegate_to: localhost
@@ -47,7 +46,7 @@
         force: yes
 
     - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
-      raw: |
+      ansible.builtin.raw: |
         kubectl delete helmchart traefik -n kube-system || true
         kubectl delete deployment traefik -n kube-system || true
 
@@ -73,7 +72,7 @@
           data:
             users: "{{ htpasswd_output.stdout | b64encode }}"
 
-    - name: Instalar Traefik con Helm en el clúster
+    - name: Instalar Traefik con Helm en el clúcster
       shell: |
         helm upgrade --install {{ traefik_release_name }} traefik/traefik \
           --namespace {{ traefik_namespace }} \
