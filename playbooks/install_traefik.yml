@@ -1,6 +1,5 @@
 # playbooks\install_traefik.yml
 ---
-# Parte 1: Preparación en el nodo controller (remoto)
 - name: Preparar entorno remoto para Traefik en K3s
   hosts: controller
   gather_facts: false
@@ -18,9 +17,6 @@
         dest: "{{ traefik_values_file }}"
         force: yes
 
----
-
-# Parte 2: Ejecución local para Helm y configuración
 - name: Instalar Traefik desde localhost con Helm apuntando al clúster
   hosts: localhost
   connection: local
@@ -29,7 +25,7 @@
     traefik_namespace: kube-system
     traefik_release_name: traefik
     traefik_chart_version: "23.1.0"
-    traefik_values_file: "./files/traefik-values.yaml"
+    traefik_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
     traefik_dashboard_user: admin
     traefik_dashboard_pass: MiPasswordSegura
   tasks:
@@ -118,11 +114,3 @@
         EOF
       args:
         executable: /bin/bash
-
-    - name: Esperar a que el pod de Traefik esté corriendo
-      shell: |
-        kubectl -n {{ traefik_namespace }} get pods -l app.kubernetes.io/name=traefik --field-selector=status.phase=Running
-      register: traefik_pod_check
-      until: traefik_pod_check.stdout_lines | length > 0
-      retries: 10
-      delay: 10
