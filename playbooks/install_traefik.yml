@@ -8,7 +8,19 @@
     traefik_release_name: traefik
     traefik_chart_version: "23.1.0"
     traefik_values_file: "/tmp/traefik-values.yaml"
+    traefik_dashboard_user: admin
+    traefik_dashboard_pass: MiPasswordSegura
   tasks:
+
+    - name: Generar hash htpasswd desde Python
+      ansible.builtin.command: >
+        python3 -c "import crypt; print('{{ traefik_dashboard_user }}:' + crypt.crypt('{{ traefik_dashboard_pass }}', crypt.mksalt(crypt.METHOD_MD5)))"
+      register: htpasswd_output
+
+    - name: Guardar htpasswd en archivo temporal
+      copy:
+        dest: ../files/htpasswd.txt
+        content: "{{ htpasswd_output.stdout }}"
 
     - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
       shell: |
@@ -40,7 +52,7 @@
             namespace: "{{ traefik_namespace }}"
           type: Opaque
           data:
-            users: {{ lookup('file', '../files/htpasswd.txt') | b64encode }}
+            users: "{{ htpasswd_output.stdout | b64encode }}"
 
     - name: Instalar Traefik con Helm en el clúster
       shell: |
