@@ -1,0 +1,63 @@
+# playbooks\uninstall_traefik.yml
+- name: Desinstalar Traefik del clúster K3s
+  hosts: controller
+  become: true
+  gather_facts: false
+  vars:
+    traefik_namespace: kube-system
+    traefik_release_name: traefik
+    kubeconfig_path: "/home/victory/.kube/config"
+    cert_dir: "/ssl"
+
+  tasks:
+
+    - name: Eliminar el release de Helm de Traefik
+      delegate_to: localhost
+      run_once: true
+      shell: >
+        helm uninstall {{ traefik_release_name }} --namespace {{ traefik_namespace }} --kubeconfig {{ kubeconfig_path }}
+      args:
+        executable: /bin/bash
+      ignore_errors: true
+
+    - name: Eliminar CRDs de Traefik (IngressRoute, Middleware, etc.)
+      ansible.builtin.command: >
+        kubectl delete crd ingressroutes.traefik.containo.us ingressroutetcps.traefik.containo.us ingressrouteudps.traefik.containo.us middlewares.traefik.containo.us tlsoptions.traefik.containo.us tlsstores.traefik.containo.us --ignore-not-found=true
+      ignore_errors: true
+
+    - name: Eliminar el namespace kube-system (opcional y riesgoso)
+      ansible.builtin.debug:
+        msg: "No se elimina el namespace 'kube-system' por seguridad. Solo se elimina el release."
+
+    - name: Borrar archivos de certificados autofirmados
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ cert_dir }}/selfsigned.crt"
+        - "{{ cert_dir }}/selfsigned.key"
+        - "{{ cert_dir }}/acme.json"
+      ignore_errors: true
+
+    - name: Eliminar el directorio /ssl si está vacío
+      file:
+        path: "{{ cert_dir }}"
+        state: absent
+      when: cert_dir is defined
+      ignore_errors: true
+
+    - name: Borrar archivo values.yaml generado
+      delegate_to: localhost
+      run_once: true
+      file:
+        path: "{{ playbook_dir }}/files/traefik-values.yaml"
+        state: absent
+      ignore_errors: true
+
+    - name: Borrar archivo htpasswd generado
+      delegate_to: localhost
+      run_once: true
+      file:
+        path: "{{ playbook_dir }}/files/htpasswd.txt"
+        state: absent
+      ignore_errors: true

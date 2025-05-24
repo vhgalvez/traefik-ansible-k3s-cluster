@@ -201,9 +201,67 @@ Para servicios internos o de administración (por ejemplo: dashboard de Traefik,
 
 ---
 
-## ✅ Resumen
+## ✅ Resumen General del Setup de Traefik
 
-- ✅ Tu modelo con VIPs + NodePort es correcto para bare metal.
-- ✅ Usa Ingress para enrutar microservicios públicos con Traefik.
-- ✅ Usa autenticación y filtros para proteger los servicios privados.
-- ✅ Centraliza el acceso a través del VIP `10.17.5.30` con el dominio `*.cefaslocalserver.com`.
+### 1. Despliegue de Traefik con Helm
+
+- Se instala Traefik en el namespace `kube-system` usando Helm.
+- Se desinstala previamente cualquier instancia instalada por defecto en K3s.
+- Se usa un archivo de configuración `values.yaml.j2` renderizado dinámicamente con Ansible.
+
+### 2. Puertos Expuestos por Traefik
+
+- **80 (HTTP):** Redirige automáticamente a 443.
+- **443 (HTTPS):** Sirve tráfico cifrado.
+- **8080:** Expone el panel interno de Traefik (aunque el dashboard está desactivado por seguridad).
+
+### 3. Certificados Autofirmados
+
+- Se generan certificados TLS wildcard `*.cefaslocalserver.com` con OpenSSL.
+- Estos se copian a la ruta `/ssl` en los nodos (o nodo donde corra el pod de Traefik).
+- Se configuran en `values.yaml.j2` como certificados predeterminados para todas las rutas TLS.
+
+### 4. Montaje del Volumen de Certificados
+
+- Se monta el directorio `/ssl` dentro del contenedor Traefik.
+- Se accede a los archivos `selfsigned.crt` y `selfsigned.key` desde ahí para usarlos como certificados por defecto.
+
+### 5. Configuración del Proveedor Kubernetes
+
+- Se activan los providers:
+  - **`kubernetesIngress`:** Permite usar recursos tipo Ingress tradicionales.
+  - **`kubernetesCRD`:** Permite usar IngressRoute, Middleware, etc. definidos con CRDs de Traefik.
+
+### 6. Log de Depuración
+
+- Se habilita el log en modo `DEBUG` para ayudar con el troubleshooting.
+
+### 7. Recursos del Deployment
+
+- **Réplicas:** 1 pod de Traefik (puedes escalar si necesitas alta disponibilidad).
+- **Recursos mínimos configurados:** 100m CPU y 128Mi RAM.
+
+---
+
+## 🧠 Qué Resuelve Este Setup
+
+| Problema                          | Solución                                   |
+|-----------------------------------|-------------------------------------------|
+| No tienes dominio público real    | Se usa un dominio falso local `cefaslocalserver.com`. |
+| Necesitas HTTPS                   | Se usan certificados autofirmados wildcard. |
+| Tienes múltiples subdominios      | Se usa `*.cefaslocalserver.com` para servir todos. |
+| Quieres enrutar servicios internos | Se usa Traefik + IngressRoute por dominio/subdominio. |
+| DNS interno                       | Se usa CoreDNS en infra-cluster para resolver los dominios locales. |
+
+---
+
+## 🗂️ Componentes Clave Relacionados
+
+- **`traefik-values.yaml.j2`:** Configuración para Helm de Traefik.
+- **`install_traefik.yml`:** Playbook Ansible que:
+  - Renderiza el `values.yaml`.
+  - Genera certificados.
+  - Instala Traefik con Helm.
+- **`/ssl/`:** Directorio en los nodos con los certificados autofirmados.
+- **`coredns_setup.yml`:** Configura el DNS local para que `.cefaslocalserver.com` resuelva correctamente en la LAN.
+
