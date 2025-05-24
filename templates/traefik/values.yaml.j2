@@ -1,0 +1,48 @@
+# templates\traefik\values.yaml.j2
+ports:
+  web:
+    expose: true
+    port: 80
+    redirectTo: websecure
+  websecure:
+    expose: true
+    port: 443
+    tls:
+      enabled: true
+  traefik:
+    expose: true
+    port: 8080
+
+ingressRoute:
+  dashboard:
+    enabled: false
+
+providers:
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: true
+
+certificatesResolvers:
+  selfsigned:
+    acme:
+      email: admin@example.com
+      storage: /data/acme.json
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      httpChallenge:
+        entryPoint: web
+
+logs:
+  general:
+    level: DEBUG
+
+deployment:
+  replicas: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi

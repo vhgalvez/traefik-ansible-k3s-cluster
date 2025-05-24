@@ -1,0 +1,100 @@
+---
+# playbooks/install_traefik.yml
+- name: Instalar Traefik con Helm dentro del clúster K3s
+  hosts: controller
+  gather_facts: false
+  vars:
+    traefik_namespace: kube-system
+    traefik_release_name: traefik
+    traefik_chart_version: "23.1.0"
+    traefik_values_file: "/tmp/traefik-values.yaml"
+  tasks:
+
+    - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
+      shell: |
+        kubectl delete helmchart traefik -n kube-system || true
+        kubectl delete deployment traefik -n kube-system || true
+      args:
+        executable: /bin/bash
+
+    - name: Asegurarse de que el repo de Traefik esté añadido
+      shell: |
+        helm repo add traefik https://traefik.github.io/charts || true
+        helm repo update
+      args:
+        executable: /bin/bash
+
+    - name: Plantilla del values.yaml para Traefik
+      template:
+        src: ../templates/traefik/values.yaml.j2
+        dest: "{{ traefik_values_file }}"
+
+    - name: Crear secret de autenticación básica para dashboard de Traefik
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: traefik-dashboard-auth
+            namespace: "{{ traefik_namespace }}"
+          type: Opaque
+          data:
+            users: {{ lookup('file', '../files/htpasswd.txt') | b64encode }}
+
+    - name: Instalar Traefik con Helm en el clúster
+      shell: |
+        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
+          --namespace {{ traefik_namespace }} \
+          --create-namespace=false \
+          --version {{ traefik_chart_version }} \
+          --values {{ traefik_values_file }}
+      args:
+        executable: /bin/bash
+
+    - name: Crear Middleware de autenticación básica para dashboard
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: traefik.containo.us/v1alpha1
+          kind: Middleware
+          metadata:
+            name: dashboard-auth
+            namespace: "{{ traefik_namespace }}"
+          spec:
+            basicAuth:
+              secret: traefik-dashboard-auth
+
+    - name: Crear IngressRoute para acceder al dashboard protegido
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: traefik.containo.us/v1alpha1
+          kind: IngressRoute
+          metadata:
+            name: traefik-dashboard
+            namespace: "{{ traefik_namespace }}"
+          spec:
+            entryPoints:
+              - websecure
+            routes:
+              - match: PathPrefix(`/dashboard`) || PathPrefix(`/api`)
+                kind: Rule
+                services:
+                  - name: api@internal
+                    kind: TraefikService
+                middlewares:
+                  - name: dashboard-auth
+            tls:
+              certResolver: selfsigned
+
+    - name: Esperar a que el pod de Traefik esté corriendo
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ traefik_namespace }}"
+        label_selectors:
+          - "app.kubernetes.io/name=traefik"
+      register: traefik_pods
+      until: traefik_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+      retries: 10
+      delay: 10
