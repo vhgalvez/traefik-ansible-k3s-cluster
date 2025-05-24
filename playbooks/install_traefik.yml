@@ -1,6 +1,6 @@
 ---
 # playbooks/install_traefik.yml
-- name: Instalar Traefik con Helm dentro del clúster K3s
+- name: Instalar Traefik con Helm dentro del clúcster K3s
   hosts: controller
   gather_facts: false
   vars:
@@ -56,7 +56,38 @@
       args:
         executable: /bin/bash
 
-    - name: Instalar Traefik con Helm desde localhost hacia el clúster
+    - name: Generar certificados autofirmados wildcard
+      delegate_to: localhost
+      run_once: true
+      shell: |
+        openssl req -x509 -newkey rsa:4096 -sha256 -days 365 \
+          -nodes -keyout {{ playbook_dir }}/files/selfsigned.key \
+          -out {{ playbook_dir }}/files/selfsigned.crt \
+          -subj "/CN=*.cefaslocalserver.com" \
+          -addext "subjectAltName=DNS:*.cefaslocalserver.com,DNS:cefaslocalserver.com"
+      args:
+        executable: /bin/bash
+      creates: "{{ playbook_dir }}/files/selfsigned.crt"
+
+    - name: Crear directorio remoto para certificados
+      ansible.builtin.file:
+        path: /ssl
+        state: directory
+        mode: "0755"
+
+    - name: Copiar certificado autofirmado al nodo remoto
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/files/selfsigned.crt"
+        dest: /ssl/selfsigned.crt
+        mode: "0644"
+
+    - name: Copiar clave privada al nodo remoto
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/files/selfsigned.key"
+        dest: /ssl/selfsigned.key
+        mode: "0600"
+
+    - name: Instalar Traefik con Helm desde localhost hacia el clúcster
       delegate_to: localhost
       run_once: true
       shell: |
