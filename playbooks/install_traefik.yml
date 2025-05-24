@@ -33,20 +33,6 @@
         dest: "{{ playbook_dir }}/files/htpasswd.txt"
         content: "{{ htpasswd_output.stdout }}"
 
-    - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
-      raw: |
-        kubectl delete helmchart traefik -n kube-system || true
-        kubectl delete deployment traefik -n kube-system || true
-
-    - name: Asegurarse de que el repo de Traefik esté añadido (se ejecuta localmente)
-      delegate_to: localhost
-      run_once: true
-      shell: |
-        /usr/local/bin/helm repo add traefik https://traefik.github.io/charts || true
-        /usr/local/bin/helm repo update
-      args:
-        executable: /bin/bash
-
     - name: Renderizar values.yaml localmente con Jinja2
       delegate_to: localhost
       run_once: true
@@ -58,6 +44,21 @@
       copy:
         src: "{{ playbook_dir }}/files/traefik-values.yaml"
         dest: "{{ traefik_values_file }}"
+        force: yes
+
+    - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
+      raw: |
+        kubectl delete helmchart traefik -n kube-system || true
+        kubectl delete deployment traefik -n kube-system || true
+
+    - name: Asegurarse de que el repo de Traefik esté añadido (se ejecuta localmente)
+      delegate_to: localhost
+      run_once: true
+      shell: |
+        helm repo add traefik https://traefik.github.io/charts || true
+        helm repo update
+      args:
+        executable: /bin/bash
 
     - name: Crear secret de autenticación básica para dashboard de Traefik
       kubernetes.core.k8s:
@@ -73,12 +74,12 @@
             users: "{{ htpasswd_output.stdout | b64encode }}"
 
     - name: Instalar Traefik con Helm en el clúster
-      shell: >
-        /usr/local/bin/helm upgrade --install {{ traefik_release_name }} traefik/traefik
-        --namespace {{ traefik_namespace }}
-        --create-namespace=false
-        --version {{ traefik_chart_version }}
-        --values {{ traefik_values_file }}
+      shell: |
+        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
+          --namespace {{ traefik_namespace }} \
+          --create-namespace=false \
+          --version {{ traefik_chart_version }} \
+          --values {{ traefik_values_file }}
       args:
         executable: /bin/bash
 
