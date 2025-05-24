@@ -2,16 +2,16 @@
 
 Este proyecto instala **Traefik** como controlador de Ingress dentro de un clúster **K3s** utilizando **Helm** y **Ansible**. La instalación incluye:
 
-* Desinstalación de Traefik por defecto (K3s)
-* Instalación con Helm (versión 23.1.0)
-* Habilitación de HTTPS (TLS) con Let's Encrypt (staging)
-* Autenticación básica en el dashboard vía middleware
+- Desinstalación de Traefik por defecto (K3s).
+- Instalación con Helm (versión 23.1.0).
+- Habilitación de HTTPS (TLS) con Let's Encrypt (staging).
+- Autenticación básica en el dashboard vía middleware.
 
 ---
 
 ## 📦 Estructura del Proyecto
 
-```
+```plaintext
 traefik-ansible-k3s-cluster/
 ├── inventory.ini                     # Inventario Ansible con nodos controller y balanceadores
 ├── group_vars/
@@ -30,14 +30,16 @@ traefik-ansible-k3s-cluster/
 
 ## ⚙️ Requisitos
 
-* Ansible
-* Acceso SSH a los nodos (usando claves privadas)
-* Clúster K3s ya desplegado
-* Helm instalado en el nodo de control
+- Ansible.
+- Acceso SSH a los nodos (usando claves privadas).
+- Clúster K3s ya desplegado.
+- Helm instalado en el nodo de control.
 
 ---
 
 ## 🚀 Ejecución paso a paso
+
+### 1. Configuración inicial
 
 1. Edita tu inventario:
 
@@ -52,19 +54,108 @@ traefik-ansible-k3s-cluster/
    htpasswd -nb admin MiPasswordSegura > files/htpasswd.txt
    ```
 
-3. Ejecuta el playbook:
+### 2. Despliegue de Traefik
+
+Ejecuta el playbook:
+
+```bash
+sudo ansible-playbook -i inventory/hosts.ini playbooks/install_traefik.yml
+```
+
+### 3. Acceso al Dashboard de Traefik
+
+- **URL:** `https://<second_vip>/dashboard/`
+- **Usuario:** `admin`
+- **Contraseña:** la definida en `htpasswd.txt`.
+
+---
+
+## 🛠 Configuración avanzada
+
+### Certificados reales de Let's Encrypt
+
+Para usar certificados reales, cambia la URL del CA de staging por:
+
+```plaintext
+https://acme-v02.api.letsencrypt.org/directory
+```
+
+### Generación de archivo `htpasswd.txt`
+
+#### Opción 1: Usar `htpasswd` (recomendado)
+
+1. Instala `apache2-utils` (si no lo tienes):
+
+   - En Debian/Ubuntu:
+
+     ```bash
+     sudo apt install apache2-utils
+     ```
+
+   - En CentOS/RHEL:
+
+     ```bash
+     sudo yum install httpd-tools
+     ```
+
+2. Genera el archivo:
 
    ```bash
-sudo ansible-playbook -i inventory/hosts.ini playbooks/install_traefik.yml
-   
-
+   htpasswd -nb admin MiPasswordSegura
    ```
 
-4. Accede al Dashboard de Traefik:
+3. Guarda el contenido generado en `files/htpasswd.txt`.
 
-   * **URL:** `https://<second_vip>/dashboard/`
-   * **Usuario:** `admin`
-   * **Contraseña:** la definida en `htpasswd.txt`
+#### Opción 2: Usar Python puro
+
+Ejecuta el siguiente comando:
+
+```bash
+python3 -c "import crypt; print('admin:' + crypt.crypt('MiPasswordSegura', crypt.mksalt(crypt.METHOD_MD5)))"
+```
+
+Guarda el resultado en `files/htpasswd.txt`.
+
+---
+
+## 🧩 Flujo completo resumido
+
+```plaintext
+Usuario → Cloudflare (opcional) → WireGuard/VPN o red local
+          ↓
+    VIP 10.17.5.30 (HAProxy + Keepalived)
+          ↓
+      Nodo Traefik (NodePort 80/443)
+          ↓
+   Traefik (Ingress Controller en K3s)
+          ↓
+   Servicio Kubernetes (grafana, prometheus...)
+```
+
+---
+
+## 🟢 Configuración de DNS
+
+### CoreDNS externo
+
+- **IP:** 10.17.3.11.
+- Instalado manualmente con Ansible en AlmaLinux.
+- Configurado como servicio de `systemd`.
+- Corefile incluye:
+  - Hosts estáticos con IPs internas y nombres bajo `.cefaslocalserver.com`.
+  - Redirección al upstream público (8.8.8.8).
+
+Configura este DNS como primario en `/etc/resolv.conf` o vía DHCP:
+
+```bash
+nameserver 10.17.3.11
+nameserver 8.8.8.8
+```
+
+### CoreDNS interno (K3s)
+
+- Resuelve solo nombres de servicios internos de Kubernetes (`.svc.cluster.local`).
+- No requiere modificaciones adicionales.
 
 ---
 
@@ -72,118 +163,13 @@ sudo ansible-playbook -i inventory/hosts.ini playbooks/install_traefik.yml
 
 El proyecto `traefik-ansible-k3s-cluster`:
 
-* Está **preparado para producción**, con seguridad (TLS, auth)
-* Usa **Helm + Ansible** para mantener un despliegue declarativo y reproducible
-* Integra **Middleware**, `IngressRoute`, y auto TLS para prácticas modernas
+- Está **preparado para producción**, con seguridad (TLS, auth).
+- Usa **Helm + Ansible** para mantener un despliegue declarativo y reproducible.
+- Integra **Middleware**, `IngressRoute`, y auto TLS para prácticas modernas.
 
 Puedes modificar el `values.yaml.j2` para añadir balanceo, rate-limiting, certificados personalizados o rutas adicionales según tus necesidades.
 
 ---
 
-🛡 Si deseas migrar a certificados reales de Let's Encrypt, cambia la URL del CA de staging por:
-
-```
-https://acme-v02.api.letsencrypt.org/directory
-```
-
----
-
 📬 ¿Tienes dudas o necesitas soporte adicional? No dudes en integrarlo con GitOps, monitoreo o alerting en próximos pasos.
 
-
-✅ Opción 1: Generarlo con htpasswd (recomendado)
-📦 Instala apache2-utils (si no lo tienes)
-En Debian/Ubuntu:
-
-bash
-Copiar
-Editar
-sudo apt install apache2-utils
-En CentOS/RHEL:
-
-bash
-Copiar
-Editar
-sudo yum install httpd-tools
-🔐 Genera el archivo htpasswd.txt:
-bash
-Copiar
-Editar
-htpasswd -nb admin MiPasswordSegura
-Esto generará una línea como:
-
-perl
-Copiar
-Editar
-admin:$apr1$ZAxMN7AB$FfjW5g0iTnEKRW7s3gZpQ0
-📁 Guarda este contenido en el archivo files/htpasswd.txt para que Ansible lo use.
-
-🧪 Opción 2: Usar Python puro (sin instalar nada más)
-bash
-Copiar
-Editar
-python3 -c "import crypt; print('admin:' + crypt.crypt('MiPasswordSegura', crypt.mksalt(crypt.METHOD_MD5)))"
-Resultado:
-
-perl
-Copiar
-Editar
-admin:$1$PN1nq...$JYTCdWk5id8NIVRSfT/4G0
-📁 También lo puedes guardar en files/htpasswd.txt.
-
-📄 Recomendación
-Tu archivo htpasswd.txt debe tener una única línea así:
-
-perl
-Copiar
-Editar
-admin:$apr1$ZAxMN7AB$FfjW5g0iTnEKRW7s3gZpQ0
-Y lo usas en Ansible con:
-
-yaml
-Copiar
-Editar
-users: {{ lookup('file', '../files/htpasswd.txt') | b64encode }}
-¿Quieres que te genere ahora mismo el contenido para un usuario y contraseña que me indiques (ej. admin / admin123) para que lo pegues en tu archivo?
-
-
-
-
-
-
-Tú dijiste:
-esto lo puede hacer pythoy en usando localhost
-python3 -c "import crypt; print('admin:' + crypt.crypt('MiPasswordSegura', crypt.mksalt(crypt.METHOD_MD5)))"
-
-
-ChatGPT Plus
-✅ Sí, exactamente. Ese comando en Python 3 ejecutado desde localhost:
-
-bash
-Copiar
-Editar
-python3 -c "import crypt; print('admin:' + crypt.crypt('MiPasswordSegura', crypt.mksalt(crypt.METHOD_MD5)))"
-👉 Te genera una línea htpasswd válida para Traefik con autenticación básica.
-El resultado se verá como:
-
-perl
-Copiar
-Editar
-admin:$1$PN1nq...$JYTCdWk5id8NIVRSfT/4G0
-📁 ¿Qué hacer luego?
-Crea el archivo files/htpasswd.txt en tu proyecto Ansible:
-
-bash
-Copiar
-Editar
-echo "admin:$1$PN1nq...$JYTCdWk5id8NIVRSfT/4G0" > files/htpasswd.txt
-Verifica que Ansible lo pueda leer:
-
-yaml
-Copiar
-Editar
-users: {{ lookup('file', '../files/htpasswd.txt') | b64encode }}
-🛡 ¿Por qué usar crypt.METHOD_MD5?
-Es compatible con el formato $apr1$, que es el esperado por la mayoría de servicios que implementan htpasswd, como Apache, Traefik, NGINX, etc.
-
-Si necesitas un hash más fuerte (bcrypt o SHA), se requiere una librería externa (passlib), pero para la mayoría de casos con Traefik, crypt es suficiente y funciona bien.
