@@ -1,6 +1,6 @@
 ---
 # playbooks/install_traefik.yml
-- name: Instalar Traefik con Helm dentro del clúster K3s
+- name: Instalar Traefik con Helm dentro del clúcster K3s
   hosts: controller
   gather_facts: false
   vars:
@@ -50,16 +50,16 @@
       delegate_to: localhost
       run_once: true
       shell: |
-        helm repo add traefik https://traefik.github.io/charts || true
-        helm repo update
+        /usr/local/bin/helm repo add traefik https://traefik.github.io/charts || true
+        /usr/local/bin/helm repo update
       args:
         executable: /bin/bash
 
-    - name: Instalar Traefik con Helm desde localhost hacia el clúster
+    - name: Instalar Traefik con Helm desde localhost hacia el clúcster
       delegate_to: localhost
       run_once: true
       shell: |
-        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
+        /usr/local/bin/helm upgrade --install {{ traefik_release_name }} traefik/traefik \
           --namespace {{ traefik_namespace }} \
           --create-namespace=false \
           --version {{ traefik_chart_version }} \
