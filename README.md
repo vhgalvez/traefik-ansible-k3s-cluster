@@ -55,7 +55,9 @@ traefik-ansible-k3s-cluster/
 3. Ejecuta el playbook:
 
    ```bash
-   ansible-playbook -i inventory.ini playbooks/install_traefik.yml
+sudo ansible-playbook -i inventory/hosts.ini playbooks/install_traefik.yml
+   
+
    ```
 
 4. Accede al Dashboard de Traefik:
