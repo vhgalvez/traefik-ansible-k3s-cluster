@@ -10,7 +10,7 @@
     traefik_values_file: "/tmp/traefik-values.yaml"
     traefik_dashboard_user: admin
     traefik_dashboard_pass: MiPasswordSegura
-    kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) }}"
+    kubeconfig_path: "/home/victory/.kube/config"
 
   tasks:
     - name: Asegurarse de que el directorio files/ exista localmente
