@@ -5,7 +5,7 @@
   vars:
     traefik_namespace: kube-system
     traefik_release_name: traefik
-    traefik_chart_version: "35.4.0"
+    traefik_chart_version: "v35.4.0"
     traefik_values_file: "/tmp/traefik-values.yaml"
     traefik_dashboard_secret_name: traefik-dashboard-secret # Nombre del Secret para las credenciales de Traefik
     kubeconfig_path: "/home/victory/.kube/config"
