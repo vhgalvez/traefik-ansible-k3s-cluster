@@ -9,6 +9,7 @@
     traefik_values_file: "/tmp/traefik-values.yaml"
     traefik_dashboard_secret_name: traefik-dashboard-secret  # Nombre del Secret para las credenciales de Traefik
     kubeconfig_path: "/home/victory/.kube/config"
+    k3s_version: "v1.30.0+k3s1"  # Nueva versión de K3s
 
   tasks:
     - name: Asegurarse de que el directorio files/ exista localmente
