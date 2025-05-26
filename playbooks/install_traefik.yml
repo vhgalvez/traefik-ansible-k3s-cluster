@@ -7,9 +7,8 @@
     traefik_release_name: traefik
     traefik_chart_version: "v35.4.0"
     traefik_values_file: "/tmp/traefik-values.yaml"
-    traefik_dashboard_secret_name: traefik-dashboard-secret # Nombre del Secret para las credenciales de Traefik
+    traefik_dashboard_secret_name: traefik-dashboard-secret  # Nombre del Secret para las credenciales de Traefik
     kubeconfig_path: "/home/victory/.kube/config"
-    k3s_version: "v1.33.1+k3s1"
 
   tasks:
     - name: Asegurarse de que el directorio files/ exista localmente
@@ -32,7 +31,7 @@
           data:
             traefik-dashboard-user: "{{ 'admin' | b64encode }}"
             traefik-dashboard-pass: "{{ 'MiPasswordSegura' | b64encode }}"
-      ignore_errors: true # Ignorar si ya existe el Secret
+      ignore_errors: true  # Ignorar si ya existe el Secret
 
     - name: Renderizar values.yaml localmente con Jinja2
       delegate_to: localhost
