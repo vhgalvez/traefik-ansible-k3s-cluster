@@ -5,11 +5,11 @@
   vars:
     traefik_namespace: kube-system
     traefik_release_name: traefik
-    traefik_chart_version: "23.1.0"
+    traefik_chart_version: "35.4.0"
     traefik_values_file: "/tmp/traefik-values.yaml"
     traefik_dashboard_secret_name: traefik-dashboard-secret  # Nombre del Secret para las credenciales de Traefik
     kubeconfig_path: "/home/victory/.kube/config"
-    k3s_version: "v1.30.0+k3s1"  # Nueva versión de K3s
+    k3s_version: "v1.33.1+k3s1"
 
   tasks:
     - name: Asegurarse de que el directorio files/ exista localmente
