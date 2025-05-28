@@ -63,6 +63,8 @@ Ejecuta el playbook:
 sudo ansible-playbook -i inventory/hosts.ini playbooks/install_traefik.yml
 ```
 
+sudo ansible-playbook -i inventory/hosts.ini playbooks/deploy_traefik.yml
+
 ### 3. Acceso al Dashboard de Traefik
 
 - **URL:** `https://<second_vip>/dashboard/`
