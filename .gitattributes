@@ -1,3 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 rendered-secrets/*
+files/*.yaml
+!files/traefik-values.yaml

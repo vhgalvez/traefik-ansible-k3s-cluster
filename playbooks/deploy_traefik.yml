@@ -2,7 +2,6 @@
 ---
 
 - import_playbook: generate_traefik_secrets.yml
-- import_playbook: push_traefik_sealedsecret.yml
 - import_playbook: install_traefik.yml
 
 - name: Verificar despliegue de Traefik
