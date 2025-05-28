@@ -8,7 +8,7 @@
     - name: 🔐 Paso 1 - Generar y cifrar SealedSecret para Traefik
       import_playbook: generate_traefik_secrets.yml
 
-    - name: 📤 Paso 2 - Subir SealedSecret al repositorio GitOps (ArgoCD)
+    - name: 📄 Paso 2 - Subir SealedSecret al repositorio GitOps (ArgoCD)
       import_playbook: push_traefik_sealedsecret.yml
 
     - name: 🚀 Paso 3 - Instalar Traefik con Helm
