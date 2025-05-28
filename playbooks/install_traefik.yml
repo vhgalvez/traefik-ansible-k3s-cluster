@@ -42,6 +42,13 @@
       args:
         executable: /bin/bash
 
+    - name: 🔍 Verificar si el certificado ya existe
+      delegate_to: localhost
+      run_once: true
+      stat:
+        path: "{{ crt_local_path }}"
+      register: cert_stat
+
     - name: 🔐 Generar certificados autofirmados wildcard (*.cefaslocalserver.com)
       delegate_to: localhost
       run_once: true
@@ -53,7 +60,7 @@
           -addext "subjectAltName=DNS:*.cefaslocalserver.com,DNS:cefaslocalserver.com"
       args:
         executable: /bin/bash
-      creates: "{{ crt_local_path }}"
+      when: not cert_stat.stat.exists
 
     - name: 📁 Crear directorio remoto para certificados en nodo controller
       ansible.builtin.file:
