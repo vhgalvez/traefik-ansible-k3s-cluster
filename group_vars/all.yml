@@ -4,3 +4,5 @@ traefik_release_name: traefik
 traefik_chart_version: "23.1.0"
 traefik_values_file: "/tmp/traefik-values.yaml"
 traefik_dashboard_secret_name: traefik-dashboard-secret  # Nombre del Secret para las credenciales de Traefik
+traefik_auth_user: admin
+traefik_auth_pass: SuperPassword123
