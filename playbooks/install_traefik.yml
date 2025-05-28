@@ -1,17 +1,19 @@
 # playbooks/install_traefik.yml
-- name: Instalar Traefik con Helm dentro del clúster K3s
+- name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
   hosts: controller
   gather_facts: false
+  vars_files:
+    - ../vars/main.yml
   vars:
-    traefik_namespace: kube-system
-    traefik_release_name: traefik
-    traefik_chart_version: "v35.4.0"
-    traefik_values_file: "/tmp/traefik-values.yaml"
-    traefik_dashboard_secret_name: traefik-dashboard-secret  # Nombre del Secret para las credenciales de Traefik
-    kubeconfig_path: "/home/victory/.kube/config"
+    rendered_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
+    crt_local_path: "{{ playbook_dir }}/files/selfsigned.crt"
+    key_local_path: "{{ playbook_dir }}/files/selfsigned.key"
+    crt_remote_path: "/ssl/selfsigned.crt"
+    key_remote_path: "/ssl/selfsigned.key"
 
   tasks:
-    - name: Asegurarse de que el directorio files/ exista localmente
+
+    - name: 📁 Asegurar directorio local files/
       delegate_to: localhost
       run_once: true
       file:
@@ -19,81 +21,67 @@
         state: directory
         mode: "0755"
 
-    - name: Crear Secret de Kubernetes para Traefik (si no existe)
-      k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: "{{ traefik_dashboard_secret_name }}"
-            namespace: kube-system
-          data:
-            traefik-dashboard-user: "{{ 'admin' | b64encode }}"
-            traefik-dashboard-pass: "{{ 'MiPasswordSegura' | b64encode }}"
-      ignore_errors: true  # Ignorar si ya existe el Secret
-
-    - name: Renderizar values.yaml localmente con Jinja2
+    - name: 📄 Renderizar values.yaml desde plantilla
       delegate_to: localhost
       run_once: true
       template:
         src: ../templates/traefik/values.yaml.j2
-        dest: "{{ playbook_dir }}/files/traefik-values.yaml"
+        dest: "{{ rendered_values_file }}"
 
-    - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
+    - name: ❌ Desinstalar Traefik por defecto de K3s (si existe)
       ansible.builtin.raw: |
         kubectl delete helmchart traefik -n kube-system || true
         kubectl delete deployment traefik -n kube-system || true
 
-    - name: Asegurarse de que el repo de Traefik esté añadido (local)
+    - name: ➕ Añadir repositorio Helm de Traefik
       delegate_to: localhost
       run_once: true
       shell: |
-        /usr/local/bin/helm repo add traefik https://traefik.github.io/charts || true
-        /usr/local/bin/helm repo update
+        helm repo add traefik https://traefik.github.io/charts || true
+        helm repo update
       args:
         executable: /bin/bash
 
-    - name: Generar certificados autofirmados wildcard
+    - name: 🔐 Generar certificados autofirmados wildcard (*.cefaslocalserver.com)
       delegate_to: localhost
       run_once: true
       shell: |
         openssl req -x509 -newkey rsa:4096 -sha256 -days 365 \
-          -nodes -keyout {{ playbook_dir }}/files/selfsigned.key \
-          -out {{ playbook_dir }}/files/selfsigned.crt \
+          -nodes -keyout {{ key_local_path }} \
+          -out {{ crt_local_path }} \
           -subj "/CN=*.cefaslocalserver.com" \
           -addext "subjectAltName=DNS:*.cefaslocalserver.com,DNS:cefaslocalserver.com"
       args:
         executable: /bin/bash
-      creates: "{{ playbook_dir }}/files/selfsigned.crt"
+      creates: "{{ crt_local_path }}"
 
-    - name: Crear directorio remoto para certificados
+    - name: 📁 Crear directorio remoto para certificados en nodo controller
       ansible.builtin.file:
         path: /ssl
         state: directory
         mode: "0755"
 
-    - name: Copiar certificado autofirmado al nodo remoto
+    - name: 📤 Subir certificado autofirmado
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/files/selfsigned.crt"
-        dest: /ssl/selfsigned.crt
+        src: "{{ crt_local_path }}"
+        dest: "{{ crt_remote_path }}"
         mode: "0644"
 
-    - name: Copiar clave privada al nodo remoto
+    - name: 🔑 Subir clave privada
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/files/selfsigned.key"
-        dest: /ssl/selfsigned.key
+        src: "{{ key_local_path }}"
+        dest: "{{ key_remote_path }}"
         mode: "0600"
 
-    - name: Instalar Traefik con Helm desde localhost hacia el clúster
+    - name: 🚀 Instalar Traefik con Helm
       delegate_to: localhost
       run_once: true
       shell: |
-        /usr/local/bin/helm upgrade --install {{ traefik_release_name }} traefik/traefik \
+        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
           --namespace {{ traefik_namespace }} \
           --create-namespace=false \
           --version {{ traefik_chart_version }} \
-          --values {{ playbook_dir }}/files/traefik-values.yaml \
+          --values {{ rendered_values_file }} \
           --kubeconfig {{ kubeconfig_path }}
       args:
         executable: /bin/bash
