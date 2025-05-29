@@ -8,3 +8,4 @@ traefik_dashboard_secret_name: traefik-dashboard-secret
 traefik_auth_user: admin
 traefik_auth_pass: SuperPassword123
 helm_bin_path: "/usr/local/bin/helm"
+kubeconfig_path: /home/victory/.kube/config
