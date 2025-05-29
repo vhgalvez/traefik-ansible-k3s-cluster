@@ -4,6 +4,7 @@
   gather_facts: false
   vars_files:
     - ../vars/main.yml
+
   vars:
     rendered_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
     crt_local_path: "{{ playbook_dir }}/files/selfsigned.crt"
@@ -12,7 +13,6 @@
     key_remote_path: "/ssl/selfsigned.key"
 
   tasks:
-
     - name: 📁 Asegurar directorio local files/
       delegate_to: localhost
       run_once: true
@@ -37,8 +37,8 @@
       delegate_to: localhost
       run_once: true
       shell: |
-        helm repo add traefik https://traefik.github.io/charts || true
-        helm repo update
+        /usr/local/bin/helm repo add traefik https://traefik.github.io/charts || true
+        /usr/local/bin/helm repo update
       args:
         executable: /bin/bash
 
@@ -84,7 +84,7 @@
       delegate_to: localhost
       run_once: true
       shell: |
-        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
+        /usr/local/bin/helm upgrade --install {{ traefik_release_name }} traefik/traefik \
           --namespace {{ traefik_namespace }} \
           --create-namespace=false \
           --version {{ traefik_chart_version }} \
