@@ -24,39 +24,41 @@
         src: ../templates/traefik/values.yaml.j2
         dest: "{{ rendered_values_file }}"
 
-    - name: ❌ Desinstalar Traefik por defecto de K3s (si existe)
-      ansible.builtin.raw: |
+- name: ⚙️ Desinstalar Traefik por defecto de K3s (si existe)
+  hosts: master1
+  gather_facts: false
+  tasks:
+    - name: ❌ Borrar helmchart traefik de K3s
+      raw: |
         kubectl delete helmchart traefik -n kube-system || true
         kubectl delete deployment traefik -n kube-system || true
 
+- name: 📦 Instalar Traefik con Helm en master1
+  hosts: master1
+  gather_facts: false
+  vars_files:
+    - ../vars/main.yml
+
+  vars:
+    rendered_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
+
+  tasks:
     - name: ➕ Añadir repositorio Helm de Traefik
-      delegate_to: localhost
-      run_once: true
-      shell: |
-        {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts || true
-        {{ helm_bin_path }} repo update
-      args:
-        executable: /bin/bash
+      raw: |
+        helm repo add traefik https://traefik.github.io/charts || true
+        helm repo update
 
-    - name: 📁 Crear directorio ACME en nodos master (Flatcar compatible)
-      raw: mkdir -p /var/lib/traefik && chmod 755 /var/lib/traefik
-      delegate_to: "{{ item }}"
-      with_items: "{{ groups['masters'] }}"
+    - name: 📁 Crear directorio ACME en master1 para certificados Let's Encrypt
+      raw: |
+        mkdir -p /data/traefik
+        touch /data/traefik/acme.json
+        chmod 600 /data/traefik/acme.json
 
-    - name: 📄 Crear archivo acme.json vacío en nodos master (Flatcar compatible)
-      raw: test -f /var/lib/traefik/acme.json || (touch /var/lib/traefik/acme.json && chmod 600 /var/lib/traefik/acme.json)
-      delegate_to: "{{ item }}"
-      with_items: "{{ groups['masters'] }}"
-
-    - name: 📦 Instalar Traefik con Helm
-      delegate_to: localhost
-      run_once: true
-      shell: |
-        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik \
+    - name: 🚀 Instalar Traefik con Helm
+      raw: |
+        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
           --namespace {{ traefik_namespace }} \
           --create-namespace=false \
           --version {{ traefik_chart_version }} \
           --values {{ rendered_values_file }} \
           --kubeconfig {{ kubeconfig_path }}
-      args:
-        executable: /bin/bash
