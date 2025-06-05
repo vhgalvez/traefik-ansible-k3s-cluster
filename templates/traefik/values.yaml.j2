@@ -1,78 +1,44 @@
 # templates\traefik\values.yaml.j2
-entryPoints:
-  web:
-    address: ":80"
-  websecure:
-    address: ":443"
 
-certificatesResolvers:
-  letsencrypt:
-    acme:
-      email: "{{ letsencrypt_email }}"
-      storage: /data/acme.json
-      httpChallenge:
-        entryPoint: web
+additionalArguments:
+  - "--entrypoints.web.address=:80"
+  - "--entrypoints.websecure.address=:443"
+  - "--certificatesresolvers.le.acme.email={{ letsencrypt_email }}"
+  - "--certificatesresolvers.le.acme.storage=/data/acme.json"
+  - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
 
 ports:
   web:
-    expose: true
-    port: 80
     redirectTo: websecure
-
   websecure:
-    expose: true
-    port: 443
     tls:
       enabled: true
 
-  traefik:
-    expose: true
-    port: 8080
-
 ingressRoute:
   dashboard:
-    enabled: false
-
-providers:
-  kubernetesCRD:
     enabled: true
-  kubernetesIngress:
-    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    labels: {}
+    entryPoints: ["websecure"]
+    middlewares: []
 
-logs:
-  general:
-    level: DEBUG
+persistence:
+  enabled: true
+  name: acme-storage
+  accessMode: ReadWriteOnce
+  size: 1Mi
+  path: /data
+  storageClass: ""
 
-deployment:
-  replicas: 1
-
-resources:
-  requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 200m
-    memory: 256Mi
+volumes:
+  - name: acme-storage
+    hostPath:
+      path: /var/lib/traefik
+      type: DirectoryOrCreate
 
 volumeMounts:
   - name: acme-storage
     mountPath: /data
     readOnly: false
-
-volumes:
-  - name: acme-storage
-    hostPath:
-      path: /opt/traefik
-
-dashboard:
-  enabled: true
-  user:
-    valueFrom:
-      secretKeyRef:
-        name: "{{ traefik_dashboard_secret_name }}"
-        key: traefik-dashboard-user
-  pass:
-    valueFrom:
-      secretKeyRef:
-        name: "{{ traefik_dashboard_secret_name }}"
-        key: traefik-dashboard-pass

@@ -39,16 +39,16 @@
         executable: /bin/bash
 
     - name: 📁 Crear directorio ACME en nodos master (Flatcar compatible)
-      raw: mkdir -p /opt/traefik && chmod 755 /opt/traefik
+      raw: mkdir -p /var/lib/traefik && chmod 755 /var/lib/traefik
       delegate_to: "{{ item }}"
       with_items: "{{ groups['masters'] }}"
 
     - name: 📄 Crear archivo acme.json vacío en nodos master (Flatcar compatible)
-      raw: test -f /opt/traefik/acme.json || (touch /opt/traefik/acme.json && chmod 600 /opt/traefik/acme.json)
+      raw: test -f /var/lib/traefik/acme.json || (touch /var/lib/traefik/acme.json && chmod 600 /var/lib/traefik/acme.json)
       delegate_to: "{{ item }}"
       with_items: "{{ groups['masters'] }}"
 
-    - name: 🚀 Instalar Traefik con Helm
+    - name: 📦 Instalar Traefik con Helm
       delegate_to: localhost
       run_once: true
       shell: |
