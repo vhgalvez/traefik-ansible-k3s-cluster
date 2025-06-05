@@ -1,4 +1,18 @@
 # templates\traefik\values.yaml.j2
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "{{ letsencrypt_email }}"
+      storage: /data/acme.json
+      httpChallenge:
+        entryPoint: web
+
 ports:
   web:
     expose: true
@@ -25,23 +39,6 @@ providers:
   kubernetesIngress:
     enabled: true
 
-tls:
-  stores:
-    default:
-      defaultCertificate:
-        certFile: /ssl/selfsigned.crt
-        keyFile: /ssl/selfsigned.key
-
-additionalVolumeMounts:
-  - name: ssl-certs
-    mountPath: /ssl
-    readOnly: true
-
-additionalVolumes:
-  - name: ssl-certs
-    hostPath:
-      path: /ssl
-
 logs:
   general:
     level: DEBUG
@@ -56,6 +53,16 @@ resources:
   limits:
     cpu: 200m
     memory: 256Mi
+
+volumeMounts:
+  - name: acme-storage
+    mountPath: /data
+    readOnly: false
+
+volumes:
+  - name: acme-storage
+    hostPath:
+      path: /data/traefik
 
 dashboard:
   enabled: true
