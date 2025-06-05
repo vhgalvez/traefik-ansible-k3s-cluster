@@ -1,8 +1,10 @@
-# playbooks/deploy_traefik.yml
+# playbooks\install_traefik.yml
 ---
 - name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
   hosts: localhost
+  gather_facts: false
   become: false
+
   vars:
     kubeconfig_path: /home/victory/.kube/config
     helm_bin_path: /usr/local/bin/helm
@@ -11,6 +13,7 @@
     traefik_release_name: traefik
     traefik_chart_version: "26.1.0"
     traefik_values_file: "/tmp/traefik-values.yaml"
+
   tasks:
 
     - name: 📁 Asegurar directorio local files/
@@ -18,43 +21,41 @@
         path: ./files/
         state: directory
 
+    - name: 🧪 Verificar que kubectl esté disponible
+      command: which {{ kubectl_path }}
+      register: kubectl_check
+      failed_when: kubectl_check.rc != 0
+
+    - name: 🧪 Verificar que helm esté disponible
+      command: which {{ helm_bin_path }}
+      register: helm_check
+      failed_when: helm_check.rc != 0
+
     - name: 📄 Renderizar values.yaml desde plantilla
       template:
         src: templates/traefik/values.yaml.j2
         dest: "{{ traefik_values_file }}"
 
     - name: ❌ Desinstalar Traefik por defecto de K3s (si existe)
-      command: >
-        {{ kubectl_path }} delete helmcharts traefik -n kube-system
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+      shell: >
+        KUBECONFIG={{ kubeconfig_path }} {{ kubectl_path }} delete helmcharts traefik -n kube-system || true
       ignore_errors: true
 
     - name: ➕ Añadir repositorio Helm de Traefik
-      shell: |
-        export PATH=$PATH:/usr/local/bin
-        helm repo add traefik https://traefik.github.io/charts
-        helm repo update
-      args:
-        executable: /bin/bash
+      shell: >
+        {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
+        {{ helm_bin_path }} repo update
 
     - name: 🚀 Instalar Traefik con Helm
-      shell: |
-        export PATH=$PATH:/usr/local/bin
-        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
-          --namespace {{ traefik_namespace }} \
-          --create-namespace \
-          --version {{ traefik_chart_version }} \
-          --values {{ traefik_values_file }}
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      args:
-        executable: /bin/bash
+      shell: >
+        KUBECONFIG={{ kubeconfig_path }} {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
+        --namespace {{ traefik_namespace }}
+        --create-namespace
+        --version {{ traefik_chart_version }}
+        --values {{ traefik_values_file }}
 
     - name: 🧪 Verificar conexión con el clúster Kubernetes
-      command: "{{ kubectl_path }} get nodes"
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+      shell: KUBECONFIG={{ kubeconfig_path }} {{ kubectl_path }} get nodes
       register: kubectl_result
       failed_when: kubectl_result.rc != 0
       changed_when: false
