@@ -2,37 +2,34 @@
 ---
 - name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
   hosts: localhost
-  become: false
+  gather_facts: false
   vars:
-    kubeconfig_path: /etc/rancher/k3s/k3s.yaml
-    helm_bin_path: /usr/local/bin/helm
-    traefik_namespace: kube-system
-    traefik_release_name: traefik
+    kubeconfig_path: "/home/victory/.kube/config"
+    helm_bin_path: "/usr/local/bin/helm"
+    kubectl_path: "/usr/local/bin/kubectl"
+    traefik_namespace: "kube-system"
+    traefik_release_name: "traefik"
     traefik_chart_version: "26.1.0"
-    traefik_values_file: "/tmp/traefik-values.yaml"
+    traefik_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
   tasks:
-
     - name: 📁 Asegurar directorio local files/
       file:
-        path: ./files/
+        path: "{{ playbook_dir }}/files"
         state: directory
 
     - name: 📄 Renderizar values.yaml desde plantilla
       template:
-        src: templates/traefik/values.yaml.j2
+        src: "../templates/traefik/values.yaml.j2"
         dest: "{{ traefik_values_file }}"
 
     - name: ❌ Desinstalar Traefik por defecto de K3s (si existe)
-      shell: >
-        kubectl delete helmcharts traefik -n kube-system || true
+      command: "{{ kubectl_path }} delete helmcharts traefik -n {{ traefik_namespace }}"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       ignore_errors: true
 
     - name: ➕ Añadir repositorio Helm de Traefik
-      shell: >
-        {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
-        {{ helm_bin_path }} repo update
+      shell: "{{ helm_bin_path }} repo add traefik https://traefik.github.io/charts && {{ helm_bin_path }} repo update"
 
     - name: 🚀 Instalar Traefik con Helm
       shell: >
@@ -40,6 +37,18 @@
         --namespace {{ traefik_namespace }}
         --create-namespace
         --version {{ traefik_chart_version }}
-        --values {{ traefik_values_file }}
+        -f {{ traefik_values_file }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: 🧪 Verificar conexión con el clúster Kubernetes
+      command: "{{ kubectl_path }} get nodes"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: kubectl_result
+      failed_when: kubectl_result.rc != 0
+      changed_when: false
+
+    - name: 📊 Mostrar resultado de kubectl
+      debug:
+        msg: "{{ kubectl_result.stdout }}"
