@@ -3,16 +3,14 @@
 - name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
   hosts: localhost
   become: false
-
   vars:
-    kubeconfig_path: "/home/victory/.kube/config"
-    helm_bin_path: "/usr/local/bin/helm"
-    kubectl_path: "/usr/local/bin/kubectl"
+    kubeconfig_path: /home/victory/.kube/config
+    helm_bin_path: /usr/local/bin/helm
+    kubectl_path: /usr/local/bin/kubectl
     traefik_namespace: kube-system
     traefik_release_name: traefik
     traefik_chart_version: "26.1.0"
     traefik_values_file: "/tmp/traefik-values.yaml"
-
   tasks:
 
     - name: 📁 Asegurar directorio local files/
@@ -33,26 +31,25 @@
       ignore_errors: true
 
     - name: ➕ Añadir repositorio Helm de Traefik
-      command: >
-        {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    - name: 🔄 Actualizar repositorios Helm
-      command: >
-        {{ helm_bin_path }} repo update
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+      shell: |
+        export PATH=$PATH:/usr/local/bin
+        helm repo add traefik https://traefik.github.io/charts
+        helm repo update
+      args:
+        executable: /bin/bash
 
     - name: 🚀 Instalar Traefik con Helm
-      command: >
-        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
-        --namespace {{ traefik_namespace }}
-        --create-namespace
-        --version {{ traefik_chart_version }}
-        --values {{ traefik_values_file }}
+      shell: |
+        export PATH=$PATH:/usr/local/bin
+        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
+          --namespace {{ traefik_namespace }} \
+          --create-namespace \
+          --version {{ traefik_chart_version }} \
+          --values {{ traefik_values_file }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+      args:
+        executable: /bin/bash
 
     - name: 🧪 Verificar conexión con el clúster Kubernetes
       command: "{{ kubectl_path }} get nodes"
