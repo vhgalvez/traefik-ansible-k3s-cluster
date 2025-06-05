@@ -1,12 +1,19 @@
 # vars/main.yml
 
+# 🔧 Helm y Kubernetes
+helm_bin_path: "/usr/local/bin/helm"
+kubeconfig_path: /etc/rancher/k3s/k3s.yaml  # Usamos el de master1, no el del host local
+
+# 📦 Traefik Helm Chart
 traefik_namespace: kube-system
 traefik_release_name: traefik
-traefik_chart_version: "23.1.0"
+traefik_chart_version: "26.1.0"
 traefik_values_file: "/tmp/traefik-values.yaml"
+
+# 🔐 Autenticación del Dashboard
 traefik_dashboard_secret_name: traefik-dashboard-secret
 traefik_auth_user: admin
 traefik_auth_pass: SuperPassword123
-helm_bin_path: "/usr/local/bin/helm"
-kubeconfig_path: /home/victory/.kube/config
+
+# 📧 Let's Encrypt
 letsencrypt_email: admin@socialdevs.site
