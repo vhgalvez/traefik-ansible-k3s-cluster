@@ -1,24 +1,18 @@
 # playbooks\deploy_traefik.yml
-- name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
+---
+
+- import_playbook: generate_traefik_secrets.yml
+- import_playbook: install_traefik.yml
+
+- name: Verificar despliegue de Traefik
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: 📁 Asegurar directorio local files/
-      file:
-        path: "{{ playbook_dir }}/files"
-        state: directory
+    - name: Verificar pods de Traefik
+      shell: |
+        kubectl get pods -n kube-system | grep traefik
+      register: traefik_status
 
-    - name: 📄 Renderizar values.yaml desde plantilla
-      template:
-        src: "../templates/traefik/values.yaml.j2"
-        dest: "{{ playbook_dir }}/files/traefik-values.yaml"
-
-    - name: ❌ Desinstalar Traefik por defecto de K3s (si existe)
-      command: "kubectl delete helmcharts traefik -n kube-system"
-      ignore_errors: true
-
-    - name: ➕ Añadir repositorio Helm de Traefik
-      shell: helm repo add traefik https://traefik.github.io/charts && helm repo update
-
-    - name: 🚀 Instalar Traefik con Helm
-      shell: helm upgrade --install traefik traefik/traefik              --namespace kube-system              --create-namespace              -f {{ playbook_dir }}/files/traefik-values.yaml
+    - name: Mostrar estado de Traefik
+      debug:
+        var: traefik_status.stdout_lines
