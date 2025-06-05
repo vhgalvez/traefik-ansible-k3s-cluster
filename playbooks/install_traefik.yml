@@ -1,64 +1,45 @@
 # playbooks/install_traefik.yml
-# 📄 Paso 1: Renderizar values.yaml en localhost
-- name: 📄 Renderizar plantilla values.yaml
+---
+- name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
   hosts: localhost
-  gather_facts: false
-  vars_files:
-    - ../vars/main.yml
+  become: false
   vars:
-    rendered_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
+    kubeconfig_path: /etc/rancher/k3s/k3s.yaml
+    helm_bin_path: /usr/local/bin/helm
+    traefik_namespace: kube-system
+    traefik_release_name: traefik
+    traefik_chart_version: "26.1.0"
+    traefik_values_file: "/tmp/traefik-values.yaml"
   tasks:
-    - name: 📁 Crear directorio de salida si no existe
+
+    - name: 📁 Asegurar directorio local files/
       file:
-        path: "{{ playbook_dir }}/files"
+        path: ./files/
         state: directory
-        mode: "0755"
 
     - name: 📄 Renderizar values.yaml desde plantilla
       template:
-        src: ../templates/traefik/values.yaml.j2
-        dest: "{{ rendered_values_file }}"
+        src: templates/traefik/values.yaml.j2
+        dest: "{{ traefik_values_file }}"
 
-# ❌ Paso 2: Eliminar Traefik por defecto de K3s (desde master1)
-- name: ❌ Desinstalar Traefik de K3s si existe
-  hosts: master1
-  gather_facts: false
-  vars_files:
-    - ../vars/main.yml
-  tasks:
-    - name: 🧼 Eliminar helmchart traefik (K3s)
-      raw: |
-        KUBECONFIG={{ kubeconfig_path }} kubectl delete helmcharts traefik -n kube-system || true
+    - name: ❌ Desinstalar Traefik por defecto de K3s (si existe)
+      shell: >
+        kubectl delete helmcharts traefik -n kube-system || true
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      ignore_errors: true
 
-    - name: 🧼 Eliminar deployment traefik (por si queda activo)
-      raw: |
-        KUBECONFIG={{ kubeconfig_path }} kubectl delete deployment traefik -n kube-system || true
-
-# 🚀 Paso 3: Instalar Traefik con Helm (en master1)
-- name: 🚀 Instalar Traefik con Helm
-  hosts: master1
-  gather_facts: false
-  vars_files:
-    - ../vars/main.yml
-  vars:
-    rendered_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
-  tasks:
-    - name: ➕ Añadir repositorio de Traefik
-      raw: |
-        helm repo add traefik https://traefik.github.io/charts || true
-        helm repo update
-
-    - name: 📁 Crear directorio de certificados ACME (si aplica)
-      raw: |
-        mkdir -p /data/traefik
-        touch /data/traefik/acme.json
-        chmod 600 /data/traefik/acme.json
+    - name: ➕ Añadir repositorio Helm de Traefik
+      shell: >
+        {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
+        {{ helm_bin_path }} repo update
 
     - name: 🚀 Instalar Traefik con Helm
-      raw: |
-        helm upgrade --install {{ traefik_release_name }} traefik/traefik \
-          --namespace {{ traefik_namespace }} \
-          --create-namespace=true \
-          --version {{ traefik_chart_version }} \
-          --values {{ rendered_values_file }} \
-          --kubeconfig {{ kubeconfig_path }}
+      shell: >
+        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
+        --namespace {{ traefik_namespace }}
+        --create-namespace
+        --version {{ traefik_chart_version }}
+        --values {{ traefik_values_file }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
