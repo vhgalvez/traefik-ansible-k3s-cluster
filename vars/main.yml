@@ -1,9 +1,5 @@
 # vars/main.yml
 
-# 🔧 Helm y Kubernetes
-helm_bin_path: "/usr/local/bin/helm"
-kubeconfig_path: /etc/rancher/k3s/k3s.yaml  # Usamos el de master1, no el del host local
-
 # 📦 Traefik Helm Chart
 traefik_namespace: kube-system
 traefik_release_name: traefik
