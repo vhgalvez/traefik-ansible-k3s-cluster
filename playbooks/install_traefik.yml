@@ -1,5 +1,5 @@
 # playbooks/install_traefik.yml
-- name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
+- name:  Instalar Traefik con Helm dentro del clúster K3s
   hosts: localhost
   gather_facts: false
   vars_files:
@@ -7,13 +7,9 @@
 
   vars:
     rendered_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
-    crt_local_path: "{{ playbook_dir }}/files/selfsigned.crt"
-    key_local_path: "{{ playbook_dir }}/files/selfsigned.key"
-    crt_remote_path: "/ssl/selfsigned.crt"
-    key_remote_path: "/ssl/selfsigned.key"
 
   tasks:
-    - name: 📁 Asegurar directorio local files/
+    - name:  Asegurar directorio local files/
       delegate_to: localhost
       run_once: true
       file:
@@ -21,70 +17,47 @@
         state: directory
         mode: "0755"
 
-    - name: 📄 Renderizar values.yaml desde plantilla
+    - name:  Renderizar values.yaml desde plantilla
       delegate_to: localhost
       run_once: true
       template:
         src: ../templates/traefik/values.yaml.j2
         dest: "{{ rendered_values_file }}"
 
-    - name: ❌ Desinstalar Traefik por defecto de K3s (si existe)
+    - name:  Desinstalar Traefik por defecto de K3s (si existe)
       ansible.builtin.raw: |
         kubectl delete helmchart traefik -n kube-system || true
         kubectl delete deployment traefik -n kube-system || true
 
-    - name: ➕ Añadir repositorio Helm de Traefik
+    - name:  Añadir repositorio Helm de Traefik
       delegate_to: localhost
       run_once: true
       shell: |
-        /usr/local/bin/helm repo add traefik https://traefik.github.io/charts || true
-        /usr/local/bin/helm repo update
+        {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts || true
+        {{ helm_bin_path }} repo update
       args:
         executable: /bin/bash
 
-    - name: 🔍 Verificar si el certificado ya existe
-      delegate_to: localhost
-      run_once: true
-      stat:
-        path: "{{ crt_local_path }}"
-      register: cert_stat
-
-    - name: 🔐 Generar certificados autofirmados wildcard (*.cefaslocalserver.com)
-      delegate_to: localhost
-      run_once: true
-      shell: |
-        openssl req -x509 -newkey rsa:4096 -sha256 -days 365 \
-          -nodes -keyout {{ key_local_path }} \
-          -out {{ crt_local_path }} \
-          -subj "/CN=*.cefaslocalserver.com" \
-          -addext "subjectAltName=DNS:*.cefaslocalserver.com,DNS:cefaslocalserver.com"
-      args:
-        executable: /bin/bash
-      when: not cert_stat.stat.exists
-
-    - name: 📁 Crear directorio remoto para certificados en nodo controller
+    - name:  Crear directorio ACME en master1 para certificados Let's Encrypt
       ansible.builtin.file:
-        path: /ssl
+        path: /data/traefik
         state: directory
         mode: "0755"
+      delegate_to: 10.17.4.21
 
-    - name: 📤 Subir certificado autofirmado
+    - name:  Crear archivo acme.json vacío (permite que Traefik lo use)
       ansible.builtin.copy:
-        src: "{{ crt_local_path }}"
-        dest: "{{ crt_remote_path }}"
-        mode: "0644"
-
-    - name: 🔑 Subir clave privada
-      ansible.builtin.copy:
-        src: "{{ key_local_path }}"
-        dest: "{{ key_remote_path }}"
+        content: ""
+        dest: /data/traefik/acme.json
         mode: "0600"
+        force: no
+      delegate_to: 10.17.4.21
 
-    - name: 🚀 Instalar Traefik con Helm
+    - name:  Instalar Traefik con Helm
       delegate_to: localhost
       run_once: true
       shell: |
-        /usr/local/bin/helm upgrade --install {{ traefik_release_name }} traefik/traefik \
+        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik \
           --namespace {{ traefik_namespace }} \
           --create-namespace=false \
           --version {{ traefik_chart_version }} \
