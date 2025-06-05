@@ -1,3 +1,4 @@
+# playbooks\install_traefik.yml
 ---
 - name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
   hosts: localhost
