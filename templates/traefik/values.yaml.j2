@@ -1,11 +1,6 @@
 # templates\traefik\values.yaml.j2
-
-additionalArguments:
-  - "--entrypoints.web.address=:80"
-  - "--entrypoints.websecure.address=:443"
-  - "--certificatesresolvers.le.acme.email={{ letsencrypt_email }}"
-  - "--certificatesresolvers.le.acme.storage=/data/acme.json"
-  - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+deployment:
+  kind: Deployment
 
 ports:
   web:
@@ -19,10 +14,10 @@ ingressRoute:
     enabled: true
     annotations:
       kubernetes.io/ingress.class: traefik
-      traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    labels: {}
-    entryPoints: ["websecure"]
-    middlewares: []
+    entryPoints: [websecure]
+    auth:
+      basic:
+        secret: traefik-dashboard-auth
 
 persistence:
   enabled: true
@@ -35,10 +30,21 @@ persistence:
 volumes:
   - name: acme-storage
     hostPath:
-      path: /var/lib/traefik
+      path: /data/traefik
       type: DirectoryOrCreate
 
 volumeMounts:
   - name: acme-storage
     mountPath: /data
     readOnly: false
+
+logs:
+  general:
+    level: INFO
+  access:
+    enabled: true
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    buckets: [0.1, 0.3, 1.2, 5.0]
