@@ -30,8 +30,8 @@
   tasks:
     - name: ❌ Borrar helmchart traefik de K3s
       raw: |
-        kubectl delete helmchart traefik -n kube-system || true
-        kubectl delete deployment traefik -n kube-system || true
+        KUBECONFIG={{ kubeconfig_path }} kubectl delete helmchart traefik -n kube-system || true
+        KUBECONFIG={{ kubeconfig_path }} kubectl delete deployment traefik -n kube-system || true
 
 - name: 📦 Instalar Traefik con Helm en master1
   hosts: master1
