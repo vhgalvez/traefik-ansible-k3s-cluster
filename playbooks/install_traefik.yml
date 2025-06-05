@@ -13,6 +13,7 @@
     helm_bin_path: "/usr/local/bin/helm"
     kubectl_bin_path: "/usr/local/bin/kubectl"
     traefik_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
+    env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
   tasks:
     - name: 📁 Asegurar directorio local files/
@@ -30,12 +31,15 @@
         {{ kubectl_bin_path }} delete helmcharts traefik -n kube-system
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+        PATH: "{{ env_path }}"
       ignore_errors: true
 
     - name: ➕ Añadir repositorio Helm de Traefik
       shell: >
         {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
         {{ helm_bin_path }} repo update
+      environment:
+        PATH: "{{ env_path }}"
 
     - name: 📦 Instalar Traefik desde Helm Chart
       shell: >
@@ -46,3 +50,4 @@
         --values {{ traefik_values_file }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+        PATH: "{{ env_path }}"
