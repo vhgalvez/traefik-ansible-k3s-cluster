@@ -1,18 +1,34 @@
-# playbooks\deploy_traefik.yml
+# playbooks/deploy_traefik.yml
 ---
+- name: 🔐 Generar Secret sellado para Traefik Dashboard
+  import_playbook: generate_traefik_secrets.yml
 
-- import_playbook: generate_traefik_secrets.yml
-- import_playbook: install_traefik.yml
+- name: 🚀 Instalar Traefik con Helm
+  import_playbook: install_traefik.yml
 
-- name: Verificar despliegue de Traefik
+- name: ✅ Verificar despliegue de Traefik
   hosts: localhost
   gather_facts: false
+  vars:
+    kubeconfig_path: "/home/victory/.kube/config"
+    kubectl_bin_path: "/usr/local/bin/kubectl"
   tasks:
-    - name: Verificar pods de Traefik
-      shell: |
-        kubectl get pods -n kube-system | grep traefik
+    - name: ⏳ Esperar pods de Traefik
+      shell: >
+        {{ kubectl_bin_path }} -n kube-system wait --for=condition=Ready pod
+        -l app.kubernetes.io/name=traefik --timeout=60s
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: wait_output
+      changed_when: false
+
+    - name: 🔍 Verificar estado de pods de Traefik
+      shell: >
+        {{ kubectl_bin_path }} get pods -n kube-system -l app.kubernetes.io/name=traefik
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
       register: traefik_status
 
-    - name: Mostrar estado de Traefik
+    - name: 🧾 Mostrar estado de Traefik
       debug:
         var: traefik_status.stdout_lines

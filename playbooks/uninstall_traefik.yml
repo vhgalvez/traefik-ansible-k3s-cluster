@@ -1,64 +1,37 @@
 # playbooks\uninstall_traefik.yml
-- name: Instalar Traefik con Helm dentro del clúster K3s
-  hosts: controller
+---
+- name: 🥹 Desinstalar Traefik del clúster K3s
+  hosts: localhost
   gather_facts: false
+
+  vars_files:
+    - ../vars/main.yml
+
   vars:
-    traefik_namespace: kube-system
-    traefik_release_name: traefik
-    traefik_chart_version: "23.1.0"
-    traefik_values_file: "/tmp/traefik-values.yaml"
     kubeconfig_path: "/home/victory/.kube/config"
+    helm_bin_path: "/usr/local/bin/helm"
+    kubectl_path: "/usr/local/bin/kubectl"
+    env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
   tasks:
-    - name: Asegurarse de que el directorio files/ exista localmente
-      delegate_to: localhost
-      run_once: true
-      file:
-        path: "{{ playbook_dir }}/files"
-        state: directory
-        mode: "0755"
+    - name: ❌ Desinstalar Traefik (Helm)
+      shell: >
+        {{ helm_bin_path }} uninstall {{ traefik_release_name }} --namespace {{ traefik_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+        PATH: "{{ env_path }}"
+      ignore_errors: true
 
-    - name: Renderizar values.yaml localmente con Jinja2
-      delegate_to: localhost
-      run_once: true
-      template:
-        src: ../templates/traefik/values.yaml.j2
-        dest: "{{ playbook_dir }}/files/traefik-values.yaml"
+    - name: ❌ Eliminar Sealed Secret del Dashboard
+      shell: >
+        {{ kubectl_path }} delete sealedsecret {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      ignore_errors: true
 
-    - name: Desinstalar Traefik instalado por defecto en K3s (si existe)
-      ansible.builtin.raw: |
-        kubectl delete helmchart traefik -n kube-system || true
-        kubectl delete deployment traefik -n kube-system || true
-
-    - name: Asegurarse de que el repo de Traefik esté añadido (local)
-      delegate_to: localhost
-      run_once: true
-      shell: |
-        /usr/local/bin/helm repo add traefik https://traefik.github.io/charts || true
-        /usr/local/bin/helm repo update
-      args:
-        executable: /bin/bash
-
-    - name: Crear Secret de Kubernetes para Traefik (si no existe)
-      kubectl:
-        api_version: v1
-        kind: Secret
-        name: traefik-dashboard-secret
-        namespace: kube-system
-        data:
-          traefik-dashboard-user: "{{ 'admin' | b64encode }}"
-          traefik-dashboard-pass: "{{ 'MiPasswordSegura' | b64encode }}"
-      ignore_errors: true  # Ignorar si ya existe el Secret
-
-    - name: Instalar Traefik con Helm desde localhost hacia el clúster
-      delegate_to: localhost
-      run_once: true
-      shell: |
-        /usr/local/bin/helm upgrade --install {{ traefik_release_name }} traefik/traefik \
-          --namespace {{ traefik_namespace }} \
-          --create-namespace=false \
-          --version {{ traefik_chart_version }} \
-          --values {{ playbook_dir }}/files/traefik-values.yaml \
-          --kubeconfig {{ kubeconfig_path }}
-      args:
-        executable: /bin/bash
+    - name: ❌ Eliminar Secret plano del Dashboard (fallback)
+      shell: >
+        {{ kubectl_path }} delete secret {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      ignore_errors: true

@@ -22,7 +22,8 @@ ingressRoute:
     enabled: true
     annotations:
       kubernetes.io/ingress.class: traefik
-    entryPoints: [websecure]
+    entryPoints:
+      - websecure
     auth:
       basic:
         secret: {{ traefik_dashboard_secret_name }}
@@ -34,19 +35,20 @@ persistence:
   accessMode: ReadWriteOnce
   size: 1Mi
   path: /data
-  storageClass: {{ traefik_storage_class | default('""') }}
+  {% if traefik_storage_class %}
+  storageClass: {{ traefik_storage_class }}
+  {% else %}
+  # Usar hostPath en lugar de StorageClass
+  volumes:
+    - name: acme-storage
+      hostPath:
+        path: {{ traefik_storage_path }}
+        type: DirectoryOrCreate
 
-  {% if traefik_storage_class | length == 0 %}
-volumes:
-  - name: acme-storage
-    hostPath:
-      path: {{ traefik_storage_path }}
-      type: DirectoryOrCreate
-
-volumeMounts:
-  - name: acme-storage
-    mountPath: /data
-    readOnly: false
+  volumeMounts:
+    - name: acme-storage
+      mountPath: /data
+      readOnly: false
   {% endif %}
 {% endif %}
 
@@ -59,4 +61,8 @@ logs:
 metrics:
   prometheus:
     entryPoint: metrics
-    buckets: [0.1, 0.3, 1.2, 5.0]
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
