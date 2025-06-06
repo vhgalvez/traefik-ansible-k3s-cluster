@@ -3,3 +3,6 @@
 rendered-secrets/*
 files/*.yaml
 !files/traefik-values.yaml
+playbooks/files/traefik-dashboard-*.yaml
+playbooks/files/*.crt
+playbooks/files/*.key

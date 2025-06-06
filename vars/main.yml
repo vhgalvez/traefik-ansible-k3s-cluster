@@ -11,5 +11,10 @@ traefik_dashboard_secret_name: traefik-dashboard-secret
 traefik_auth_user: admin
 traefik_auth_pass: SuperPassword123
 
+# 🧱 Persistencia del certificado Let's Encrypt
+traefik_storage_enabled: true
+traefik_storage_path: "/data/traefik"
+traefik_storage_class: ""     # Usa "" para hostPath, o define una clase dinámica
+
 # 📧 Let's Encrypt
 letsencrypt_email: admin@socialdevs.site

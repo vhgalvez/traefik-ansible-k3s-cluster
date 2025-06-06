@@ -2,6 +2,14 @@
 deployment:
   kind: Deployment
 
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+  metrics:
+    address: ":9100"
+
 ports:
   web:
     redirectTo: websecure
@@ -17,26 +25,30 @@ ingressRoute:
     entryPoints: [websecure]
     auth:
       basic:
-        secret: traefik-dashboard-auth
+        secret: {{ traefik_dashboard_secret_name }}
 
+{% if traefik_storage_enabled %}
 persistence:
   enabled: true
   name: acme-storage
   accessMode: ReadWriteOnce
   size: 1Mi
   path: /data
-  storageClass: ""
+  storageClass: {{ traefik_storage_class | default('""') }}
 
+  {% if traefik_storage_class | length == 0 %}
 volumes:
   - name: acme-storage
     hostPath:
-      path: /data/traefik
+      path: {{ traefik_storage_path }}
       type: DirectoryOrCreate
 
 volumeMounts:
   - name: acme-storage
     mountPath: /data
     readOnly: false
+  {% endif %}
+{% endif %}
 
 logs:
   general:

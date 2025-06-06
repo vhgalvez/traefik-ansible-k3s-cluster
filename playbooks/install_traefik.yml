@@ -26,8 +26,9 @@
         src: "../templates/traefik/values.yaml.j2"
         dest: "{{ traefik_values_file }}"
 
-    - name: ❌ Desinstalar Traefik por defecto de K3s (si existe)
-      shell: >
+    - name: ❌ Eliminar Traefik por defecto de K3s (si existe)
+      shell: |
+        {{ kubectl_bin_path }} get helmcharts traefik -n kube-system &&
         {{ kubectl_bin_path }} delete helmcharts traefik -n kube-system
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
@@ -51,3 +52,9 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
+
+    - name: ⏳ Esperar a que Traefik esté listo
+      shell: >
+        {{ kubectl_bin_path }} rollout status deploy/{{ traefik_release_name }} -n {{ traefik_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
