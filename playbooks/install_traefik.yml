@@ -12,8 +12,10 @@
     kubeconfig_path: "/home/victory/.kube/config"
     helm_bin_path: "/usr/local/bin/helm"
     kubectl_bin_path: "/usr/local/bin/kubectl"
-    traefik_values_file: "{{ playbook_dir }}/files/traefik-values.yaml"
     env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    files_dir: "{{ playbook_dir }}/files"
+    traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
+    sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
 
   tasks:
     - name: 📁 Asegurar directorio local files/
@@ -58,3 +60,12 @@
         {{ kubectl_bin_path }} rollout status deploy/{{ traefik_release_name }} -n {{ traefik_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+
+
+    - name: 📥 Aplicar Secret sellado de Traefik
+      shell: >
+        {{ kubectl_bin_path }} apply -f {{ sealed_secret_path }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+        PATH: "{{ env_path }}"
+      when: sealed_secret_path is defined
