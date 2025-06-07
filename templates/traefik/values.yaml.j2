@@ -1,4 +1,6 @@
 # templates\traefik\values.yaml.j2
+# values.yaml.j2
+
 deployment:
   kind: Deployment
 
@@ -12,7 +14,8 @@ entryPoints:
 
 ports:
   web:
-    redirectTo: websecure
+    redirectTo:
+      port: websecure   # Nueva sintaxis para redirigir de HTTP a HTTPS
   websecure:
     tls:
       enabled: true

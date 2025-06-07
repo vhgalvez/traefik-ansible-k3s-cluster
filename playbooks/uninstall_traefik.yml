@@ -35,3 +35,36 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       ignore_errors: true
+
+    - name: ❌ Eliminar ConfigMap de Traefik (si existe)
+      shell: >
+        {{ kubectl_path }} delete configmap traefik-config -n {{ traefik_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      ignore_errors: true
+
+    - name: ❌ Eliminar IngressRoute del Dashboard (si existe)
+      shell: >
+        {{ kubectl_path }} delete ingressroute traefik-dashboard -n {{ traefik_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      ignore_errors: true
+
+    - name: ❌ Eliminar PersistentVolumeClaims (PVCs) usados por Traefik (si se crearon)
+      shell: >
+        {{ kubectl_path }} delete pvc -n {{ traefik_namespace }} --selector=app=traefik
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      ignore_errors: true
+
+    - name: ❌ Eliminar Persistencia de Traefik (si fue habilitada)
+      shell: >
+        rm -rf /data/traefik
+      when: traefik_storage_enabled | bool
+      ignore_errors: true
+
+    - name: ✅ Verificar que todos los recursos de Traefik han sido eliminados
+      shell: >
+        {{ kubectl_path }} get all -n {{ traefik_namespace }} || echo "Todos los recursos de Traefik han sido eliminados."
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
