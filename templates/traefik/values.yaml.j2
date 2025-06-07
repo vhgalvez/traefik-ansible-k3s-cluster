@@ -12,7 +12,7 @@ entryPoints:
 ports:
   web:
     redirectTo:
-      port: websecure   # Nueva sintaxis para redirigir de HTTP a HTTPS
+      port: websecure
   websecure:
     tls:
       enabled: true
@@ -38,7 +38,6 @@ persistence:
   {% if traefik_storage_class %}
   storageClass: {{ traefik_storage_class }}
   {% else %}
-  # Usar hostPath en lugar de StorageClass
   volumes:
     - name: acme-storage
       hostPath:
@@ -61,4 +60,4 @@ logs:
 metrics:
   prometheus:
     entryPoint: metrics
-    buckets: [0.1, 0.3, 1.2, 5.0]
+    buckets: "{{ [0.1, 0.3, 1.2, 5.0] | join(',') }}"
