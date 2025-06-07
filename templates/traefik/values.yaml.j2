@@ -28,28 +28,12 @@ ingressRoute:
       basic:
         secret: {{ traefik_dashboard_secret_name }}
 
-{% if traefik_storage_enabled %}
 persistence:
   enabled: true
   name: acme-storage
   accessMode: ReadWriteOnce
   size: 1Mi
   path: /data
-  {% if traefik_storage_class %}
-  storageClass: {{ traefik_storage_class }}
-  {% else %}
-  volumes:
-    - name: acme-storage
-      hostPath:
-        path: {{ traefik_storage_path }}
-        type: DirectoryOrCreate
-
-  volumeMounts:
-    - name: acme-storage
-      mountPath: /data
-      readOnly: false
-  {% endif %}
-{% endif %}
 
 logs:
   general:
