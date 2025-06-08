@@ -1,22 +1,28 @@
 # playbooks/deploy_traefik.yml
 ---
+# 🔐 Fase 1: Generar Secret sellado para Traefik Dashboard
 - name: 🔐 Generar Secret sellado para Traefik Dashboard
   import_playbook: generate_traefik_secrets.yml
 
+# 🚀 Fase 2: Instalar Traefik con Helm (sin PVC)
 - name: 🚀 Instalar Traefik con Helm
   import_playbook: install_traefik.yml
 
-- name: ✅ Verificar despliegue de Traefik
+# ✅ Fase 2b: Verificar despliegue e instalar IngressRoute
+- name: ✅ Verificar despliegue de Traefik y exponer Dashboard
   hosts: localhost
   gather_facts: false
+
   vars:
     kubeconfig_path: "/home/victory/.kube/config"
     kubectl_bin_path: "/usr/local/bin/kubectl"
+    ingressroute_path: "{{ playbook_dir }}/files/traefik-dashboard-ingressroute.yaml"
+
   tasks:
-    - name: ⏳ Esperar pods de Traefik
+    - name: ⏳ Esperar a que Traefik esté listo
       shell: >
         {{ kubectl_bin_path }} -n kube-system wait --for=condition=Ready pod
-        -l app.kubernetes.io/name=traefik --timeout=60s
+        -l app.kubernetes.io/name=traefik --timeout=90s
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: wait_output
@@ -29,12 +35,12 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: traefik_status
 
-    - name: 🧾 Mostrar estado de Traefik
+    - name: 🧾 Mostrar estado de pods de Traefik
       debug:
         var: traefik_status.stdout_lines
-    
+
     - name: 🚪 Desplegar IngressRoute para Dashboard
       kubernetes.core.k8s:
         state: present
         namespace: kube-system
-        src: playbooks/files/traefik-dashboard-ingressroute.yaml
+        src: "{{ ingressroute_path }}"

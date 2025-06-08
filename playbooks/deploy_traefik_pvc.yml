@@ -1,6 +1,11 @@
-# playbooks\deploy_traefik_pvc.yml
----
-- name: 🔄 Reinstalar Traefik con almacenamiento persistente (values_pvc.yaml.j2)
+# playbooks/deploy_traefik_pvc.yml
+# =======================================================
+# 🔄 FASE 3: Reinstalación de Traefik CON PVC (modo final)
+# Asume que los secretos ya fueron generados en la Fase 1.
+# Usa almacenamiento persistente mediante values_pvc.yaml.j2
+# =======================================================
+
+- name: 🔄 Reinstalar Traefik con almacenamiento persistente
   hosts: localhost
   gather_facts: false
   become: false
@@ -16,6 +21,7 @@
     files_dir: "{{ playbook_dir }}/files"
     traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
     sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
+    ingressroute_path: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
 
   tasks:
     - name: 📁 Asegurar directorio files/
@@ -37,7 +43,7 @@
         PATH: "{{ env_path }}"
       ignore_errors: true
 
-    - name: 📦 Reinstalar Traefik desde Helm con almacenamiento persistente
+    - name: 📦 Instalar Traefik con Helm y almacenamiento persistente
       shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
         --namespace {{ traefik_namespace }}
@@ -54,15 +60,16 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    - name: 📥 Aplicar Secret sellado del Dashboard
+    - name: 📥 Aplicar Secret sellado del Dashboard (si existe)
       shell: >
         {{ kubectl_bin_path }} apply -f {{ sealed_secret_path }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
+      when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
 
     - name: 🚪 Desplegar IngressRoute del Dashboard
       kubernetes.core.k8s:
         state: present
         namespace: kube-system
-        src: "{{ playbook_dir }}/files/traefik-dashboard-ingressroute.yaml"
+        src: "{{ ingressroute_path }}"

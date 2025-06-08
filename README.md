@@ -4,7 +4,7 @@ Este proyecto instala **Traefik** como controlador de Ingress dentro de un clús
 
 - Desinstalación de Traefik por defecto (K3s).
 - Instalación con Helm (versión 23.1.0).
-- generación de certificados autofirmados.
+- Generación de certificados autofirmados.
 - Configuración de un VIP para acceso a servicios.
 - Autenticación básica en el dashboard vía middleware.
 
@@ -14,61 +14,62 @@ Este proyecto instala **Traefik** como controlador de Ingress dentro de un clús
 
 ```plaintext
 traefik-ansible-k3s-cluster/
-├── inventory.ini                     # Inventario Ansible con nodos controller y balanceadores
-├── group_vars/
-│   └── all.yml                      # Variables globales (namespace, versión chart, etc.)
+├── inventory/hosts.ini               # Inventario Ansible con nodos
+├── vars/main.yml                    # Variables globales
 ├── files/
-│   └── htpasswd.txt                # Credenciales para Basic Auth (admin)
+│   ├── traefik-dashboard-ingressroute.yaml
+│   ├── traefik-dashboard-sealed.yaml
+│   └── traefik-dashboard-secret.yaml
 ├── playbooks/
-│   └── install_traefik.yml         # Playbook principal
+│   ├── deploy_traefik.yml           # Fase 1 y 2: Genera secretos e instala Traefik sin PVC
+│   ├── deploy_traefik_pvc.yml       # Fase 3: Instalación final con PVC
+│   ├── generate_traefik_secrets.yml
+│   ├── install_traefik.yml
+│   └── uninstall_traefik.yml
 ├── templates/
+│   ├── secrets/traefik-dashboard-secret.yaml.j2
 │   └── traefik/
-│       └── values.yaml.j2          # Configuración de Traefik via Helm
-└── README.md                        # Esta documentación
+│       ├── values_nopvc.yaml.j2
+│       └── values_pvc.yaml.j2
+├── ansible.cfg
+└── README.md
 ```
 
 ---
 
 ## ⚙️ Requisitos
 
-- Ansible.
-- Acceso SSH a los nodos (usando claves privadas).
-- Clúster K3s ya desplegado.
-- Helm instalado en el nodo de control.
+- Ansible
+- Acceso SSH a los nodos (con claves privadas)
+- Clúster K3s ya desplegado
+- Helm instalado en el nodo de control
 
 ---
 
-## 🚀 Ejecución paso a paso
+## 🚀 Flujo de despliegue paso a paso
 
-### 1. Configuración inicial
-
-1. Edita tu inventario:
-
-   ```ini
-   [controller]
-   10.17.4.21 ansible_user=core ansible_ssh_private_key_file=/ruta/a/id_rsa ansible_shell_executable=/bin/sh
-   ```
-
-2. Asegúrate de tener el archivo `files/htpasswd.txt` con el siguiente contenido generado por `htpasswd`:
-
-   ```bash
-   htpasswd -nb admin MiPasswordSegura > files/htpasswd.txt
-   ```
-
-### 2. Despliegue de Traefik
-
-Ejecuta el playbook:
-
+### 🔐 FASE 1: Generación del Secret sellado (solo una vez)
 ```bash
-sudo ansible-playbook -i inventory/hosts.ini playbooks/deploy_traefik.yml
+ansible-playbook playbooks/generate_traefik_secrets.yml
 ```
 
+### 🚀 FASE 2: Despliegue inicial sin almacenamiento persistente (pruebas)
+```bash
+ansible-playbook playbooks/deploy_traefik.yml
+```
 
-### 3. Acceso al Dashboard de Traefik
+### 🔄 FASE 3: Reinstalación final con almacenamiento persistente (modo producción)
+```bash
+ansible-playbook playbooks/deploy_traefik_pvc.yml
+```
+
+---
+
+## 🌐 Acceso al Dashboard de Traefik
 
 - **URL:** `https://<second_vip>/dashboard/`
 - **Usuario:** `admin`
-- **Contraseña:** la definida en `htpasswd.txt`.
+- **Contraseña:** la definida en `htpasswd.txt`
 
 ---
 
@@ -77,46 +78,21 @@ sudo ansible-playbook -i inventory/hosts.ini playbooks/deploy_traefik.yml
 ### Certificados reales de Let's Encrypt
 
 Para usar certificados reales, cambia la URL del CA de staging por:
-
 ```plaintext
 https://acme-v02.api.letsencrypt.org/directory
 ```
 
 ### Generación de archivo `htpasswd.txt`
 
-#### Opción 1: Usar `htpasswd` (recomendado)
+**Opción recomendada (con htpasswd):**
+```bash
+htpasswd -nb admin MiPasswordSegura > files/htpasswd.txt
+```
 
-1. Instala `apache2-utils` (si no lo tienes):
-
-   - En Debian/Ubuntu:
-
-     ```bash
-     sudo apt install apache2-utils
-     ```
-
-   - En CentOS/RHEL:
-
-     ```bash
-     sudo yum install httpd-tools
-     ```
-
-2. Genera el archivo:
-
-   ```bash
-   htpasswd -nb admin MiPasswordSegura
-   ```
-
-3. Guarda el contenido generado en `files/htpasswd.txt`.
-
-#### Opción 2: Usar Python puro
-
-Ejecuta el siguiente comando:
-
+**Opción alternativa (Python):**
 ```bash
 python3 -c "import crypt; print('admin:' + crypt.crypt('MiPasswordSegura', crypt.mksalt(crypt.METHOD_MD5)))"
 ```
-
-Guarda el resultado en `files/htpasswd.txt`.
 
 ---
 
@@ -138,61 +114,16 @@ Usuario → Cloudflare (opcional) → WireGuard/VPN o red local
 
 ## 🟢 Configuración de DNS
 
-### CoreDNS externo
-
-- **IP:** 10.17.3.11.
-- Instalado manualmente con Ansible en AlmaLinux.
-- Configurado como servicio de `systemd`.
-- Corefile incluye:
-  - Hosts estáticos con IPs internas y nombres bajo `.cefaslocalserver.com`.
-  - Redirección al upstream público (8.8.8.8).
-
-Configura este DNS como primario en `/etc/resolv.conf` o vía DHCP:
-
-```bash
-nameserver 10.17.3.11
-nameserver 8.8.8.8
-```
+### CoreDNS externo (infra-cluster)
+- **IP:** 10.17.3.11
+- Configurado con hosts locales `.cefaslocalserver.com`
 
 ### CoreDNS interno (K3s)
-
-- Resuelve solo nombres de servicios internos de Kubernetes (`.svc.cluster.local`).
-- No requiere modificaciones adicionales.
+- Resuelve servicios `.svc.cluster.local`
 
 ---
 
-## ✅ Conclusión
-
-El proyecto `traefik-ansible-k3s-cluster`:
-
-- Está **preparado para producción**, con seguridad (TLS, auth).
-- Usa **Helm + Ansible** para mantener un despliegue declarativo y reproducible.
-- Integra **Middleware**, `IngressRoute`, y auto TLS para prácticas modernas.
-
-Puedes modificar el `values.yaml.j2` para añadir balanceo, rate-limiting, certificados personalizados o rutas adicionales según tus necesidades.
-
----
-
-## 🔐 Servicios Internos y Administrativos
-
-Para servicios internos o de administración (por ejemplo: dashboard de Traefik, consola de administración de aplicaciones, backends privados), considera las siguientes opciones:
-
-### Opciones de Protección
-
-1. **Usar otro dominio o subdominio**:
-   - Ejemplo: `admin.cefaslocalserver.com`.
-
-2. **Proteger con**:
-   - Autenticación básica (`htpasswd`).
-   - Lista de IPs permitidas (IP allowlist) en el middleware de Traefik.
-   - Certificados TLS de cliente (para un nivel enterprise).
-
-3. **Opcional**:
-   - Enrutar solo dentro de una VPN o LAN (no exponer por Internet).
-
----
-
-## 🔒 Recomendaciones de Seguridad
+## 🔒 Seguridad y buenas prácticas
 
 | Tipo de Servicio                     | Exposición                              | Protección Necesaria                          |
 |--------------------------------------|-----------------------------------------|-----------------------------------------------|
@@ -202,77 +133,33 @@ Para servicios internos o de administración (por ejemplo: dashboard de Traefik,
 
 ---
 
-## ✅ Resumen General del Setup de Traefik
+## ✅ Detalles Técnicos
 
-### 1. Despliegue de Traefik con Helm
-
-- Se instala Traefik en el namespace `kube-system` usando Helm.
-- Se desinstala previamente cualquier instancia instalada por defecto en K3s.
-- Se usa un archivo de configuración `values.yaml.j2` renderizado dinámicamente con Ansible.
-
-### 2. Puertos Expuestos por Traefik
-
-- **80 (HTTP):** Redirige automáticamente a 443.
-- **443 (HTTPS):** Sirve tráfico cifrado.
-- **8080:** Expone el panel interno de Traefik (aunque el dashboard está desactivado por seguridad).
-
-### 3. Certificados Autofirmados
-
-- Se generan certificados TLS wildcard `*.cefaslocalserver.com` con OpenSSL.
-- Estos se copian a la ruta `/ssl` en los nodos (o nodo donde corra el pod de Traefik).
-- Se configuran en `values.yaml.j2` como certificados predeterminados para todas las rutas TLS.
-
-### 4. Montaje del Volumen de Certificados
-
-- Se monta el directorio `/ssl` dentro del contenedor Traefik.
-- Se accede a los archivos `selfsigned.crt` y `selfsigned.key` desde ahí para usarlos como certificados por defecto.
-
-### 5. Configuración del Proveedor Kubernetes
-
-- Se activan los providers:
-  - **`kubernetesIngress`:** Permite usar recursos tipo Ingress tradicionales.
-  - **`kubernetesCRD`:** Permite usar IngressRoute, Middleware, etc. definidos con CRDs de Traefik.
-
-### 6. Log de Depuración
-
-- Se habilita el log en modo `DEBUG` para ayudar con el troubleshooting.
-
-### 7. Recursos del Deployment
-
-- **Réplicas:** 1 pod de Traefik (puedes escalar si necesitas alta disponibilidad).
-- **Recursos mínimos configurados:** 100m CPU y 128Mi RAM.
+- **Certificados:** autofirmados wildcard `*.cefaslocalserver.com`
+- **Log:** nivel `DEBUG`
+- **Proveedores activados:** `kubernetesIngress`, `kubernetesCRD`
+- **Puertos:** 80, 443 (Traefik), 8080 (dashboard opcional)
+- **Recursos:** 1 pod, 100m CPU, 128Mi RAM (ajustable)
 
 ---
 
-## 🧠 Qué Resuelve Este Setup
+## 🧠 Qué resuelve este setup
 
 | Problema                          | Solución                                   |
 |-----------------------------------|-------------------------------------------|
-| No tienes dominio público real    | Se usa un dominio falso local `cefaslocalserver.com`. |
-| Necesitas HTTPS                   | Se usan certificados autofirmados wildcard. |
-| Tienes múltiples subdominios      | Se usa `*.cefaslocalserver.com` para servir todos. |
-| Quieres enrutar servicios internos | Se usa Traefik + IngressRoute por dominio/subdominio. |
-| DNS interno                       | Se usa CoreDNS en infra-cluster para resolver los dominios locales. |
+| No tienes dominio público real    | Dominio local `cefaslocalserver.com`      |
+| Necesitas HTTPS                   | Certificados autofirmados wildcard        |
+| Tienes múltiples subdominios      | `*.cefaslocalserver.com`                  |
+| Quieres enrutar servicios internos| Traefik + IngressRoute + Middleware       |
+| DNS interno                       | CoreDNS con resolución LAN                |
 
 ---
 
-## 🗂️ Componentes Clave Relacionados
+## 🗂️ Componentes clave
 
-- **`traefik-values.yaml.j2`:** Configuración para Helm de Traefik.
-- **`install_traefik.yml`:** Playbook Ansible que:
-  - Renderiza el `values.yaml`.
-  - Genera certificados.
-  - Instala Traefik con Helm.
-- **`/ssl/`:** Directorio en los nodos con los certificados autofirmados.
-- **`coredns_setup.yml`:** Configura el DNS local para que `.cefaslocalserver.com` resuelva correctamente en la LAN.
-
-
-
-# 1. Secret cifrado (solo una vez)
-ansible-playbook playbooks/generate_traefik_secrets.yml
-
-# 2. Instalación SIN PVC (opcional, para pruebas)
-ansible-playbook playbooks/deploy_traefik.yml
-
-# 3. Instalación CON PVC (modo final, persistente)
-ansible-playbook playbooks/deploy_traefik_pvc.yml
+- `values_pvc.yaml.j2`: configuración final con almacenamiento
+- `generate_traefik_secrets.yml`: generación y cifrado del Secret (Fase 1)
+- `deploy_traefik.yml`: despliegue sin PVC (Fase 2)
+- `deploy_traefik_pvc.yml`: despliegue con PVC (Fase 3, final)
+- `/ssl/`: certificados TLS autofirmados
+- `CoreDNS`: DNS local para el dominio `.cefaslocalserver.com`
