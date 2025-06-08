@@ -14,7 +14,7 @@ Este proyecto instala **Traefik** como controlador de Ingress dentro de un clús
 
 ```plaintext
 traefik-ansible-k3s-cluster/
-├── inventory/hosts.ini               # Inventario Ansible con nodos
+├── inventory/hosts.ini              # Inventario Ansible con nodos
 ├── vars/main.yml                    # Variables globales
 ├── files/
 │   ├── traefik-dashboard-ingressroute.yaml
