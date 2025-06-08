@@ -1,4 +1,5 @@
 # playbooks/deploy_traefik.yml
+# fase 1 y fase 2 sin PVC
 ---
 # 🔐 Fase 1: Generar Secret sellado para Traefik Dashboard
 - name: 🔐 Generar Secret sellado para Traefik Dashboard
@@ -16,7 +17,7 @@
   vars:
     kubeconfig_path: "/home/victory/.kube/config"  # Ruta de kubeconfig
     kubectl_bin_path: "/usr/local/bin/kubectl"  # Ruta de kubectl
-    ingressroute_path: "{{ playbook_dir }}/files/traefik-dashboard-ingressroute.yaml"  # Ruta al archivo IngressRoute de Traefik
+    ingressroute_path: "{{ playbook_dir | dirname }}/files/traefik-dashboard-ingressroute.yaml" # Ruta al archivo IngressRoute de Traefik
 
   tasks:
     - name: ⏳ Esperar a que Traefik esté listo
