@@ -16,6 +16,6 @@ traefik_auth_pass: SuperPassword123
 # 📧 Let's Encrypt - correo para certificados
 letsencrypt_email: admin@socialdevs.site
 
-# 🧱 Opcional: Persistencia (solo aplica si usas values_pvc.yaml)
+# 🧱  Persistencia (solo aplica si usas values_pvc.yaml)
 traefik_storage_path: "/data"
 traefik_storage_class: "longhorn"
