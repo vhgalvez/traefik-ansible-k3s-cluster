@@ -155,6 +155,33 @@ Usuario → Cloudflare (opcional) → WireGuard/VPN o red local
 
 ---
 
+## 🧹 `uninstall_traefik.yml` – Propósito
+
+Este playbook permite **eliminar de forma segura y completa Traefik** del clúster K3s, incluyendo su release de Helm, secretos (sellados y planos), IngressRoute, PVCs y archivos locales de persistencia.
+
+---
+
+### 💡 ¿Cuándo usarlo?
+
+- 🔁 **Entornos de desarrollo**: Para resetear Traefik entre pruebas o cambios.
+- 🛠️ **Errores de instalación**: Si una fase del despliegue falló, puedes usarlo para limpiar y volver a empezar sin residuos.
+- 🚀 **Reinstalación rápida**: Después de ejecutarlo, puedes correr directamente:
+
+```bash
+# Reinstalación rápida en modo persistente (Fase 3)
+ansible-playbook playbooks/deploy_traefik_pvc.yml
+
+### ✔️ Características
+- ✅ Puede ejecutarse en cualquier fase (1, 2 o 3) sin causar errores.
+
+- ✅ Borra todos los recursos relacionados con Traefik de forma segura.
+
+- ✅ Ignora errores silenciosamente si algo ya fue eliminado.
+
+- ✅ Limpia volúmenes persistentes y secretos, evitando configuraciones huérfanas.
+
+---
+
 ## 🗂️ Componentes clave
 
 - `values_pvc.yaml.j2`: configuración final con almacenamiento
