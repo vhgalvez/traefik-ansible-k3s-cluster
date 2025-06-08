@@ -70,3 +70,14 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
       when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
+
+    - name: 🧾 Renderizar plantilla de Middleware traefik-auth
+      template:
+        src: "{{ playbook_dir | dirname }}/files/traefik-dashboard-middleware.yaml.j2"
+        dest: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+
+    - name: 🔐 Aplicar Middleware de autenticación básica para Dashboard
+      kubernetes.core.k8s:
+        state: present
+        namespace: kube-system
+        src: "{{ files_dir }}/traefik-dashboard-middleware.yaml"

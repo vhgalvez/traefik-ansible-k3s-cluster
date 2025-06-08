@@ -1,5 +1,5 @@
-# files\traefik-dashboard-ingressroute.yaml
-# Exposición del Dashboard de Traefik vía IngressRoute
+# files/traefik-dashboard-ingressroute.yaml
+# Exposición del Dashboard de Traefik vía IngressRoute con autenticación
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -16,5 +16,6 @@ spec:
           port: 9000
       middlewares:
         - name: traefik-auth
+          namespace: kube-system
   tls:
     certResolver: letsencrypt
