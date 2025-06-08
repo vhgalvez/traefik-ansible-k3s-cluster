@@ -75,9 +75,10 @@
       template:
         src: "{{ playbook_dir | dirname }}/files/traefik-dashboard-middleware.yaml.j2"
         dest: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-
+    
     - name: 🔐 Aplicar Middleware de autenticación básica para Dashboard
       kubernetes.core.k8s:
         state: present
         namespace: kube-system
         src: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+        kubeconfig: "{{ kubeconfig_path }}"
