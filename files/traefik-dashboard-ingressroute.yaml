@@ -1,0 +1,20 @@
+# Exposición del Dashboard de Traefik vía IngressRoute
+# files/traefik-dashboard-ingressroute.yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: kube-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`traefik.socialdevs.site`)
+      kind: Rule
+      services:
+        - name: traefik
+          port: 9000
+      middlewares:
+        - name: traefik-auth
+  tls:
+    certResolver: letsencrypt

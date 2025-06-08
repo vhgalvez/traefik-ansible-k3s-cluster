@@ -32,3 +32,9 @@
     - name: 🧾 Mostrar estado de Traefik
       debug:
         var: traefik_status.stdout_lines
+    
+    - name: 🚪 Desplegar IngressRoute para Dashboard
+      kubernetes.core.k8s:
+        state: present
+        namespace: kube-system
+        src: playbooks/files/traefik-dashboard-ingressroute.yaml

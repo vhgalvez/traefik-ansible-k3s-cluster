@@ -1,0 +1,68 @@
+# playbooks\deploy_traefik_pvc.yml
+---
+- name: 🔄 Reinstalar Traefik con almacenamiento persistente (values_pvc.yaml.j2)
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars_files:
+    - ../vars/main.yml
+
+  vars:
+    kubeconfig_path: "/home/victory/.kube/config"
+    helm_bin_path: "/usr/local/bin/helm"
+    kubectl_bin_path: "/usr/local/bin/kubectl"
+    env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    files_dir: "{{ playbook_dir }}/files"
+    traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
+    sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
+
+  tasks:
+    - name: 📁 Asegurar directorio files/
+      file:
+        path: "{{ files_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: 📄 Renderizar plantilla values_pvc.yaml.j2
+      template:
+        src: "../templates/traefik/values_pvc.yaml.j2"
+        dest: "{{ traefik_values_file }}"
+
+    - name: ❌ Eliminar despliegue anterior de Traefik (si existe)
+      shell: >
+        {{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+        PATH: "{{ env_path }}"
+      ignore_errors: true
+
+    - name: 📦 Reinstalar Traefik desde Helm con almacenamiento persistente
+      shell: >
+        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
+        --namespace {{ traefik_namespace }}
+        --create-namespace
+        --version {{ traefik_chart_version }}
+        --values {{ traefik_values_file }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+        PATH: "{{ env_path }}"
+
+    - name: ⏳ Esperar a que Traefik esté listo
+      shell: >
+        {{ kubectl_bin_path }} rollout status deploy/{{ traefik_release_name }} -n {{ traefik_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: 📥 Aplicar Secret sellado del Dashboard
+      shell: >
+        {{ kubectl_bin_path }} apply -f {{ sealed_secret_path }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+        PATH: "{{ env_path }}"
+
+    - name: 🚪 Desplegar IngressRoute del Dashboard
+      kubernetes.core.k8s:
+        state: present
+        namespace: kube-system
+        src: "{{ playbook_dir }}/files/traefik-dashboard-ingressroute.yaml"
