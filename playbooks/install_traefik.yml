@@ -16,8 +16,8 @@
     files_dir: "{{ playbook_dir }}/files"
     traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
     sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
-    # Cambia aquí la plantilla a usar según la fase:
-    traefik_values_template: "../templates/traefik/values_pvc.yaml.j2"
+    # Cambia la plantilla a usar para esta fase (sin PVC)
+    traefik_values_template: "../templates/traefik/values_nopvc.yaml.j2"  # Cambiar aquí a la plantilla sin PVC
 
   tasks:
     - name: 📁 Asegurar directorio local files/

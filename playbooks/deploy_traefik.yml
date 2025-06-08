@@ -2,11 +2,11 @@
 ---
 # 🔐 Fase 1: Generar Secret sellado para Traefik Dashboard
 - name: 🔐 Generar Secret sellado para Traefik Dashboard
-  import_playbook: generate_traefik_secrets.yml
+  import_playbook: generate_traefik_secrets.yml  # Genera el secret sellado necesario para el dashboard de Traefik
 
 # 🚀 Fase 2: Instalar Traefik con Helm (sin PVC)
 - name: 🚀 Instalar Traefik con Helm
-  import_playbook: install_traefik.yml
+  import_playbook: install_traefik.yml  # Instala Traefik en el clúster sin PVC
 
 # ✅ Fase 2b: Verificar despliegue e instalar IngressRoute
 - name: ✅ Verificar despliegue de Traefik y exponer Dashboard
@@ -14,33 +14,33 @@
   gather_facts: false
 
   vars:
-    kubeconfig_path: "/home/victory/.kube/config"
-    kubectl_bin_path: "/usr/local/bin/kubectl"
-    ingressroute_path: "{{ playbook_dir }}/files/traefik-dashboard-ingressroute.yaml"
+    kubeconfig_path: "/home/victory/.kube/config"  # Ruta de kubeconfig
+    kubectl_bin_path: "/usr/local/bin/kubectl"  # Ruta de kubectl
+    ingressroute_path: "{{ playbook_dir }}/files/traefik-dashboard-ingressroute.yaml"  # Ruta al archivo IngressRoute de Traefik
 
   tasks:
     - name: ⏳ Esperar a que Traefik esté listo
       shell: >
         {{ kubectl_bin_path }} -n kube-system wait --for=condition=Ready pod
-        -l app.kubernetes.io/name=traefik --timeout=90s
+        -l app.kubernetes.io/name=traefik --timeout=90s  # Espera a que el pod de Traefik esté listo
       environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+        KUBECONFIG: "{{ kubeconfig_path }}"  # Usa el kubeconfig correcto
       register: wait_output
       changed_when: false
 
     - name: 🔍 Verificar estado de pods de Traefik
       shell: >
-        {{ kubectl_bin_path }} get pods -n kube-system -l app.kubernetes.io/name=traefik
+        {{ kubectl_bin_path }} get pods -n kube-system -l app.kubernetes.io/name=traefik  # Muestra el estado de los pods de Traefik
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: traefik_status
 
     - name: 🧾 Mostrar estado de pods de Traefik
       debug:
-        var: traefik_status.stdout_lines
+        var: traefik_status.stdout_lines  # Muestra el resultado de los pods de Traefik
 
     - name: 🚪 Desplegar IngressRoute para Dashboard
       kubernetes.core.k8s:
         state: present
         namespace: kube-system
-        src: "{{ ingressroute_path }}"
+        src: "{{ ingressroute_path }}"  # Despliega el IngressRoute para el dashboard de Traefik
