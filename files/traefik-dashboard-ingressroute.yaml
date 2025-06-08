@@ -1,3 +1,4 @@
+# files\traefik-dashboard-ingressroute.yaml
 # Exposición del Dashboard de Traefik vía IngressRoute
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
