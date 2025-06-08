@@ -52,14 +52,14 @@
 
     - name: ❌ Eliminar PersistentVolumeClaims (PVCs) usados por Traefik (si se crearon)
       shell: >
-        {{ kubectl_path }} delete pvc -n {{ traefik_namespace }} --selector=app=traefik
+        {{ kubectl_path }} delete pvc -n {{ traefik_namespace }} --selector=app.kubernetes.io/name=traefik
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       ignore_errors: true
 
     - name: ❌ Eliminar Persistencia de Traefik (si fue habilitada)
       shell: >
-        rm -rf /data/traefik
+        rm -rf {{ traefik_storage_path }}
       when: traefik_storage_enabled | bool
       ignore_errors: true
 

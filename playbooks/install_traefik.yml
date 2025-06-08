@@ -16,16 +16,18 @@
     files_dir: "{{ playbook_dir }}/files"
     traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
     sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
+    # Cambia aquí la plantilla a usar según la fase:
+    traefik_values_template: "../templates/traefik/values_pvc.yaml.j2"
 
   tasks:
     - name: 📁 Asegurar directorio local files/
       file:
-        path: "{{ playbook_dir }}/files"
+        path: "{{ files_dir }}"
         state: directory
 
     - name: 📄 Renderizar values.yaml desde plantilla
       template:
-        src: "../templates/traefik/values.yaml.j2"
+        src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
     - name: ❌ Eliminar Traefik por defecto de K3s (si existe)
@@ -61,11 +63,10 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-
-    - name: 📥 Aplicar Secret sellado de Traefik
+    - name: 📥 Aplicar Secret sellado de Traefik (si existe)
       shell: >
         {{ kubectl_bin_path }} apply -f {{ sealed_secret_path }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
-      when: sealed_secret_path is defined
+      when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none

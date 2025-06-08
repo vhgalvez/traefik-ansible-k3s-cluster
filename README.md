@@ -266,3 +266,13 @@ Para servicios internos o de administración (por ejemplo: dashboard de Traefik,
 - **`/ssl/`:** Directorio en los nodos con los certificados autofirmados.
 - **`coredns_setup.yml`:** Configura el DNS local para que `.cefaslocalserver.com` resuelva correctamente en la LAN.
 
+
+
+# 1. Secret cifrado (solo una vez)
+ansible-playbook playbooks/generate_traefik_secrets.yml
+
+# 2. Instalación SIN PVC (opcional, para pruebas)
+ansible-playbook playbooks/deploy_traefik.yml
+
+# 3. Instalación CON PVC (modo final, persistente)
+ansible-playbook playbooks/deploy_traefik_pvc.yml
