@@ -1,5 +1,5 @@
 # playbooks\install_traefik.yml
-# fase 2 - Instalar Traefik con Helm en K3s 
+# fase 2 - Instalar Traefik con Helm en K3s
 ---
 - name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
   hosts: localhost
@@ -20,7 +20,6 @@
     traefik_values_template: "../templates/traefik/values_nopvc.yaml.j2"
 
   tasks:
-
     - name: 📁 Asegurar directorio local files/
       file:
         path: "{{ files_dir }}"
@@ -72,18 +71,6 @@
         PATH: "{{ env_path }}"
       when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
 
-    - name: 🧾 Renderizar plantilla de IngressRoute para Dashboard
-      template:
-        src: "{{ playbook_dir | dirname }}/files/traefik-dashboard-ingressroute.yaml.j2"
-        dest: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
-
-    - name: 🚪 Desplegar IngressRoute para Dashboard
-      kubernetes.core.k8s:
-        state: present
-        namespace: kube-system
-        src: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
-        kubeconfig: "{{ kubeconfig_path }}"
-
     - name: 🧾 Renderizar plantilla de Middleware traefik-auth
       template:
         src: "{{ playbook_dir | dirname }}/files/traefik-dashboard-middleware.yaml.j2"
@@ -94,4 +81,16 @@
         state: present
         namespace: kube-system
         src: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+        kubeconfig: "{{ kubeconfig_path }}"
+
+    - name: 🧾 Renderizar plantilla de IngressRoute para Dashboard
+      template:
+        src: "{{ playbook_dir | dirname }}/files/traefik-dashboard-ingressroute.yaml.j2"
+        dest: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
+
+    - name: 🚪 Desplegar IngressRoute para Dashboard
+      kubernetes.core.k8s:
+        state: present
+        namespace: kube-system
+        src: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
         kubeconfig: "{{ kubeconfig_path }}"
