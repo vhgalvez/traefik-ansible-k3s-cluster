@@ -11,9 +11,9 @@ spec:
   routes:
     - match: (Host(`traefik.socialdevs.site`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`)))
       kind: Rule
-      services:
-        - name: traefik
-          port: 9000
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
           namespace: kube-system
+      services:
+        - name: traefik
+          port: 9000
