@@ -82,9 +82,7 @@
     - name: 🔐 Aplicar Middleware de autenticación básica para Dashboard
       kubernetes.core.k8s:
         state: present
-        namespace: kube-system
-        src: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-        kubeconfig: "{{ kubeconfig_path }}"
+        definition: "{{ lookup('file', files_dir + '/traefik-dashboard-middleware.yaml') | from_yaml }}"
 
     - name: 🧾 Renderizar plantilla de IngressRoute para Dashboard
       template:
