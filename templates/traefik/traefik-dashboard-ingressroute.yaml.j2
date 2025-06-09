@@ -11,13 +11,13 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`traefik.socialdevs.site`) || PathPrefix(`/dashboard`)
+    - match: Host(`traefik.socialdevs.site`) && PathPrefix(`/dashboard`)
       kind: Rule
-      services:
-        - name: traefik
-          port: 9000
       middlewares:
-        - name: traefik-auth
-          namespace: kube-system
+        - name: {{ traefik_dashboard_middleware_name }}
+          namespace: {{ traefik_namespace }}
+      services:
+        - name: {{ traefik_release_name }}
+          port: 9000
   tls:
-    certResolver: letsencrypt
+    certResolver: {{ traefik_cert_resolver }}
