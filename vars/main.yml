@@ -19,3 +19,6 @@ letsencrypt_email: admin@socialdevs.site
 # 🧱  Persistencia (solo aplica si usas values_pvc.yaml)
 traefik_storage_path: "/data"
 traefik_storage_class: "longhorn"
+
+# Middleware de autenticación para el dashboard de Traefik
+traefik_dashboard_middleware_name: traefik-auth
