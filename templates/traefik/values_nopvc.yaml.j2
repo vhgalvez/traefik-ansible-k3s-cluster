@@ -10,7 +10,7 @@ additionalArguments:
   - "--entrypoints.metrics.address=:9100"
   - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
   - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-  - "--entrypoints.websecure.http.tls=true"  # 👈 IMPORTANTE: habilita TLS en websecure
+  - "--entrypoints.websecure.http.tls=true"
 
 logs:
   general:
@@ -28,17 +28,6 @@ metrics:
 service:
   enabled: true
   type: ClusterIP
-
-ingressRoute:
-  dashboard:
-    enabled: true
-    entryPoints: ["websecure"]
-    annotations:
-      kubernetes.io/ingress.class: traefik
-    middlewares:
-      - name: traefik-auth
-        namespace: kube-system
-    matchRule: Host(`traefik.socialdevs.site`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))
 
 securityContext:
   enabled: false
