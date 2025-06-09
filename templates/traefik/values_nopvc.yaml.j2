@@ -11,6 +11,23 @@ additionalArguments:
   - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
   - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
 
+logs:
+  general:
+    level: INFO
+  access:
+    enabled: true
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+
 service:
   enabled: true
   type: ClusterIP
@@ -25,21 +42,6 @@ ingressRoute:
       - name: traefik-auth
         namespace: kube-system
     matchRule: Host(`traefik.socialdevs.site`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))
-
-logs:
-  general:
-    level: INFO
-  access:
-    enabled: true
-
-metrics:
-  prometheus:
-    entryPoint: metrics
-    buckets:
-      - 0.1
-      - 0.3
-      - 1.2
-      - 5.0
 
 securityContext:
   enabled: false
