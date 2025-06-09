@@ -37,44 +37,57 @@ traefik-ansible-k3s-cluster/
 │   └── update-cloudflare-ip.sh      # Actualización dinámica de IP pública
 ├── ansible.cfg
 └── README.md
-⚙️ Requisitos
-Ansible
+```
 
-Acceso SSH a los nodos (con claves privadas)
+---
 
-Clúster K3s ya desplegado
+## ⚙️ Requisitos
 
-Helm instalado en el nodo de control
+- **Ansible**: Instalado en el nodo de control.
+- **Acceso SSH**: A los nodos con claves privadas.
+- **Clúster K3s**: Ya desplegado.
+- **Helm**: Instalado en el nodo de control.
 
-🔧 Flujo de despliegue paso a paso
-🔐 FASE 1: Generación del Secret sellado (solo una vez)
-bash
-Copiar
-Editar
+---
+
+## 🔧 Flujo de Despliegue Paso a Paso
+
+### 🔐 FASE 1: Generación del Secret Sellado (Solo una vez)
+
+```bash
 ansible-playbook playbooks/generate_traefik_secrets.yml
-🚀 FASE 2: Despliegue inicial sin almacenamiento persistente (modo prueba)
-bash
-Copiar
-Editar
+```
+
+### 🚀 FASE 2: Despliegue Inicial Sin Almacenamiento Persistente (Modo Prueba)
+
+```bash
 ansible-playbook playbooks/deploy_traefik.yml
-🏁 FASE 3: Despliegue final con almacenamiento persistente (producción)
-bash
-Copiar
-Editar
+```
+
+### 🏁 FASE 3: Despliegue Final Con Almacenamiento Persistente (Producción)
+
+```bash
 ansible-playbook playbooks/deploy_traefik_pvc.yml
-🌐 IPs y Asignaciones DHCP Estáticas
-Nombre	Dirección MAC	IP asignada	Rol
-loadbalancer1	52:54:00:aa:bb:cc	192.168.0.30	HAProxy + Keepalived (master)
-loadbalancer2	52:54:00:39:ae:c8	192.168.0.31	HAProxy + Keepalived (backup)
-api_vip	00:00:5e:00:01:10	192.168.0.32	VIP para Kubernetes API
-second_vip	00:00:5e:00:01:20	192.168.0.33	VIP para Traefik Ingress HTTP/HTTPS
+```
+
+---
+
+## 🌐 IPs y Asignaciones DHCP Estáticas
+
+| Nombre           | Dirección MAC         | IP Asignada     | Rol                              |
+|------------------|-----------------------|-----------------|----------------------------------|
+| loadbalancer1    | 52:54:00:aa:bb:cc    | 192.168.0.30    | HAProxy + Keepalived (master)   |
+| loadbalancer2    | 52:54:00:39:ae:c8    | 192.168.0.31    | HAProxy + Keepalived (backup)   |
+| api_vip          | 00:00:5e:00:01:10    | 192.168.0.32    | VIP para Kubernetes API         |
+| second_vip       | 00:00:5e:00:01:20    | 192.168.0.33    | VIP para Traefik Ingress HTTP/HTTPS |
 
 Estas IPs están definidas en el router doméstico como direcciones estáticas (DHCP reservado), asegurando consistencia incluso tras reinicios.
 
-🚦 Flujo de Red Externa e Interna
-plaintext
-Copiar
-Editar
+---
+
+## 🚦 Flujo de Red Externa e Interna
+
+```plaintext
 🖥️ Usuario externo
    │
    ├─ Acceso público:
@@ -96,44 +109,33 @@ Editar
         192.168.0.33 → VIP Ingress HTTP/HTTPS
              ↓
         Traefik Dashboard, Grafana, Prometheus, etc.
-⚠️ Importante: La VPN se utiliza exclusivamente para acceder a servicios internos de gestión (no públicos). El acceso general a servicios públicos se realiza sin VPN, a través de dominios resueltos por Cloudflare.
+```
 
-🌍 DNS Dinámico + Cloudflare
-Este proyecto funciona con IP pública dinámica, mediante actualización automática del DNS en Cloudflare usando el script update-cloudflare-ip.sh.
+⚠️ **Importante:** La VPN se utiliza exclusivamente para acceder a servicios internos de gestión (no públicos). El acceso general a servicios públicos se realiza sin VPN, a través de dominios resueltos por Cloudflare.
 
-Cron sugerido:
-bash
-Copiar
-Editar
-*/10 * * * * /ruta/a/update-cloudflare-ip.sh >> /var/log/cloudflare-dns.log 2>&1
-Variables necesarias:
-CF_API_TOKEN
+---
 
-CF_ZONE_ID
+## 🔐 Acceso al Dashboard de Traefik
 
-CF_RECORD_ID
+- **URL**: `https://<second_vip>/dashboard/`
+- **Usuario**: `admin`
+- **Contraseña**: definida en `htpasswd.txt`
 
-DNS_NAME
+### 🔏 Generación de archivo htpasswd
 
-🔐 Acceso al Dashboard de Traefik
-URL: https://<second_vip>/dashboard/
-
-Usuario: admin
-
-Contraseña: definida en htpasswd.txt
-
-🔏 Generación de archivo htpasswd
-bash
-Copiar
-Editar
+```bash
 htpasswd -nb admin MiPasswordSegura > files/htpasswd.txt
+```
+
 Alternativa en Python:
 
-bash
-Copiar
-Editar
+```bash
 python3 -c "import crypt; print('admin:' + crypt.crypt('MiPasswordSegura', crypt.mksalt(crypt.METHOD_MD5)))"
-🛠 Configuración avanzada
+```
+
+---
+
+## 🛠 Configuración avanzada
 
 ### Let's Encrypt (Modo Producción)
 
