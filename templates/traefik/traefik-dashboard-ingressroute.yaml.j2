@@ -5,19 +5,14 @@ kind: IngressRoute
 metadata:
   name: traefik-dashboard
   namespace: kube-system
-  labels:
-    app: traefik
 spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`traefik.socialdevs.site`) && PathPrefix(`/dashboard`)
+    - match: Host(`traefik.socialdevs.site`) && PathPrefix(`/dashboard`) || PathPrefix(`/api`)
       kind: Rule
+      services:
+        - name: traefik
+          port: 9000
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
-          namespace: {{ traefik_namespace }}
-      services:
-        - name: {{ traefik_release_name }}
-          port: 9000
-  tls:
-    certResolver: {{ traefik_cert_resolver }}
