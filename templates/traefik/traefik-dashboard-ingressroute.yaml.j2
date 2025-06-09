@@ -8,6 +8,8 @@ metadata:
 spec:
   entryPoints:
     - websecure
+  tls:
+    certResolver: default
   routes:
     - match: Host(`traefik.socialdevs.site`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))
       kind: Rule
