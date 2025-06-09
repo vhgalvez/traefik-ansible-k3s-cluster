@@ -134,34 +134,44 @@ Copiar
 Editar
 python3 -c "import crypt; print('admin:' + crypt.crypt('MiPasswordSegura', crypt.mksalt(crypt.METHOD_MD5)))"
 🛠 Configuración avanzada
-Let's Encrypt (modo producción)
-Cambia la URL del CA de staging por:
 
-plaintext
-Copiar
-Editar
+### Let's Encrypt (Modo Producción)
+
+Para usar certificados reales, cambia la URL del CA de staging por:
+
+```plaintext
 https://acme-v02.api.letsencrypt.org/directory
-🔄 uninstall_traefik.yml – Propósito
+```
+
+---
+
+### 🔄 Propósito de `uninstall_traefik.yml`
+
 Permite eliminar de forma segura Traefik, su release de Helm, secretos (sellados y planos), IngressRoute, PVCs y archivos persistentes.
 
-💡 Cuándo usarlo
-🔁 Resetear entornos de prueba
+#### 💡 Cuándo Usarlo
 
-🛠 Reintentar instalación fallida
+- 🔁 Resetear entornos de prueba.
+- 🛠 Reintentar instalación fallida.
+- 🚀 Reinstalación limpia antes de la Fase 3.
 
-🚀 Reinstalación limpia antes de Fase 3
-
-bash
-Copiar
-Editar
+```bash
 ansible-playbook playbooks/uninstall_traefik.yml
-🧠 Qué resuelve este setup
-Problema	Solución
-No tienes dominio público real	Dominio local socialdevs.site
-Necesitas HTTPS	Certificados autofirmados wildcard
-Múltiples subdominios	*.socialdevs.site
-Enrutamiento interno flexible	Traefik + IngressRoute + Middleware
-DNS interno	CoreDNS
+```
+
+---
+
+## 🧠 Qué Resuelve Este Setup
+
+| Problema                          | Solución                                   |
+|-----------------------------------|-------------------------------------------|
+| No tienes dominio público real    | Dominio local `socialdevs.site`.          |
+| Necesitas HTTPS                   | Certificados autofirmados wildcard.       |
+| Múltiples subdominios             | `*.socialdevs.site`.                      |
+| Enrutamiento interno flexible     | Traefik + IngressRoute + Middleware.      |
+| DNS interno                       | CoreDNS.                                  |
+
+---
 
 ## 🔒 Seguridad y Buenas Prácticas
 
@@ -182,16 +192,3 @@ DNS interno	CoreDNS
 - **Recursos:** 1 pod, 100m CPU, 128Mi RAM.
 - **Proveedores habilitados:** `kubernetesIngress`, `kubernetesCRD`.
 - **Puertos utilizados:** 80, 443, 8080.
-
----
-
-## 🗂️ Componentes Clave
-
-- **`values_pvc.yaml.j2`:** Configuración con almacenamiento persistente.
-- **`generate_traefik_secrets.yml`:** Generación y cifrado del Secret (Fase 1).
-- **`deploy_traefik.yml`:** Despliegue sin almacenamiento (Fase 2).
-- **`deploy_traefik_pvc.yml`:** Despliegue con PVC (Fase 3).
-- **`uninstall_traefik.yml`:** Limpieza total del entorno.
-- **`update-cloudflare-ip.sh`:** Sincronización dinámica con Cloudflare.
-- **`/ssl/`:** Certificados autofirmados.
-- **CoreDNS:** Servidor DNS local.
