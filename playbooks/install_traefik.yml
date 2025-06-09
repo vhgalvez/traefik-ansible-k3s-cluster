@@ -24,17 +24,17 @@
   tasks:
 
     - name: 📁 Asegurar directorio local files/
-      file:
+      ansible.builtin.file:
         path: "{{ files_dir }}"
         state: directory
 
     - name: 📄 Renderizar values.yaml desde plantilla
-      template:
+      ansible.builtin.template:
         src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
     - name: ❌ Eliminar Traefik por defecto de K3s (si existe)
-      shell: |
+      ansible.builtin.shell: |
         {{ kubectl_bin_path }} get helmcharts traefik -n kube-system &&
         {{ kubectl_bin_path }} delete helmcharts traefik -n kube-system
       environment:
@@ -43,14 +43,14 @@
       ignore_errors: true
 
     - name: ➕ Añadir repositorio Helm de Traefik
-      shell: >
+      ansible.builtin.shell: >
         {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
         {{ helm_bin_path }} repo update
       environment:
         PATH: "{{ env_path }}"
 
     - name: 📦 Instalar Traefik desde Helm Chart
-      shell: >
+      ansible.builtin.shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
         --namespace {{ traefik_namespace }}
         --create-namespace
@@ -61,21 +61,21 @@
         PATH: "{{ env_path }}"
 
     - name: ⏳ Esperar a que Traefik esté listo
-      shell: >
+      ansible.builtin.shell: >
         {{ kubectl_bin_path }} rollout status deploy/{{ traefik_release_name }} -n {{ traefik_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
     - name: 📥 Aplicar Secret sellado de Traefik (si existe)
-      shell: >
-        {{ kubectl_bin_path }} apply -f {{ sealed_secret_path }}
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-        PATH: "{{ env_path }}"
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ kubeconfig_path }}"
+        src: "{{ sealed_secret_path }}"
+        namespace: "{{ traefik_namespace }}"
       when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
 
     - name: 🗒️ Renderizar plantilla de Middleware traefik-auth
-      template:
+      ansible.builtin.template:
         src: "{{ middleware_template }}"
         dest: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
 
@@ -83,15 +83,17 @@
       kubernetes.core.k8s:
         state: present
         definition: "{{ lookup('file', files_dir + '/traefik-dashboard-middleware.yaml') | from_yaml }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+        namespace: "{{ traefik_namespace }}"
 
     - name: 🧾 Renderizar plantilla de IngressRoute para Dashboard
-      template:
+      ansible.builtin.template:
         src: "{{ ingressroute_template }}"
         dest: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
 
     - name: 🚪 Desplegar IngressRoute para Dashboard
       kubernetes.core.k8s:
         state: present
-        namespace: kube-system
+        namespace: "{{ traefik_namespace }}"
         src: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
         kubeconfig: "{{ kubeconfig_path }}"
