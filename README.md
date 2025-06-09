@@ -163,36 +163,35 @@ Múltiples subdominios	*.socialdevs.site
 Enrutamiento interno flexible	Traefik + IngressRoute + Middleware
 DNS interno	CoreDNS
 
-🔒 Seguridad y buenas prácticas
-Servicio	Exposición	Protección Requerida
-Público (APIs, webs)	Ingress (Traefik) + VIP externo	HTTPS + Firewall + dominio + IP dinámica
-Privado (Traefik UI, Admin)	Solo VPN/LAN o IP filtrada	htpasswd, TLS, firewall IP
-Interno (DB, etc)	Solo ClusterIP	Sin Ingress
+## 🔒 Seguridad y Buenas Prácticas
 
-✅ Detalles Técnicos
-Certificados: autofirmados wildcard *.socialdevs.site
+### Recomendaciones de Seguridad
 
-Dashboard: puerto 8080 (opcional)
+| Servicio                          | Exposición                              | Protección Requerida                       |
+|-----------------------------------|-----------------------------------------|--------------------------------------------|
+| **Público** (APIs, webs)          | Ingress (Traefik) + VIP externo         | HTTPS + Firewall + Dominio + IP dinámica   |
+| **Privado** (Traefik UI, Admin)   | Solo VPN/LAN o IP filtrada              | `htpasswd`, TLS, Firewall IP               |
+| **Interno** (DB, etc.)            | Solo `ClusterIP`                        | Sin Ingress                                |
 
-Recursos: 1 pod, 100m CPU, 128Mi RAM
+---
 
-Proveedores habilitados: kubernetesIngress, kubernetesCRD
+## ✅ Detalles Técnicos
 
-Puertos utilizados: 80, 443, 8080
+- **Certificados:** Autofirmados wildcard `*.socialdevs.site`.
+- **Dashboard:** Puerto 8080 (opcional).
+- **Recursos:** 1 pod, 100m CPU, 128Mi RAM.
+- **Proveedores habilitados:** `kubernetesIngress`, `kubernetesCRD`.
+- **Puertos utilizados:** 80, 443, 8080.
 
-🗂️ Componentes clave
-values_pvc.yaml.j2: configuración con almacenamiento persistente
+---
 
-generate_traefik_secrets.yml: generación + cifrado del Secret (Fase 1)
+## 🗂️ Componentes Clave
 
-deploy_traefik.yml: despliegue sin almacenamiento (Fase 2)
-
-deploy_traefik_pvc.yml: despliegue con PVC (Fase 3)
-
-uninstall_traefik.yml: limpieza total del entorno
-
-update-cloudflare-ip.sh: sincronización dinámica con Cloudflare
-
-/ssl/: certificados autofirmados
-
-CoreDNS: servidor DNS local
+- **`values_pvc.yaml.j2`:** Configuración con almacenamiento persistente.
+- **`generate_traefik_secrets.yml`:** Generación y cifrado del Secret (Fase 1).
+- **`deploy_traefik.yml`:** Despliegue sin almacenamiento (Fase 2).
+- **`deploy_traefik_pvc.yml`:** Despliegue con PVC (Fase 3).
+- **`uninstall_traefik.yml`:** Limpieza total del entorno.
+- **`update-cloudflare-ip.sh`:** Sincronización dinámica con Cloudflare.
+- **`/ssl/`:** Certificados autofirmados.
+- **CoreDNS:** Servidor DNS local.
