@@ -1,4 +1,4 @@
-# templates\traefik\traefik-dashboard-ingressroute.yaml.j2
+# templates/traefik/traefik-dashboard-ingressroute.yaml.j2
 # Exposición del Dashboard de Traefik vía IngressRoute con autenticación
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
@@ -16,3 +16,4 @@ spec:
           port: 9000
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
+          namespace: kube-system

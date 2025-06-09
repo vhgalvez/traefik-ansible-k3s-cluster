@@ -66,6 +66,11 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
+    - name: 📦 Verificar existencia del archivo SealedSecret
+      ansible.builtin.debug:
+        msg: "Archivo encontrado: {{ sealed_secret_path }}"
+      when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
+
     - name: 📥 Aplicar Secret sellado de Traefik (si existe)
       kubernetes.core.k8s:
         state: present
