@@ -23,6 +23,11 @@
     traefik_dashboard_middleware_name: "{{ lookup('vars', 'traefik_dashboard_middleware_name') }}"
 
   tasks:
+    - name: ➕ Añadir repositorio Helm de Traefik
+      ansible.builtin.shell: >
+        {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
+        {{ helm_bin_path }} repo update
+
     - name: 📁 Asegurar directorio local files/
       ansible.builtin.file:
         path: "{{ files_dir }}"
