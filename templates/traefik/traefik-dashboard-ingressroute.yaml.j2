@@ -1,4 +1,4 @@
-# files/traefik-dashboard-ingressroute.yaml
+# templates\traefik\traefik-dashboard-ingressroute.yaml.j2
 # Exposición del Dashboard de Traefik vía IngressRoute con autenticación
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
@@ -9,7 +9,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`traefik.socialdevs.site`) && PathPrefix(`/dashboard`) || PathPrefix(`/api`)
+    - match: (Host(`traefik.socialdevs.site`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`)))
       kind: Rule
       services:
         - name: traefik
