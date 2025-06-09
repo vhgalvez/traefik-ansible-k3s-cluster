@@ -1,4 +1,4 @@
-# templates\traefik\values_nopvc.yaml.j2
+# templates/traefik/values_nopvc.yaml.j2
 deployment:
   kind: Deployment
 
@@ -26,16 +26,10 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
 
+# ❌ Desactivamos el IngressRoute automático para el dashboard (lo gestionas tú manualmente)
 ingressRoute:
   dashboard:
-    enabled: true
-    annotations:
-      kubernetes.io/ingress.class: traefik
-    entryPoints:
-      - websecure
-    auth:
-      basic:
-        secret: {{ traefik_dashboard_secret_name }}
+    enabled: false
 
 logs:
   general:
