@@ -20,9 +20,9 @@
     traefik_values_template: "../templates/traefik/values_nopvc.yaml.j2"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute.yaml.j2"
+    traefik_dashboard_middleware_name: "{{ lookup('vars', 'traefik_dashboard_middleware_name') }}"
 
   tasks:
-
     - name: 📁 Asegurar directorio local files/
       ansible.builtin.file:
         path: "{{ files_dir }}"
