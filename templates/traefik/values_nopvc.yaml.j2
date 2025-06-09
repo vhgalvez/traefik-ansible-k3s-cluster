@@ -10,7 +10,7 @@ additionalArguments:
   - "--entrypoints.metrics.address=:9100"
   - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
   - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-  - "--entrypoints.websecure.http.tls=true"  # 👈 AÑADIDO para habilitar TLS
+  - "--entrypoints.websecure.http.tls=true"  # 👈 IMPORTANTE: habilita TLS en websecure
 
 logs:
   general:
