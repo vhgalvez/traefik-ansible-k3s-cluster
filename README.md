@@ -157,9 +157,9 @@ Editar
 ansible-playbook playbooks/uninstall_traefik.yml
 🧠 Qué resuelve este setup
 Problema	Solución
-No tienes dominio público real	Dominio local cefaslocalserver.com
+No tienes dominio público real	Dominio local socialdevs.site
 Necesitas HTTPS	Certificados autofirmados wildcard
-Múltiples subdominios	*.cefaslocalserver.com
+Múltiples subdominios	*.socialdevs.site
 Enrutamiento interno flexible	Traefik + IngressRoute + Middleware
 DNS interno	CoreDNS
 
@@ -170,7 +170,7 @@ Privado (Traefik UI, Admin)	Solo VPN/LAN o IP filtrada	htpasswd, TLS, firewall I
 Interno (DB, etc)	Solo ClusterIP	Sin Ingress
 
 ✅ Detalles Técnicos
-Certificados: autofirmados wildcard *.cefaslocalserver.com
+Certificados: autofirmados wildcard *.socialdevs.site
 
 Dashboard: puerto 8080 (opcional)
 
