@@ -125,7 +125,7 @@
         mkdir -p /opt/traefik/acme && \
         chown 1000:1000 /opt/traefik/acme && \
         chmod 0755 /opt/traefik/acme
-      delegate_to: master1
+      delegate_to: "{{ hostvars['master1']['ansible_host'] }}"
       become: true # Necesitas sudo para escribir en /opt
       register: create_acme_dir_result
       failed_when: create_acme_dir_result.rc != 0 and "File exists" not in create_acme_dir_result.stderr
@@ -134,7 +134,7 @@
     - name: 📋 Verificar existencia y permisos de /opt/traefik/acme en master1 (Flatcar compatible)
       ansible.builtin.raw: |
         ls -ld /opt/traefik/acme
-      delegate_to: master1
+      delegate_to: "{{ hostvars['master1']['ansible_host'] }}"
       become: true # Para leer permisos si no es público
       register: check_acme_dir_result
 
