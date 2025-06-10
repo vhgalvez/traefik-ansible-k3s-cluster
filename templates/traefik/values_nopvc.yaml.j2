@@ -46,8 +46,10 @@ volumes:
       type: DirectoryOrCreate
 
 volumeMounts:
-  - mountPath: /data
-    name: acme-storage
+  - name: acme-storage
+    mountPath: /data
+    subPath: traefik-acme.json
+    readOnly: false
 
 additionalArguments:
   - "--entrypoints.web.address=:80"
