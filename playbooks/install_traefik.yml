@@ -118,3 +118,11 @@
         namespace: "{{ traefik_namespace }}"
         src: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
         kubeconfig: "{{ kubeconfig_path }}"
+
+    - name: 📁 Crear directorio /opt/traefik/acme en master1
+      ansible.builtin.file:
+        path: /opt/traefik/acme
+        state: directory
+        mode: '0755'
+      delegate_to: controller
+      become: true
