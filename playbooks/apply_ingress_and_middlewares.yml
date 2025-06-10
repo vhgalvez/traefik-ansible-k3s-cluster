@@ -11,7 +11,7 @@
   tasks:
     - name: 📄 Renderizar middleware de headers seguros
       template:
-        src: templates/traefik/middleware-secure-headers.yaml.j2
+        src: ../templates/traefik/middleware-secure-headers.yaml.j2
         dest: /tmp/middleware-secure-headers.yaml
 
     - name: 🚀 Aplicar middleware seguro
