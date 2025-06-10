@@ -94,7 +94,7 @@
 
     - name: 🧱 Crear carpeta en master1 para los certificados
       ansible.builtin.raw: mkdir -p /etc/traefik/certs
-      delegate_to: "{{ remote_host }}"
+      delegate_to: "{{ master1_ip }}"
       become: true
 
     - name: 📤 Copiar traefik.crt a master1
