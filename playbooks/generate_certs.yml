@@ -1,4 +1,6 @@
 # playbooks\generate_certs.yml
+# fase 1a: Generar certificados autofirmados para Traefik
+#   import_playbook: generate_certs.yml
 ---
 - name: 🛡️ Generar certificados wildcard autofirmados para Traefik
   hosts: localhost
@@ -14,6 +16,7 @@
     common_name: "*.socialdevs.site"
     san_file: "/tmp/san.cnf"
     force_recreate: false # Cambia a true para forzar regeneración
+    remote_host: "master1.socialdevs.site"  # Puedes usar IP: "10.17.4.21"
 
   tasks:
     - name: 📁 Crear directorio de certificados
@@ -86,3 +89,28 @@
       file:
         path: "{{ san_file }}"
         state: absent
+
+    - name: 🧱 Crear carpeta en master1 para los certificados
+      ansible.builtin.raw: mkdir -p /etc/traefik/certs
+      delegate_to: "{{ remote_host }}"
+      become: true
+
+    - name: 📤 Copiar traefik.crt a master1
+      ansible.builtin.copy:
+        src: "{{ certs_dir }}/{{ cert_name }}.crt"
+        dest: "/etc/traefik/certs/{{ cert_name }}.crt"
+        owner: root
+        group: root
+        mode: '0644'
+      delegate_to: "{{ master1_ip }}"
+      become: true
+
+    - name: 📤 Copiar traefik.key a master1
+      ansible.builtin.copy:
+        src: "{{ certs_dir }}/{{ cert_name }}.key"
+        dest: "/etc/traefik/certs/{{ cert_name }}.key"
+        owner: root
+        group: root
+        mode: '0600'
+      delegate_to: "{{ master1_ip }}"
+      become: true
