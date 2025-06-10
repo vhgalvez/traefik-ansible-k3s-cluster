@@ -34,7 +34,7 @@
 
     - name: 📄 Renderizar ingress público
       template:
-        src: templates/traefik/ingressroute-public.yaml.j2
+        src: ../templates/traefik/ingressroute-public.yaml.j2
         dest: /tmp/ingress-public.yaml
 
     - name: 🌐 Aplicar ingress público
