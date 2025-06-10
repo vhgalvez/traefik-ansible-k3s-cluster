@@ -22,3 +22,5 @@ traefik_storage_class: "longhorn"
 internal_tls_secret_name: internal-tls-secret
 
 app_name: traefik
+
+internal_domain: internal.socialdevs.site
