@@ -20,3 +20,5 @@ traefik_storage_path: "/data"
 traefik_storage_class: "longhorn"
 
 internal_tls_secret_name: internal-tls-secret
+
+app_name: traefik
