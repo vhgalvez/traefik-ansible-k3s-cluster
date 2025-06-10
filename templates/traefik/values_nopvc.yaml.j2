@@ -39,18 +39,6 @@ entryPoints:
   metrics:
     address: ":9100"
 
-volumes:
-  - name: acme-storage
-    hostPath:
-      path: /opt/traefik/acme
-      type: DirectoryOrCreate
-
-volumeMounts:
-  - name: acme-storage
-    mountPath: /data
-    subPath: traefik-acme.json
-    readOnly: false
-
 additionalArguments:
   - "--entrypoints.web.address=:80"
   - "--entrypoints.websecure.address=:443"
@@ -58,3 +46,14 @@ additionalArguments:
   - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
   - "--certificatesresolvers.letsencrypt.acme.email={{ letsencrypt_email }}"
   - "--certificatesresolvers.letsencrypt.acme.storage=/data/traefik-acme.json"
+
+additionalVolumeMounts:
+  - name: acme-storage
+    mountPath: /data
+    readOnly: false
+
+additionalVolumes:
+  - name: acme-storage
+    hostPath:
+      path: /opt/traefik/acme
+      type: DirectoryOrCreate
