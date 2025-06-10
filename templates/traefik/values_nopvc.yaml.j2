@@ -24,9 +24,7 @@ securityContext:
 
 tls:
   enabled: true
-  generateTLS: false
-
-# ✅ Entrypoints correctos
+  
 entryPoints:
   web:
     address: ":80"
@@ -40,7 +38,6 @@ entryPoints:
   metrics:
     address: ":9100"
 
-# ✅ Let's Encrypt configurado como certResolver
 certificatesResolvers:
   letsencrypt:
     acme:

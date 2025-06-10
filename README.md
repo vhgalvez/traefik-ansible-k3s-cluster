@@ -158,7 +158,7 @@ Permite eliminar de forma segura Traefik, su release de Helm, secretos (sellados
 - 🚀 Reinstalación limpia antes de la Fase 3.
 
 ```bash
-ansible-playbook playbooks/uninstall_traefik.yml
+sudo ansible-playbook playbooks/uninstall_traefik.yml
 ```
 
 ---
