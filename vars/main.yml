@@ -30,3 +30,5 @@ service_name: traefik
 service_port: 80
 
 public_domain: home.socialdevs.site
+
+master1_ip: "10.17.4.21"
