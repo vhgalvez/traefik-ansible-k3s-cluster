@@ -42,17 +42,17 @@ entryPoints:
 volumes:
   - name: acme-storage
     hostPath:
-      path: "/etc/traefik/acme"
+      path: /opt/traefik/acme
       type: DirectoryOrCreate
 
 volumeMounts:
-  - name: acme-storage
-    mountPath: "/etc/traefik/acme/traefik-acme.json"
-    subPath: "traefik-acme.json"
-    readOnly: false
+  - mountPath: /data
+    name: acme-storage
 
-certificatesResolvers:
-  letsencrypt:
-    acme:
-      email: "{{ letsencrypt_email }}"
-      storage: "/etc/traefik/acme/traefik-acme.json"
+additionalArguments:
+  - "--entrypoints.web.address=:80"
+  - "--entrypoints.websecure.address=:443"
+  - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+  - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+  - "--certificatesresolvers.letsencrypt.acme.email={{ letsencrypt_email }}"
+  - "--certificatesresolvers.letsencrypt.acme.storage=/data/traefik-acme.json"
