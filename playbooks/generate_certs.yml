@@ -10,7 +10,7 @@
     - ../vars/main.yml
 
   vars:
-    certs_dir: "/files/certs"
+    certs_dir: "./files/certs"
     cert_name: "traefik"
     country: "ES"
     state: "Madrid"
@@ -92,27 +92,27 @@
         path: "{{ san_file }}"
         state: absent
 
-    - name: 📱 Crear carpeta en master1 para los certificados
-      ansible.builtin.raw: mkdir -p /etc/traefik/certs
+    - name: 📁 Crear carpeta remota para certificados en master1
+      ansible.builtin.raw: mkdir -p /etc/traefik/certs && chmod 755 /etc/traefik/certs
       delegate_to: "{{ master1_ip }}"
       become: true
 
-    - name: 📤 Copiar traefik.crt a master1
-      ansible.builtin.copy:
-        src: "{{ certs_dir }}/{{ cert_name }}.crt"
-        dest: "/etc/traefik/certs/{{ cert_name }}.crt"
-        owner: root
-        group: root
-        mode: "0644"
+    - name: 📤 Copiar traefik.crt con scp a master1
+      ansible.builtin.shell: |
+        scp -o StrictHostKeyChecking=no {{ certs_dir }}/{{ cert_name }}.crt root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.crt
+      delegate_to: localhost
+
+    - name: 📤 Copiar traefik.key con scp a master1
+      ansible.builtin.shell: |
+        scp -o StrictHostKeyChecking=no {{ certs_dir }}/{{ cert_name }}.key root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.key
+      delegate_to: localhost
+
+    - name: 🔐 Establecer permisos remotos de traefik.crt en master1
+      ansible.builtin.raw: chmod 0644 /etc/traefik/certs/{{ cert_name }}.crt
       delegate_to: "{{ master1_ip }}"
       become: true
 
-    - name: 📤 Copiar traefik.key a master1
-      ansible.builtin.copy:
-        src: "{{ certs_dir }}/{{ cert_name }}.key"
-        dest: "/etc/traefik/certs/{{ cert_name }}.key"
-        owner: root
-        group: root
-        mode: "0600"
+    - name: 🔐 Establecer permisos remotos de traefik.key en master1
+      ansible.builtin.raw: chmod 0600 /etc/traefik/certs/{{ cert_name }}.key
       delegate_to: "{{ master1_ip }}"
       become: true
