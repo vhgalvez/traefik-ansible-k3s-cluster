@@ -1,23 +1,20 @@
 # vars\main.yml
+
 # 📆 Traefik Helm Chart
 traefik_namespace: kube-system
 traefik_release_name: traefik
 traefik_chart_version: "36.0.0"
-
-# Este se sobreescribe en tiempo de ejecución dependiendo del modo (pvc/nopvc)
-traefik_values_file: "/tmp/traefik-values.yaml"
+traefik_values_file: "/tmp/traefik-values.yaml"  # Se renderiza según modo (pvc/nopvc)
 
 # 🔐 Autenticación del Dashboard
 traefik_dashboard_secret_name: traefik-dashboard-secret
+traefik_dashboard_middleware_name: traefik-auth
 traefik_auth_user: admin
-traefik_auth_pass: SuperPassword123
+traefik_auth_pass: SuperPassword123  # ⚠️ Usa SealedSecrets o Ansible Vault en producción
 
-# 📧 Let's Encrypt - correo para certificados
+# 📧 Let's Encrypt
 letsencrypt_email: admin@socialdevs.site
 
-# 🧱 Persistencia (solo aplica si usas values_pvc.yaml)
+# 💾 Persistencia (solo para values_pvc.yaml)
 traefik_storage_path: "/data"
 traefik_storage_class: "longhorn"
-
-# Middleware de autenticación
-traefik_dashboard_middleware_name: traefik-auth

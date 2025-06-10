@@ -1,14 +1,14 @@
-# templates/traefik/traefik-dashboard-ingressroute.yaml.j2
+# templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
-  name: ingress-traefik-dashboard-public
+  name: ingress-traefik-dashboard-internal
   namespace: {{ traefik_namespace }}
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/component: ingress
     app.kubernetes.io/part-of: platform
-    access: public
+    access: internal
     environment: prod
   annotations:
     maintained-by: devops@socialdevs.site
@@ -17,7 +17,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`traefik.socialdevs.site`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))
+    - match: Host(`dashboard.internal.socialdevs.site`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))
       kind: Rule
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
@@ -26,4 +26,4 @@ spec:
         - name: traefik
           port: 9000
   tls:
-    certResolver: letsencrypt
+    secretName: {{ internal_tls_secret_name }}
