@@ -1,10 +1,18 @@
 # templates/traefik/traefik-dashboard-ingressroute.yaml.j2
-# Exposición del Dashboard de Traefik vía IngressRoute con autenticación
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
-  name: traefik-dashboard
-  namespace: kube-system
+  name: ingress-traefik-dashboard-public
+  namespace: {{ traefik_namespace }}
+  labels:
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: platform
+    access: public
+    environment: prod
+  annotations:
+    maintained-by: devops@socialdevs.site
+    created-by: ansible
 spec:
   entryPoints:
     - websecure
@@ -13,7 +21,9 @@ spec:
       kind: Rule
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
-          namespace: kube-system
+          namespace: {{ traefik_namespace }}
       services:
         - name: traefik
           port: 9000
+  tls:
+    certResolver: letsencrypt
