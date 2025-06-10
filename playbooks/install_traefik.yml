@@ -119,22 +119,25 @@
         src: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    - name: 📁 Crear directorio /opt/traefik/acme en master1 con permisos correctos
-      ansible.builtin.file:
-        path: /opt/traefik/acme
-        state: directory
-        mode: '0755'
-        owner: 1000
-        group: 1000
+    - name: 📁 Crear directorio /opt/traefik/acme en master1 con permisos correctos (Flatcar compatible)
+      # Usamos ansible.builtin.raw porque Flatcar no tiene Python por defecto
+      ansible.builtin.raw: |
+        mkdir -p /opt/traefik/acme && \
+        chown 1000:1000 /opt/traefik/acme && \
+        chmod 0755 /opt/traefik/acme
       delegate_to: master1
-      become: true
-    
-    - name: 📁 Verificar existencia de /opt/traefik/acme en master1
-      ansible.builtin.stat:
-        path: /opt/traefik/acme
-      delegate_to: master1
-      register: traefik_acme_dir
+      become: true # Necesitas sudo para escribir en /opt
+      register: create_acme_dir_result
+      failed_when: create_acme_dir_result.rc != 0 and "File exists" not in create_acme_dir_result.stderr
+      changed_when: create_acme_dir_result.rc == 0 # Considerar cambiado si el comando se ejecuta con éxito
 
-    - name: 📋 Mostrar estado del directorio en master1
+    - name: 📋 Verificar existencia y permisos de /opt/traefik/acme en master1 (Flatcar compatible)
+      ansible.builtin.raw: |
+        ls -ld /opt/traefik/acme
+      delegate_to: master1
+      become: true # Para leer permisos si no es público
+      register: check_acme_dir_result
+
+    - name: 📈 Mostrar estado del directorio en master1
       debug:
-        var: traefik_acme_dir.stat
+        var: check_acme_dir_result.stdout_lines
