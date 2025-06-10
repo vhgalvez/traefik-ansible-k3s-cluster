@@ -126,3 +126,15 @@
         mode: '0755'
       delegate_to: master1
       become: true
+    
+    - name: 📁 Verificar existencia de /opt/traefik/acme en master1
+      ansible.builtin.stat:
+        path: /opt/traefik/acme
+      delegate_to: master1
+      register: traefik_acme_dir
+
+    - name: 📋 Mostrar estado del directorio en master1
+      debug:
+        var: traefik_acme_dir.stat
+
+    
