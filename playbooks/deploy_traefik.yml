@@ -1,10 +1,15 @@
 # playbooks/deploy_traefik.yml
 # 🔐 Fase 1 y 🚀 Fase 2 - Despliegue completo sin PVC
 ---
-
 # 🔐 Fase 1: Generar Secret sellado para Traefik Dashboard
 - name: 🔐 Generar Secret sellado para Traefik Dashboard
   import_playbook: generate_traefik_secrets.yml
+
+- name: 🔐 Generar certs autofirmados
+  import_playbook: generate_internal_tls_secrets.yml
+
+- name: 🔐 Generar certs autofirmados
+  import_playbook: enerate_certs.yml
 
 # 🚀 Fase 2: Instalar Traefik con Helm (sin PVC)
 - name: 🚀 Instalar Traefik con Helm
@@ -39,3 +44,12 @@
     - name: 🧾 Mostrar estado de pods de Traefik
       debug:
         var: traefik_status.stdout_lines
+
+    - name: 🌐 Verificar acceso al Dashboard
+      shell: curl -k https://traefik.socialdevs.site/dashboard/ --silent --output /dev/null --write-out '%{http_code}'
+      register: dashboard_check
+      changed_when: false
+
+    - name: 📈 Mostrar resultado de acceso
+      debug:
+        var: dashboard_check.stdout

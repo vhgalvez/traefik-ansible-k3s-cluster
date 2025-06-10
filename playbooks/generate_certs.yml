@@ -1,0 +1,88 @@
+# playbooks\generate_certs.yml
+---
+- name: 🛡️ Generar certificados wildcard autofirmados para Traefik
+  hosts: localhost
+  become: true
+
+  vars:
+    certs_dir: "/etc/traefik/certs"
+    cert_name: "traefik"
+    country: "ES"
+    state: "Madrid"
+    locality: "Madrid"
+    organization: "FlatcarMicroCloud"
+    common_name: "*.socialdevs.site"
+    san_file: "/tmp/san.cnf"
+    force_recreate: false # Cambia a true para forzar regeneración
+
+  tasks:
+    - name: 📁 Crear directorio de certificados
+      file:
+        path: "{{ certs_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: 📋 Verificar si ya existe el certificado
+      stat:
+        path: "{{ certs_dir }}/{{ cert_name }}.crt"
+      register: cert_stat
+
+    - name: 📋 Verificar si ya existe la clave privada
+      stat:
+        path: "{{ certs_dir }}/{{ cert_name }}.key"
+      register: key_stat
+
+    - name: 📝 Crear archivo SAN (Subject Alternative Name)
+      copy:
+        dest: "{{ san_file }}"
+        content: |
+          [req]
+          default_bits       = 4096
+          prompt             = no
+          default_md         = sha256
+          req_extensions     = req_ext
+          distinguished_name = dn
+
+          [dn]
+          C={{ country }}
+          ST={{ state }}
+          L={{ locality }}
+          O={{ organization }}
+          CN={{ common_name }}
+
+          [req_ext]
+          subjectAltName = @alt_names
+
+          [alt_names]
+          DNS.1 = *.socialdevs.site
+          DNS.2 = socialdevs.site
+          DNS.3 = jenkins.socialdevs.site
+          DNS.4 = grafana.socialdevs.site
+          DNS.5 = argocd.socialdevs.site
+          DNS.6 = prometheus.socialdevs.site
+
+    - name: 🔐 Generar clave privada
+      command: openssl genrsa -out {{ certs_dir }}/{{ cert_name }}.key 4096
+      when: force_recreate or not key_stat.stat.exists
+
+    - name: 📜 Generar certificado wildcard autofirmado
+      command: >
+        openssl req -x509 -nodes -days 3650
+        -key {{ certs_dir }}/{{ cert_name }}.key
+        -out {{ certs_dir }}/{{ cert_name }}.crt
+        -config {{ san_file }}
+        -extensions req_ext
+      when: force_recreate or not cert_stat.stat.exists
+
+    - name: 🔐 Establecer permisos seguros
+      file:
+        path: "{{ item.path }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ certs_dir }}/{{ cert_name }}.crt", mode: "0644" }
+        - { path: "{{ certs_dir }}/{{ cert_name }}.key", mode: "0600" }
+
+    - name: 🧹 Eliminar archivo temporal SAN
+      file:
+        path: "{{ san_file }}"
+        state: absent

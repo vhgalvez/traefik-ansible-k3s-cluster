@@ -1,0 +1,17 @@
+# templates\traefik\ingressroute-public.yaml.j2
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ app_name }}-public
+  namespace: {{ traefik_namespace }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ public_domain }}`)
+      kind: Rule
+      services:
+        - name: {{ service_name }}
+          port: {{ service_port }}
+  tls:
+    certResolver: letsencrypt

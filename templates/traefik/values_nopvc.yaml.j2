@@ -2,16 +2,6 @@
 deployment:
   replicas: 1
 
-additionalArguments:
-  - "--api.dashboard=true"
-  - "--metrics.prometheus=true"
-  - "--entrypoints.web.address=:80"
-  - "--entrypoints.websecure.address=:443"
-  - "--entrypoints.metrics.address=:9100"
-  - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-  - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-  - "--entrypoints.websecure.http.tls=true"
-
 logs:
   general:
     level: INFO
@@ -31,3 +21,31 @@ service:
 
 securityContext:
   enabled: false
+
+# ⚠️ TLS GLOBAL
+tls:
+  enabled: true
+  generateTLS: true
+
+# ✅ Entrypoints correctos
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+  metrics:
+    address: ":9100"
+
+# ✅ Let's Encrypt configurado como certResolver
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "{{ letsencrypt_email }}"
+      storage: "traefik-acme.json"
+      http01:
+        entryPoint: web

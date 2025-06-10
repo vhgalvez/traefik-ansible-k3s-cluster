@@ -194,3 +194,17 @@ ansible-playbook playbooks/uninstall_traefik.yml
 - **Recursos:** 1 pod, 100m CPU, 128Mi RAM.
 - **Proveedores habilitados:** `kubernetesIngress`, `kubernetesCRD`.
 - **Puertos utilizados:** 80, 443, 8080.
+
+
+# Estrategia TLS (Let's Encrypt + Certificados Internos)
+
+## Let's Encrypt:
+- Dominios públicos (`socialdevs.site`, `home.socialdevs.site`)
+- Usan certResolver `letsencrypt`
+- Se renuevan automáticamente
+
+## Certificados Internos:
+- *.socialdevs.site (excepto los públicos)
+- Generados con OpenSSL (wildcard)
+- Aplicados como `Secret` TLS en el clúster
+- Usados en IngressRoutes internos

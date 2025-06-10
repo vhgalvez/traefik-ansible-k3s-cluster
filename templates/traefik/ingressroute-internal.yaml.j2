@@ -1,0 +1,17 @@
+# templates\traefik\ingressroute-internal.yaml.j2
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ app_name }}-internal
+  namespace: {{ traefik_namespace }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ internal_domain }}`)
+      kind: Rule
+      services:
+        - name: {{ service_name }}
+          port: {{ service_port }}
+  tls:
+    secretName: {{ internal_tls_secret_name }}
