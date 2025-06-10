@@ -55,19 +55,19 @@ traefik-ansible-k3s-cluster/
 ### 🔐 FASE 1: Generación del Secret Sellado (Solo una vez)
 
 ```bash
-ansible-playbook playbooks/generate_traefik_secrets.yml
+sudo ansible-playbook playbooks/generate_traefik_secrets.yml
 ```
 
 ### 🚀 FASE 2: Despliegue Inicial Sin Almacenamiento Persistente (Modo Prueba)
 
 ```bash
-ansible-playbook playbooks/deploy_traefik.yml
+sudo ansible-playbook playbooks/deploy_traefik.yml
 ```
 
 ### 🏁 FASE 3: Despliegue Final Con Almacenamiento Persistente (Producción)
 
 ```bash
-ansible-playbook playbooks/deploy_traefik_pvc.yml
+sudo ansible-playbook playbooks/deploy_traefik_pvc.yml
 ```
 
 ---
