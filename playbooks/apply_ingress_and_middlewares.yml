@@ -44,7 +44,7 @@
 
     - name: 📄 Renderizar ingress del dashboard
       template:
-        src: templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2
+        src: ../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2
         dest: /tmp/ingress-dashboard.yaml
 
     - name: 🚀 Aplicar ingress del dashboard
