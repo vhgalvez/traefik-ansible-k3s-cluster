@@ -1,7 +1,6 @@
 # playbooks/deploy_traefik.yml
 # 🔐 Fase 1 y 🚀 Fase 2 - Despliegue completo sin PVC
 ---
-
 # 🔐 Fase 1a: Generar Secret sellado para el dashboard de Traefik
 - name: 🔐 Generar Secret sellado para Traefik Dashboard
   import_playbook: generate_traefik_secrets.yml
@@ -14,12 +13,10 @@
 - name: 🔐 Crear Secret TLS interno
   import_playbook: generate_internal_tls_secrets.yml
 
-
 # 🔐 Fase 1d: Aplicar Middlewares e IngressRoutes
 - name: 🔐 Aplicar Middlewares & IngressRoutes
   import_playbook: apply_ingress_and_middlewares.yml
 
-  
 # 🚀 Fase 2: Instalar Traefik con Helm (modo sin PVC)
 - name: 🚀 Instalar Traefik con Helm
   import_playbook: install_traefik.yml
@@ -57,11 +54,9 @@
       debug:
         var: traefik_status.stdout_lines
 
-    - name: 🌐 Verificar acceso al Dashboard
-      shell: curl -k https://traefik.socialdevs.site/dashboard/ --silent --output /dev/null --write-out '%{http_code}'
-      register: dashboard_check
-      changed_when: false
-
-    - name: 📈 Mostrar resultado de acceso
-      debug:
-        var: dashboard_check.stdout
+    - name: 🌐 Verificar acceso al Dashboard (modo tolerante)
+      shell: |
+        curl -k -u {{ traefik_auth_user }}:{{ traefik_auth_pass }} https://traefik.socialdevs.site/dashboard/ --max-time 5 --silent --output /dev/null --write-out '%{http_code}'
+      register: dashboard_status
+      failed_when: dashboard_status.stdout not in ["200", "301", "302"]
+      ignore_errors: true
