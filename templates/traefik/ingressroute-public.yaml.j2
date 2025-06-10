@@ -10,6 +10,9 @@ spec:
   routes:
     - match: Host(`{{ public_domain }}`)
       kind: Rule
+      middlewares:
+        - name: secure-headers
+          namespace: {{ traefik_namespace }}
       services:
         - name: {{ service_name }}
           port: {{ service_port }}

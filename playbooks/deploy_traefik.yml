@@ -14,6 +14,12 @@
 - name: 🔐 Crear Secret TLS interno
   import_playbook: generate_internal_tls_secrets.yml
 
+
+# 🔐 Fase 1d: Aplicar Middlewares e IngressRoutes
+- name: 🔐 Crear Secret TLS interno
+  import_playbook: apply_ingress_and_middlewares.yml
+
+  
 # 🚀 Fase 2: Instalar Traefik con Helm (modo sin PVC)
 - name: 🚀 Instalar Traefik con Helm
   import_playbook: install_traefik.yml

@@ -1,0 +1,40 @@
+# playbooks\apply_ingress_and_middlewares.yml
+---
+- name: 🚀 Aplicar Middlewares y IngressRoutes
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    kubeconfig_path: "/home/victory/.kube/config"
+    kubectl_path: "/usr/local/bin/kubectl"
+
+  tasks:
+    - name: 📄 Renderizar middleware de headers seguros
+      template:
+        src: templates/traefik/middleware-secure-headers.yaml.j2
+        dest: /tmp/middleware-secure-headers.yaml
+
+    - name: 🚀 Aplicar middleware seguro
+      command: "{{ kubectl_path }} apply -f /tmp/middleware-secure-headers.yaml"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: 📄 Renderizar ingress interno
+      template:
+        src: templates/traefik/ingressroute-internal.yaml.j2
+        dest: /tmp/ingress-internal.yaml
+
+    - name: 🔐 Aplicar ingress interno
+      command: "{{ kubectl_path }} apply -f /tmp/ingress-internal.yaml"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: 📄 Renderizar ingress público
+      template:
+        src: templates/traefik/ingressroute-public.yaml.j2
+        dest: /tmp/ingress-public.yaml
+
+    - name: 🌐 Aplicar ingress público
+      command: "{{ kubectl_path }} apply -f /tmp/ingress-public.yaml"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
