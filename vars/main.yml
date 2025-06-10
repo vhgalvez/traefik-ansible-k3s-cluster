@@ -18,3 +18,5 @@ letsencrypt_email: admin@socialdevs.site
 # 💾 Persistencia (solo para values_pvc.yaml)
 traefik_storage_path: "/data"
 traefik_storage_class: "longhorn"
+
+internal_tls_secret_name: internal-tls-secret

@@ -16,7 +16,7 @@
 
 
 # 🔐 Fase 1d: Aplicar Middlewares e IngressRoutes
-- name: 🔐 Crear Secret TLS interno
+- name: 🔐 Aplicar Middlewares & IngressRoutes
   import_playbook: apply_ingress_and_middlewares.yml
 
   

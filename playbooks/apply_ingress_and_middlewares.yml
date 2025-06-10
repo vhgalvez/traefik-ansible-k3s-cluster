@@ -38,3 +38,13 @@
       command: "{{ kubectl_path }} apply -f /tmp/ingress-public.yaml"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: 📄 Renderizar ingress del dashboard
+      template:
+        src: templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2
+        dest: /tmp/ingress-dashboard.yaml
+
+    - name: 🚀 Aplicar ingress del dashboard
+      command: "{{ kubectl_path }} apply -f /tmp/ingress-dashboard.yaml"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
