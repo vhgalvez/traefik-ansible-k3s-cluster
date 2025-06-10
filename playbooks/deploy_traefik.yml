@@ -33,6 +33,9 @@
     kubeconfig_path: "/home/victory/.kube/config"
     kubectl_bin_path: "/usr/local/bin/kubectl"
 
+  vars_files:
+    - ../vars/main.yml
+
   tasks:
     - name: ⏳ Esperar a que el pod de Traefik esté listo
       shell: >
