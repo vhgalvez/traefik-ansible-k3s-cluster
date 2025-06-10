@@ -38,8 +38,20 @@ entryPoints:
   metrics:
     address: ":9100"
 
+volumes:
+  - name: acme-storage
+    hostPath:
+      path: "/etc/traefik/acme"
+      type: DirectoryOrCreate
+
+volumeMounts:
+  - name: acme-storage
+    mountPath: "/etc/traefik/acme/traefik-acme.json"
+    subPath: "traefik-acme.json"
+    readOnly: false
+
 certificatesResolvers:
   letsencrypt:
     acme:
       email: "{{ letsencrypt_email }}"
-      storage: "traefik-acme.json"
+      storage: "/etc/traefik/acme/traefik-acme.json"
