@@ -10,7 +10,7 @@
     - ../vars/main.yml
 
   vars:
-    certs_dir: "/etc/traefik/certs"
+    certs_dir: "/files/certs"
     cert_name: "traefik"
     country: "ES"
     state: "Madrid"
