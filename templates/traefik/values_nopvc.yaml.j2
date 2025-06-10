@@ -1,15 +1,11 @@
 # templates/traefik/values_nopvc.yaml.j2
 deployment:
   replicas: 1
-  additionalVolumeMounts:
-    - name: acme-storage
-      mountPath: /acme-data
-      readOnly: false
-  additionalVolumes:
-    - name: acme-storage
-      hostPath:
-          path: /opt/traefik/acme
-          type: DirectoryOrCreate
+  # Opcional: Forzar que el pod de Traefik se programe en un nodo específico
+  # Esto es útil para HostPath, ya que el directorio debe existir en ese nodo.
+  # Asegúrate de que 'master1.socialdevs.site' es el nombre real del nodo.
+  nodeSelector:
+    kubernetes.io/hostname: master1.socialdevs.site # Usa el Static hostname completo
 
 logs:
   general:
@@ -34,6 +30,10 @@ securityContext:
 
 tls:
   enabled: true
+  stores:
+    default:
+      defaultCertificate:
+        secretName: internal-tls-secret
 
 entryPoints:
   web:
@@ -48,10 +48,36 @@ entryPoints:
   metrics:
     address: ":9100"
 
+# ✨✨✨ LA SECCIÓN DE PERSISTENCIA CORRECTA PARA HOSTPATH (VERSIÓN 36.0.0 DEL CHART) ✨✨✨
+persistence:
+  enabled: true # Habilita la persistencia
+  name: traefik-acme-volume # Nombre interno para el volumen que gestiona el chart.
+  path: /opt/traefik/acme # LA RUTA EN EL NODO HOST FÍSICO
+  # El chart de Traefik montará automáticamente este volumen en /data dentro del contenedor.
+  # NO se especifica 'type: DirectoryOrCreate', 'accessMode' ni 'size' aquí.
+
+# Argumentos adicionales para el binario de Traefik.
+# Asegúrate de que no dupliquen configuraciones ya cubiertas por otras secciones del 'values.yaml'.
 additionalArguments:
-  - "--entrypoints.web.address=:80"
-  - "--entrypoints.websecure.address=:443"
+  # Los entrypoints ya están definidos en la sección 'entryPoints' de este mismo archivo,
+  # por lo que estos argumentos son redundantes y se han comentado.
+  # - "--entrypoints.web.address=:80"
+  # - "--entrypoints.websecure.address=:443"
   - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
   - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
   - "--certificatesresolvers.letsencrypt.acme.email={{ letsencrypt_email }}"
+  # La ruta para el almacenamiento de ACME dentro del contenedor.
+  # DEBE ser '/data/traefik-acme.json' porque el volumen de persistencia
+  # configurado arriba se monta automáticamente en '/data' por el chart de Traefik.
   - "--certificatesresolvers.letsencrypt.acme.storage=/data/traefik-acme.json"
+
+# Configuración de los resolutores de certificados (Let's Encrypt ACME)
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "{{ letsencrypt_email }}"
+      # La ruta dentro del contenedor donde se guardará el archivo acme.json.
+      # Coincide con la ruta especificada en 'additionalArguments' y el punto de montaje interno del volumen.
+      storage: "/data/traefik-acme.json"
+      httpChallenge:
+        entryPoint: web
