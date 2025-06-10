@@ -1,6 +1,6 @@
-# playbooks\generate_certs.yml
+# import_playbook: generate_certs.yml
+# playbooks/generate_certs.yml
 # fase 1a: Generar certificados autofirmados para Traefik
-#   import_playbook: generate_certs.yml
 ---
 - name: 🛡️ Generar certificados wildcard autofirmados para Traefik
   hosts: localhost
@@ -19,6 +19,7 @@
     common_name: "*.socialdevs.site"
     san_file: "/tmp/san.cnf"
     force_recreate: false
+    ssh_key_path: "/root/.ssh/cluster_k3s/shared/id_rsa_shared_cluster"
 
   tasks:
     - name: 📁 Crear directorio de certificados
@@ -79,7 +80,7 @@
         -extensions req_ext
       when: force_recreate or not cert_stat.stat.exists
 
-    - name: 🔐 Establecer permisos seguros
+    - name: 🔐 Establecer permisos seguros locales
       file:
         path: "{{ item.path }}"
         mode: "{{ item.mode }}"
@@ -97,14 +98,18 @@
       delegate_to: "{{ master1_ip }}"
       become: true
 
-    - name: 📤 Copiar traefik.crt con scp a master1
-      ansible.builtin.shell: |
-        scp -o StrictHostKeyChecking=no {{ certs_dir }}/{{ cert_name }}.crt root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.crt
+    - name: 📤 Copiar traefik.crt con scp a master1 (clave compartida)
+      ansible.builtin.shell: >
+        scp -i {{ ssh_key_path }} -o StrictHostKeyChecking=no
+        {{ certs_dir }}/{{ cert_name }}.crt
+        root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.crt
       delegate_to: localhost
 
-    - name: 📤 Copiar traefik.key con scp a master1
-      ansible.builtin.shell: |
-        scp -o StrictHostKeyChecking=no {{ certs_dir }}/{{ cert_name }}.key root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.key
+    - name: 📤 Copiar traefik.key con scp a master1 (clave compartida)
+      ansible.builtin.shell: >
+        scp -i {{ ssh_key_path }} -o StrictHostKeyChecking=no
+        {{ certs_dir }}/{{ cert_name }}.key
+        root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.key
       delegate_to: localhost
 
     - name: 🔐 Establecer permisos remotos de traefik.crt en master1
