@@ -24,7 +24,7 @@
 
     - name: 📄 Renderizar ingress interno
       template:
-        src: templates/traefik/ingressroute-internal.yaml.j2
+        src: ../templates/traefik/ingressroute-internal.yaml.j2
         dest: /tmp/ingress-internal.yaml
 
     - name: 🔐 Aplicar ingress interno
