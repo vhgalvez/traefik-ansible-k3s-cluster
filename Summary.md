@@ -110,15 +110,6 @@ traefik-ansible-k3s-cluster/
 
 ## 🚀 Ejecución Rápida (ejemplo)
 
-```bash
-ansible-playbook -i inventory/hosts.ini playbooks/generate_internal_tls_secrets.yml
-ansible-playbook -i inventory/hosts.ini playbooks/install_traefik.yml
-ansible-playbook -i inventory/hosts.ini playbooks/deploy_traefik.yml
-ansible-playbook -i inventory/hosts.ini playbooks/apply_ingress_and_middlewares.yml
-```
-
----
-
 ## 📞 Contacto / Mantenimiento
 
 Este proyecto es mantenido por [vhgalvez](https://github.com/vhgalvez) como parte del ecosistema **FlatcarMicroCloud** para entornos bare-metal con K3s y automatización total.

@@ -17,17 +17,29 @@ metrics:
     addServicesLabels: true
     buckets: "0.1,0.3,1.2,5.0"
 
+ports:
+  web:
+    port: 80
+  websecure:
+    port: 443
+  metrics:
+    port: 9100
+  traefik:
+    port: 9000
+
 service:
   enabled: true
-  type: NodePort
+  type: ClusterIP  # Solo accesible por VIP / red interna
   externalTrafficPolicy: Cluster
   ports:
     web:
-      nodePort: 32209
+      port: 80
     websecure:
-      nodePort: 30807
+      port: 443
     metrics:
-      nodePort: 31900
+      port: 9100
+    traefik:
+      port: 9000
 
 securityContext:
   runAsUser: 1000
