@@ -10,7 +10,7 @@ traefik_values_file: "/tmp/traefik-values.yaml"  # Se renderiza según modo (pvc
 traefik_dashboard_secret_name: traefik-dashboard-secret
 traefik_dashboard_middleware_name: traefik-auth
 traefik_auth_user: admin
-traefik_auth_pass: SuperPassword123  # ⚠️ Usa SealedSecrets o Ansible Vault en producción
+traefik_auth_pass: SuperPassword123
 
 # 📧 Let's Encrypt
 letsencrypt_email: admin@socialdevs.site

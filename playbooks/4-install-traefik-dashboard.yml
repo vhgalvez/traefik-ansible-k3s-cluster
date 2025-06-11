@@ -1,5 +1,10 @@
-# playbooks\4-install-traefik-dashboard.yml
----
+# playbooks/4-install-traefik-dashboard.yml
+# ========================================================
+# 🚀 FASE 2: Instalar Traefik con dashboard interno protegido
+# Usa certificados y secretos generados en la fase 1.
+# Despliega Traefik con autenticación y dashboard local.
+# ========================================================
+
 - name: 🚀 Instalar Traefik con Dashboard interno protegido
   hosts: localhost
   gather_facts: false
@@ -17,8 +22,7 @@
     traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
     sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
     traefik_values_template: "../templates/traefik/values_nopvc.yaml.j2"
-    middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
-    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
+    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute.yaml.j2"
 
   tasks:
 
@@ -26,6 +30,7 @@
       ansible.builtin.file:
         path: "{{ files_dir }}"
         state: directory
+        mode: "0755"
 
     - name: 📄 Renderizar values.yaml desde plantilla
       ansible.builtin.template:
@@ -82,18 +87,6 @@
         {{ kubectl_bin_path }} rollout status deploy/{{ traefik_release_name }} -n {{ traefik_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-
-    - name: 🛡️ Renderizar middleware traefik-auth
-      ansible.builtin.template:
-        src: "{{ middleware_template }}"
-        dest: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-
-    - name: 🔐 Aplicar Middleware de autenticación básica
-      kubernetes.core.k8s:
-        state: present
-        definition: "{{ lookup('file', files_dir + '/traefik-dashboard-middleware.yaml') | from_yaml }}"
-        kubeconfig: "{{ kubeconfig_path }}"
-        namespace: "{{ traefik_namespace }}"
 
     - name: 🌐 Renderizar IngressRoute del Dashboard
       ansible.builtin.template:
