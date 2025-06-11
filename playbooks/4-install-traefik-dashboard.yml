@@ -89,9 +89,9 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
 
     - name: 🌐 Renderizar IngressRoute del Dashboard
-      ansible.builtin.template:
-        src: "{{ ingressroute_template }}"
-        dest: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
+      template:
+        src: ../templates/traefik/traefik-dashboard-ingressroute.yaml.j2
+        dest: "{{ rendered_ingressroute }}"
 
     - name: 🚀 Aplicar IngressRoute del Dashboard
       kubernetes.core.k8s:
