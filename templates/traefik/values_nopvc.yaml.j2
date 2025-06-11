@@ -10,12 +10,24 @@ logs:
   access:
     enabled: true
 
-metrics:
-  prometheus:
-    entryPoint: metrics
-    addEntryPointsLabels: true
-    addServicesLabels: true
-    buckets: "0.1,0.3,1.2,5.0"
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+  metrics:
+    address: ":9100"
+  traefik:
+    address: ":9000"
 
 ports:
   web:
@@ -49,9 +61,12 @@ service:
       port: 9000
       nodePort: 30900
 
-securityContext:
-  runAsUser: 1000
-  runAsGroup: 1000
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    buckets: "0.1,0.3,1.2,5.0"
 
 tls:
   enabled: true
@@ -60,22 +75,10 @@ tls:
       defaultCertificate:
         secretName: internal-tls-secret
 
-entryPoints:
-  web:
-    address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-  websecure:
-    address: ":443"
-  metrics:
-    address: ":9100"
-
 additionalArguments:
   - "--api.dashboard=true"
   - "--api.insecure=false"
+  - "--ping=true"
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
   - "--entrypoints.websecure.http.tls=true"
@@ -89,4 +92,3 @@ additionalArguments:
   - "--providers.kubernetesingress"
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
-  - "--ping=true"
