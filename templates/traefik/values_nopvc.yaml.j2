@@ -22,11 +22,11 @@ service:
   type: NodePort
   ports:
     web:
-      nodePort: 32209
+      nodePort: 32209     # HTTP
     websecure:
-      nodePort: 30807
+      nodePort: 30807     # HTTPS
     metrics:
-      nodePort: 31900
+      nodePort: 31900     # Prometheus
 
 securityContext:
   runAsUser: 1000
@@ -49,6 +49,9 @@ entryPoints:
           scheme: https
   websecure:
     address: ":443"
+    http:
+      tls:
+        certResolver: ""
   metrics:
     address: ":9100"
 
@@ -60,5 +63,11 @@ additionalArguments:
   - "--entrypoints.websecure.http.tls=true"
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
+  - "--metrics.prometheus.addEntryPointsLabels=true"
+  - "--metrics.prometheus.addServicesLabels=true"
+  - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
   - "--providers.kubernetescrd"
+  - "--providers.kubernetescrd.allowEmptyServices=true"
   - "--providers.kubernetesingress"
+  - "--providers.kubernetesingress.allowEmptyServices=true"
+  - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
