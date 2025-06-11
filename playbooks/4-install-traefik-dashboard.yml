@@ -1,7 +1,8 @@
 # playbooks/install_traefik.yml
+# Fase 1: Instalar Traefik funcional con Dashboard interno (TLS + Auth)
 # Fase 2 - Instalar Traefik con Helm en K3s
 ---
-- name: 🚀 Instalar Traefik con Helm dentro del clúster K3s
+- name: 🚀 Instalar Traefik con Dashboard interno protegido
   hosts: localhost
   gather_facts: false
   become: false
@@ -20,13 +21,8 @@
     traefik_values_template: "../templates/traefik/values_nopvc.yaml.j2"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
-    traefik_dashboard_middleware_name: "{{ lookup('vars', 'traefik_dashboard_middleware_name') }}"
 
   tasks:
-    - name: ➕ Añadir repositorio Helm de Traefik
-      ansible.builtin.shell: >
-        {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
-        {{ helm_bin_path }} repo update
 
     - name: 📁 Asegurar directorio local files/
       ansible.builtin.file:
@@ -54,8 +50,7 @@
       environment:
         PATH: "{{ env_path }}"
 
-    # 🛡️ APLICAR SEALED SECRET Y ESPERAR
-    - name: 📥 Aplicar Secret sellado de Traefik (si existe)
+    - name: 📥 Aplicar Secret sellado (auth)
       kubernetes.core.k8s:
         state: present
         kubeconfig: "{{ kubeconfig_path }}"
@@ -63,7 +58,7 @@
         namespace: "{{ traefik_namespace }}"
       when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
 
-    - name: ⏳ Esperar a que el Secret desencriptado exista (SealedSecrets controller)
+    - name: ⏳ Esperar Secret desencriptado
       ansible.builtin.shell: >
         {{ kubectl_bin_path }} -n {{ traefik_namespace }} get secret {{ traefik_dashboard_secret_name }}
       environment:
@@ -73,11 +68,6 @@
       delay: 5
       until: wait_for_secret.rc == 0
 
-    - name: ✅ Confirmar que el Secret está presente
-      debug:
-        msg: "✔️ Secret '{{ traefik_dashboard_secret_name }}' presente en namespace '{{ traefik_namespace }}'"
-
-    # INSTALAR TRAEFIK AHORA
     - name: 📦 Instalar Traefik desde Helm Chart
       ansible.builtin.shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
@@ -89,55 +79,32 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
 
-    - name: ⏳ Esperar a que Traefik esté listo
+    - name: ⏳ Esperar despliegue Traefik
       ansible.builtin.shell: >
         {{ kubectl_bin_path }} rollout status deploy/{{ traefik_release_name }} -n {{ traefik_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    - name: 🗒️ Renderizar plantilla de Middleware traefik-auth
+    - name: 🛡️ Renderizar middleware traefik-auth
       ansible.builtin.template:
         src: "{{ middleware_template }}"
         dest: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
 
-    - name: 🔐 Aplicar Middleware de autenticación básica para Dashboard
+    - name: 🔐 Aplicar Middleware de autenticación básica
       kubernetes.core.k8s:
         state: present
         definition: "{{ lookup('file', files_dir + '/traefik-dashboard-middleware.yaml') | from_yaml }}"
         kubeconfig: "{{ kubeconfig_path }}"
         namespace: "{{ traefik_namespace }}"
 
-    - name: 🧾 Renderizar plantilla de IngressRoute para Dashboard
+    - name: 🌐 Renderizar IngressRoute del Dashboard
       ansible.builtin.template:
         src: "{{ ingressroute_template }}"
         dest: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
 
-    - name: 🚪 Desplegar IngressRoute para Dashboard
+    - name: 🚀 Aplicar IngressRoute del Dashboard
       kubernetes.core.k8s:
         state: present
         namespace: "{{ traefik_namespace }}"
         src: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
         kubeconfig: "{{ kubeconfig_path }}"
-
-    - name: 📁 Crear directorio /opt/traefik/acme en master1 con permisos correctos (Flatcar compatible)
-      # Usamos ansible.builtin.raw porque Flatcar no tiene Python por defecto
-      ansible.builtin.raw: |
-        mkdir -p /opt/traefik/acme && \
-        chown 1000:1000 /opt/traefik/acme && \
-        chmod 0755 /opt/traefik/acme
-      delegate_to: "{{ master1_ip }}"
-      become: true # Necesitas sudo para escribir en /opt
-      register: create_acme_dir_result
-      failed_when: create_acme_dir_result.rc != 0 and "File exists" not in create_acme_dir_result.stderr
-      changed_when: create_acme_dir_result.rc == 0 # Considerar cambiado si el comando se ejecuta con éxito
-
-    - name: 📋 Verificar existencia y permisos de /opt/traefik/acme en master1 (Flatcar compatible)
-      ansible.builtin.raw: |
-        ls -ld /opt/traefik/acme
-      delegate_to: "{{ master1_ip }}"
-      become: true # Para leer permisos si no es público
-      register: check_acme_dir_result
-
-    - name: 📈 Mostrar estado del directorio en master1
-      debug:
-        var: check_acme_dir_result.stdout_lines
