@@ -1,24 +1,20 @@
 # playbooks/deploy_traefik.yml
 # 🔐 Fase 1 y 🚀 Fase 2 - Despliegue completo sin PVC
 ---
-# 🔐 Fase 1a: Generar certificados autofirmados (si no existen)
+
 - name: 🔐 Fase 1a - Generar certificados autofirmados
   import_playbook: 1-generate-selfsigned-certs.yml
 
-# 🔐 Fase 1b: Generar Secret para autenticación del Dashboard
 - name: 🔐 Fase 1b - Generar Secret para autenticación básica
-  import_playbook: 2-generate-traefik-auth-secret.yml
+  import_playbook: 3-seal-traefik-auth-secret.yml
 
-# 🔐 Fase 1c: Crear Secret TLS interno a partir de los certificados
 - name: 🔐 Fase 1c - Crear Secret TLS interno
-  import_playbook: 3-generate-tls-secret.yml
+  import_playbook: 2-generate-internal-tls-cert.yml
 
-# 🚀 Fase 2: Instalar Traefik con Helm (modo sin PVC)
 - name: 🚀 Fase 2 - Instalar Traefik con Helm
-  import_playbook: 4-install-traefik-helm.yml
+  import_playbook: 4-install-traefik-dashboard.yml
 
-# ✅ Fase 3: Verificación post-instalación del Dashboard
-- name: ✅ Fase 3 - Verificar despliegue de Traefik
+- name: ✅ Fase 2 - Verificar despliegue de Traefik
   hosts: localhost
   gather_facts: false
 
