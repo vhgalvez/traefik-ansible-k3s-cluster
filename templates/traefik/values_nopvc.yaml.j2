@@ -29,20 +29,6 @@ entryPoints:
   traefik:
     address: ":9000"
 
-ports:
-  web:
-    port: 80
-    nodePort: 32209
-  websecure:
-    port: 443
-    nodePort: 30807
-  metrics:
-    port: 9100
-    nodePort: 31900
-  traefik:
-    port: 9000
-    nodePort: 30900
-
 service:
   enabled: true
   type: NodePort
