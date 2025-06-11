@@ -1,6 +1,6 @@
 # playbooks\apply_ingress_and_middlewares.yml
 ---
-- name: 🚀 Aplicar Middlewares y IngressRoutes
+- name: 🚀 Aplicar IngressRoute del Dashboard de Traefik (Fase 1)
   hosts: localhost
   gather_facts: false
 
@@ -12,42 +12,12 @@
     kubectl_path: "/usr/local/bin/kubectl"
 
   tasks:
-    - name: 📄 Renderizar middleware de headers seguros
-      template:
-        src: ../templates/traefik/middleware-secure-headers.yaml.j2
-        dest: /tmp/middleware-secure-headers.yaml
-
-    - name: 🚀 Aplicar middleware seguro
-      command: "{{ kubectl_path }} apply -f /tmp/middleware-secure-headers.yaml"
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    - name: 📄 Renderizar ingress interno
-      template:
-        src: ../templates/traefik/ingressroute-internal.yaml.j2
-        dest: /tmp/ingress-internal.yaml
-
-    - name: 🔐 Aplicar ingress interno
-      command: "{{ kubectl_path }} apply -f /tmp/ingress-internal.yaml"
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    - name: 📄 Renderizar ingress público
-      template:
-        src: ../templates/traefik/ingressroute-public.yaml.j2
-        dest: /tmp/ingress-public.yaml
-
-    - name: 🌐 Aplicar ingress público
-      command: "{{ kubectl_path }} apply -f /tmp/ingress-public.yaml"
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    - name: 📄 Renderizar ingress del dashboard
+    - name: 📄 Renderizar IngressRoute interno para el dashboard de Traefik
       template:
         src: ../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2
         dest: /tmp/ingress-dashboard.yaml
 
-    - name: 🚀 Aplicar ingress del dashboard
+    - name: 🚀 Aplicar IngressRoute del dashboard
       command: "{{ kubectl_path }} apply -f /tmp/ingress-dashboard.yaml"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
