@@ -1,7 +1,6 @@
 # playbooks/deploy_traefik.yml
 # 🔐 Fase 1 y 🚀 Fase 2 - Despliegue completo sin PVC
 ---
-
 # 🔐 Fase 1a: Generar certificados autofirmados (si no existen)
 - name: 🔐 Fase 1a - Generar certificados autofirmados
   import_playbook: 1-generate-selfsigned-certs.yml

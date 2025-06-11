@@ -1,10 +1,9 @@
-# playbooks\uninstall_traefik.yml
----
-# 🔄 Desinstalación segura de Traefik en cualquier fase
-# Este playbook puede ejecutarse después de:
-# - Fase 1 (generación de secretos)
-# - Fase 2 (instalación sin PVC)
-# - Fase 3 (instalación con PVC)
+# playbooks/9-uninstall-traefik.yml
+# =============================================================================
+# 🧹 FASE FINAL: Desinstalación segura de Traefik
+# - Elimina todos los recursos relacionados (Helm release, Secret, PVC, etc.)
+# - Puede ejecutarse después de cualquier fase (1, 2 o 3)
+# =============================================================================
 
 - name: 🧹 Desinstalar Traefik y limpiar recursos relacionados
   hosts: localhost
@@ -21,7 +20,7 @@
 
   tasks:
 
-    - name: ❌ 1. Desinstalar release de Helm (Traefik)
+    - name: ❌ 1. Desinstalar Helm release de Traefik
       shell: >
         {{ helm_bin_path }} uninstall {{ traefik_release_name }} --namespace {{ traefik_namespace }}
       environment:
@@ -43,7 +42,7 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
       ignore_errors: true
 
-    - name: ❌ 4. Eliminar ConfigMap (si existe)
+    - name: ❌ 4. Eliminar ConfigMap 'traefik-config' (si existe)
       shell: >
         {{ kubectl_path }} delete configmap traefik-config -n {{ traefik_namespace }}
       environment:
@@ -64,21 +63,21 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
       ignore_errors: true
 
-    - name: ❌ 7. Eliminar Volúmenes PersistentVolume (PV) huérfanos (si existen)
+    - name: ❌ 7. Eliminar PVs huérfanos (si existen)
       shell: >
         {{ kubectl_path }} delete pv --selector=app.kubernetes.io/name=traefik
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       ignore_errors: true
 
-    - name: ❌ 8. Eliminar archivos persistentes locales (solo si habilitado)
+    - name: ❌ 8. Eliminar almacenamiento local persistente (si está habilitado)
       shell: >
         rm -rf {{ traefik_storage_path }}
-      when: traefik_storage_enabled | bool
+      when: traefik_storage_enabled | default(false) | bool
       ignore_errors: true
 
-    - name: ✅ 9. Verificar que no quedan recursos activos de Traefik
+    - name: ✅ 9. Verificar que no quedan recursos de Traefik
       shell: >
-        {{ kubectl_path }} get all -n {{ traefik_namespace }} || echo "Todos los recursos de Traefik han sido eliminados."
+        {{ kubectl_path }} get all -n {{ traefik_namespace }} || echo "✔️ Todos los recursos de Traefik han sido eliminados."
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
