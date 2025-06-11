@@ -9,6 +9,6 @@ metadata:
     app.kubernetes.io/component: ingress
 spec:
   basicAuth:
-    secret: {{ traefik_dashboard_secret_name }}
-    headerField: "X-Forwarded-Authorization"
-    removeHeader: false
+    secret: {{ traefik_dashboard_secret_name }}  # Este nombre debe coincidir con el secret que contiene las credenciales.
+    headerField: "X-Forwarded-Authorization"  # Usamos un encabezado estándar para la autenticación.
+    removeHeader: false  # No eliminar el encabezado de autorización.

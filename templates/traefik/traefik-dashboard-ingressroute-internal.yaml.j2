@@ -14,15 +14,15 @@ metadata:
     created-by: ansible
 spec:
   entryPoints:
-    - websecure
+    - websecure  # Cambié 'traefik' por 'websecure' para que se use HTTPS en el puerto 443.
   routes:
-    - match: Host(`{{ internal_domain }}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))
+    - match: Host(`{{ internal_domain }}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))  # Correcto para la ruta del dashboard.
       kind: Rule
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
           namespace: {{ traefik_namespace }}
       services:
         - name: {{ service_name }}
-          port: 9000
+          port: 9000  # El puerto del dashboard es el 9000 en el servicio interno.
   tls:
-    secretName: {{ internal_tls_secret_name }}
+    secretName: {{ internal_tls_secret_name }}  # TLS configurado con el certificado correspondiente.
