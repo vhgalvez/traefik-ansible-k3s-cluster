@@ -27,7 +27,7 @@ entryPoints:
   metrics:
     address: ":9100"
   traefik:
-    address: ":9000"  # Este entryPoint es para el dashboard en el puerto 9000
+    address: ":9000"  # EntryPoint para el dashboard en el puerto 9000
 
 service:
   enabled: true
@@ -44,8 +44,8 @@ service:
       port: 9100
       nodePort: 31900
     traefik:
-      port: 9000      # Aquí se mapea el puerto 9000 para el dashboard
-      nodePort: 30900 # Este es el NodePort para el dashboard, asegúrate que esté disponible
+      port: 9000      # Exposición del puerto 9000 para el dashboard
+      nodePort: 30900 # NodePort para acceder al dashboard, asegurate de que esté disponible
 
 metrics:
   prometheus:
@@ -62,19 +62,19 @@ tls:
         secretName: internal-tls-secret  # Asegúrate de que este Secret exista
 
 additionalArguments:
-  - "--api.dashboard=true"
-  - "--api.insecure=false"
-  - "--ping=true"
-  - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-  - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-  - "--entrypoints.websecure.http.tls=true"
-  - "--metrics.prometheus=true"
-  - "--metrics.prometheus.entrypoint=metrics"
-  - "--metrics.prometheus.addEntryPointsLabels=true"
-  - "--metrics.prometheus.addServicesLabels=true"
-  - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
-  - "--providers.kubernetescrd"
-  - "--providers.kubernetescrd.allowEmptyServices=true"
-  - "--providers.kubernetesingress"
-  - "--providers.kubernetesingress.allowEmptyServices=true"
-  - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
+  - "--api.dashboard=true"  # Habilitar el dashboard
+  - "--api.insecure=false"  # Deshabilitar acceso inseguro al dashboard
+  - "--ping=true"  # Habilitar ping para comprobar el estado
+  - "--entrypoints.web.http.redirections.entrypoint.to=websecure"  # Redirigir HTTP a HTTPS
+  - "--entrypoints.web.http.redirections.entrypoint.scheme=https"  # Redirigir a HTTPS
+  - "--entrypoints.websecure.http.tls=true"  # Habilitar TLS en el entrypoint seguro
+  - "--metrics.prometheus=true"  # Habilitar métricas para Prometheus
+  - "--metrics.prometheus.entrypoint=metrics"  # Configurar entrypoint de métricas
+  - "--metrics.prometheus.addEntryPointsLabels=true"  # Añadir labels a las métricas
+  - "--metrics.prometheus.addServicesLabels=true"  # Añadir labels a los servicios
+  - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"  # Configuración de buckets para métricas
+  - "--providers.kubernetescrd"  # Habilitar el provider CRD
+  - "--providers.kubernetescrd.allowEmptyServices=true"  # Permitir servicios vacíos en CRD
+  - "--providers.kubernetesingress"  # Habilitar el provider Ingress
+  - "--providers.kubernetesingress.allowEmptyServices=true"  # Permitir servicios vacíos en Ingress
+  - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"  # Endpoint del servicio de Ingress

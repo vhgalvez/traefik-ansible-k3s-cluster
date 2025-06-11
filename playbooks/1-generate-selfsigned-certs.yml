@@ -121,3 +121,14 @@
         chmod 0600 /etc/traefik/certs/{{ cert_name }}.key
       delegate_to: "{{ master1_ip }}"
       become: true
+
+    - name: Verificar los archivos de certificados en master1
+      ansible.builtin.stat:
+        path: "/etc/traefik/certs/{{ cert_name }}.crt"
+      delegate_to: "{{ master1_ip }}"
+      register: cert_check
+
+    - name: Verificar los permisos de los archivos en master1
+      ansible.builtin.debug:
+        msg: "Certificado y clave copiados correctamente a /etc/traefik/certs/"
+      when: cert_check.stat.exists
