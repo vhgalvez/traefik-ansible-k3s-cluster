@@ -27,7 +27,7 @@ entryPoints:
   metrics:
     address: ":9100"
   traefik:
-    address: ":9000"
+    address: ":9000"  # Este entryPoint es para el dashboard en el puerto 9000
 
 service:
   enabled: true
@@ -44,8 +44,8 @@ service:
       port: 9100
       nodePort: 31900
     traefik:
-      port: 9000
-      nodePort: 30900
+      port: 9000      # Aquí se mapea el puerto 9000 para el dashboard
+      nodePort: 30900 # Este es el NodePort para el dashboard, asegúrate que esté disponible
 
 metrics:
   prometheus:
@@ -59,7 +59,7 @@ tls:
   stores:
     default:
       defaultCertificate:
-        secretName: internal-tls-secret
+        secretName: internal-tls-secret  # Asegúrate de que este Secret exista
 
 additionalArguments:
   - "--api.dashboard=true"
