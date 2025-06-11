@@ -24,9 +24,10 @@
     traefik_values_template: "../templates/traefik/values_nopvc.yaml.j2"
     ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
+    middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
+    rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
 
   tasks:
-
     - name: 📁 Asegurar directorio local files/
       ansible.builtin.file:
         path: "{{ files_dir }}"
@@ -99,4 +100,16 @@
         state: present
         namespace: "{{ traefik_namespace }}"
         src: "{{ rendered_ingressroute }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+
+    - name: 🌐 Renderizar Middleware de Autenticación
+      ansible.builtin.template:
+        src: "{{ middleware_template }}"
+        dest: "{{ rendered_middleware }}"
+
+    - name: 🚀 Aplicar Middleware de Autenticación
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ traefik_namespace }}"
+        src: "{{ rendered_middleware }}"
         kubeconfig: "{{ kubeconfig_path }}"

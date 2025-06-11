@@ -1,0 +1,13 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ traefik_dashboard_middleware_name }}
+  namespace: {{ traefik_namespace }}
+  labels:
+    app.kubernetes.io/name: {{ app_name }}
+    app.kubernetes.io/component: ingress
+spec:
+  basicAuth:
+    secret: {{ traefik_dashboard_secret_name }}
+    headerField: "X-Forwarded-Authorization"
+    removeHeader: false
