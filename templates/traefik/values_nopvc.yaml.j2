@@ -22,11 +22,11 @@ service:
   type: NodePort
   ports:
     web:
-      nodePort: 32209     # HTTP
+      nodePort: 32209
     websecure:
-      nodePort: 30807     # HTTPS
+      nodePort: 30807
     metrics:
-      nodePort: 31900     # Prometheus
+      nodePort: 31900
 
 securityContext:
   runAsUser: 1000
@@ -49,9 +49,6 @@ entryPoints:
           scheme: https
   websecure:
     address: ":443"
-    http:
-      tls:
-        certResolver: ""
   metrics:
     address: ":9100"
 
@@ -71,3 +68,4 @@ additionalArguments:
   - "--providers.kubernetesingress"
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
+  - "--ping=true"
