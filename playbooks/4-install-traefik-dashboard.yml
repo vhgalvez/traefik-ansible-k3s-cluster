@@ -48,6 +48,11 @@
         PATH: "{{ env_path }}"
       ignore_errors: true
 
+    - name:
+      ansible.builtin.shell: |
+         /usr/local/bin/helm uninstall traefik -n kube-system
+      ignore_errors: true
+
     - name: ➕ Añadir repositorio Helm de Traefik
       ansible.builtin.shell: >
         {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
