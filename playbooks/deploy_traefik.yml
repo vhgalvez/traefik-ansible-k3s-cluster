@@ -48,7 +48,7 @@
 
     - name: 🌐 Verificar acceso al Dashboard (modo tolerante)
       shell: |
-        curl -k -u {{ traefik_auth_user }}:{{ traefik_auth_pass }} https://traefik.socialdevs.site:30807/dashboard/ --max-time 5 --silent --output /dev/null --write-out '%{http_code}'
+        curl -k -u {{ traefik_auth_user }}:{{ traefik_auth_pass }} https://traefik.socialdevs.site/dashboard/ --max-time 5 --silent --output /dev/null --write-out '%{http_code}'
       register: dashboard_status
       failed_when: dashboard_status.stdout not in ["200", "301", "302"]
       ignore_errors: true
