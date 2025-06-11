@@ -20,6 +20,7 @@ metrics:
 service:
   enabled: true
   type: NodePort
+  externalTrafficPolicy: Cluster
   ports:
     web:
       nodePort: 32209
@@ -49,6 +50,9 @@ entryPoints:
           scheme: https
   websecure:
     address: ":443"
+    http:
+      tls:
+        certResolver: default
   metrics:
     address: ":9100"
 
