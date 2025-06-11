@@ -44,22 +44,3 @@ entryPoints:
     address: ":443"
   metrics:
     address: ":9100"
-
-persistence:
-  enabled: true
-  name: traefik-acme-volume
-  path: /opt/traefik/acme
-
-additionalArguments:
-  - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
-  - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-  - "--certificatesresolvers.letsencrypt.acme.email={{ letsencrypt_email }}"
-  - "--certificatesresolvers.letsencrypt.acme.storage=/data/traefik-acme.json"
-
-certificatesResolvers:
-  letsencrypt:
-    acme:
-      email: "{{ letsencrypt_email }}"
-      storage: "/data/traefik-acme.json"
-      httpChallenge:
-        entryPoint: web
