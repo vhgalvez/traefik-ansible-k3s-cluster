@@ -19,7 +19,14 @@ metrics:
 
 service:
   enabled: true
-  type: ClusterIP
+  type: NodePort
+  ports:
+    web:
+      nodePort: 32209
+    websecure:
+      nodePort: 30807
+    metrics:
+      nodePort: 31900
 
 securityContext:
   runAsUser: 1000
@@ -44,3 +51,14 @@ entryPoints:
     address: ":443"
   metrics:
     address: ":9100"
+
+additionalArguments:
+  - "--api.dashboard=true"
+  - "--api.insecure=false"
+  - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+  - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+  - "--entrypoints.websecure.http.tls=true"
+  - "--metrics.prometheus=true"
+  - "--metrics.prometheus.entrypoint=metrics"
+  - "--providers.kubernetescrd"
+  - "--providers.kubernetesingress"
