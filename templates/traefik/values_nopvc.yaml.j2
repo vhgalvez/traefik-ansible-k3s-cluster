@@ -22,10 +22,13 @@ entryPoints:
         entryPoint:
           to: websecure
           scheme: https
+
   websecure:
     address: ":443"  # HTTPS en el puerto 443 para tráfico seguro.
+  
   metrics:
     address: ":9100"
+
   traefik:
     address: ":9000"  # Exposición del puerto 9000 para el dashboard
 
@@ -59,7 +62,7 @@ tls:
   stores:
     default:
       defaultCertificate:
-        secretName: internal-tls-secret
+        secretName: internal-tls-secret  # Configuración de TLS con un certificado secreto
 
 additionalArguments:
   - "--api.dashboard=true"  # Habilitar el dashboard
