@@ -26,23 +26,23 @@
 
   tasks:
     - name: 📁 Crear directorio de certificados local
-      ansible.builtin.raw:
-        cmd: mkdir -p {{ certs_dir }} && chmod 755 {{ certs_dir }}
+      file:
+        path: "{{ certs_dir }}"
+        state: directory
+        mode: "0755"
 
     - name: 📋 Verificar existencia de certificado
-      ansible.builtin.raw:
-        cmd: stat {{ certs_dir }}/{{ cert_name }}.crt
+      stat:
+        path: "{{ certs_dir }}/{{ cert_name }}.crt"
       register: cert_stat
-      changed_when: false
 
     - name: 📋 Verificar existencia de clave privada
-      ansible.builtin.raw:
-        cmd: stat {{ certs_dir }}/{{ cert_name }}.key
+      stat:
+        path: "{{ certs_dir }}/{{ cert_name }}.key"
       register: key_stat
-      changed_when: false
 
     - name: 📝 Crear archivo SAN temporal
-      ansible.builtin.copy:
+      copy:
         dest: "{{ san_file }}"
         content: |
           [req]
@@ -71,70 +71,53 @@
           DNS.6 = prometheus.socialdevs.site
 
     - name: 🔐 Generar clave privada
-      ansible.builtin.command:
-        cmd: openssl genrsa -out {{ certs_dir }}/{{ cert_name }}.key 4096
+      command: openssl genrsa -out {{ certs_dir }}/{{ cert_name }}.key 4096
       when: force_recreate or not key_stat.stat.exists
 
     - name: 📜 Generar certificado wildcard autofirmado
-      ansible.builtin.command:
-        cmd: >
-          openssl req -x509 -nodes -days 3650
-          -key {{ certs_dir }}/{{ cert_name }}.key
-          -out {{ certs_dir }}/{{ cert_name }}.crt
-          -config {{ san_file }}
-          -extensions req_ext
+      command: >
+        openssl req -x509 -nodes -days 3650
+        -key {{ certs_dir }}/{{ cert_name }}.key
+        -out {{ certs_dir }}/{{ cert_name }}.crt
+        -config {{ san_file }}
+        -extensions req_ext
       when: force_recreate or not cert_stat.stat.exists
 
     - name: 🔐 Establecer permisos locales
-      ansible.builtin.raw:
-        cmd: chmod 0644 {{ certs_dir }}/{{ cert_name }}.crt
-      changed_when: false
-
-    - name: 🔐 Establecer permisos locales para la clave
-      ansible.builtin.raw:
-        cmd: chmod 0600 {{ certs_dir }}/{{ cert_name }}.key
-      changed_when: false
+      file:
+        path: "{{ item.path }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ certs_dir }}/{{ cert_name }}.crt", mode: "0644" }
+        - { path: "{{ certs_dir }}/{{ cert_name }}.key", mode: "0600" }
 
     - name: 🧹 Eliminar archivo temporal SAN
-      ansible.builtin.file:
+      file:
         path: "{{ san_file }}"
         state: absent
 
     - name: 📁 Crear directorio remoto /etc/traefik/certs en master1
-      ansible.builtin.raw:
-        cmd: mkdir -p /etc/traefik/certs && chmod 755 /etc/traefik/certs
+      ansible.builtin.raw: mkdir -p /etc/traefik/certs && chmod 755 /etc/traefik/certs
       delegate_to: "{{ master1_ip }}"
+      become: true
 
     - name: 📤 Copiar traefik.crt a master1
-      ansible.builtin.shell:
-        cmd: >
-          scp -i {{ ssh_key_path }} -o StrictHostKeyChecking=no
-          {{ certs_dir }}/{{ cert_name }}.crt
-          root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.crt
+      ansible.builtin.shell: >
+        scp -i {{ ssh_key_path }} -o StrictHostKeyChecking=no
+        {{ certs_dir }}/{{ cert_name }}.crt
+        root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.crt
       delegate_to: localhost
 
     - name: 📤 Copiar traefik.key a master1
-      ansible.builtin.shell:
-        cmd: >
-          scp -i {{ ssh_key_path }} -o StrictHostKeyChecking=no
-          {{ certs_dir }}/{{ cert_name }}.key
-          root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.key
+      ansible.builtin.shell: >
+        scp -i {{ ssh_key_path }} -o StrictHostKeyChecking=no
+        {{ certs_dir }}/{{ cert_name }}.key
+        root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.key
       delegate_to: localhost
 
     - name: 🔐 Establecer permisos remotos en master1
-      ansible.builtin.raw:
-        cmd: |
-          chmod 0644 /etc/traefik/certs/{{ cert_name }}.crt
-          chmod 0600 /etc/traefik/certs/{{ cert_name }}.key
+      ansible.builtin.raw: |
+        chmod 0644 /etc/traefik/certs/{{ cert_name }}.crt
+        chmod 0600 /etc/traefik/certs/{{ cert_name }}.key
       delegate_to: "{{ master1_ip }}"
-
-    - name: Verificar los archivos de certificados en master1
-      ansible.builtin.stat:
-        path: "/etc/traefik/certs/{{ cert_name }}.crt"
-      delegate_to: "{{ master1_ip }}"
-      register: cert_check
-
-    - name: Verificar los permisos de los archivos en master1
-      ansible.builtin.debug:
-        msg: "Certificado y clave copiados correctamente a /etc/traefik/certs/"
-      when: cert_check.stat.exists
+      become: true
