@@ -22,7 +22,8 @@
     traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
     sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
     traefik_values_template: "../templates/traefik/values_nopvc.yaml.j2"
-    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute.yaml.j2"
+    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
+    rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
 
   tasks:
 
@@ -89,13 +90,13 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
 
     - name: 🌐 Renderizar IngressRoute del Dashboard
-      template:
-        src: ../templates/traefik/traefik-dashboard-ingressroute.yaml.j2
+      ansible.builtin.template:
+        src: "{{ ingressroute_template }}"
         dest: "{{ rendered_ingressroute }}"
 
     - name: 🚀 Aplicar IngressRoute del Dashboard
       kubernetes.core.k8s:
         state: present
         namespace: "{{ traefik_namespace }}"
-        src: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
+        src: "{{ rendered_ingressroute }}"
         kubeconfig: "{{ kubeconfig_path }}"
