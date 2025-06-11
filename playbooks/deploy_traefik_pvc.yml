@@ -1,11 +1,12 @@
 # playbooks/deploy_traefik_pvc.yml
 # =======================================================
 # 🔄 FASE 3: Reinstalación de Traefik CON PVC (modo final)
-# Asume que los secretos ya fueron generados en la Fase 1.
-# Usa almacenamiento persistente mediante values_pvc.yaml.j2
+# Asume que los secretos TLS y de autenticación ya existen.
+# Usa almacenamiento persistente (Longhorn u otro StorageClass)
+# mediante values_pvc.yaml.j2
 # =======================================================
 
-- name: 🔄 Reinstalar Traefik con almacenamiento persistente
+- name: 🔄 Fase 3 - Reinstalar Traefik con almacenamiento persistente
   hosts: localhost
   gather_facts: false
   become: false
@@ -24,18 +25,19 @@
     ingressroute_path: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
 
   tasks:
-    - name: 📁 Asegurar directorio files/
+
+    - name: 📁 Crear directorio local files/ si no existe
       file:
         path: "{{ files_dir }}"
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: 📄 Renderizar plantilla values_pvc.yaml.j2
       template:
         src: "../templates/traefik/values_pvc.yaml.j2"
         dest: "{{ traefik_values_file }}"
 
-    - name: ❌ Eliminar despliegue anterior de Traefik (si existe)
+    - name: ❌ Desinstalar Traefik anterior (modo tolerante)
       shell: >
         {{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }}
       environment:
@@ -43,7 +45,7 @@
         PATH: "{{ env_path }}"
       ignore_errors: true
 
-    - name: 📦 Instalar Traefik con Helm y almacenamiento persistente
+    - name: 📦 Instalar Traefik con Helm (con almacenamiento persistente)
       shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
         --namespace {{ traefik_namespace }}
@@ -54,11 +56,13 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
 
-    - name: ⏳ Esperar a que Traefik esté listo
+    - name: ⏳ Esperar a que el despliegue de Traefik esté listo
       shell: >
-        {{ kubectl_bin_path }} rollout status deploy/{{ traefik_release_name }} -n {{ traefik_namespace }}
+        {{ kubectl_bin_path }} rollout status deployment/{{ traefik_release_name }} -n {{ traefik_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+      register: rollout_status
+      changed_when: false
 
     - name: 📥 Aplicar Secret sellado del Dashboard (si existe)
       shell: >
@@ -68,8 +72,9 @@
         PATH: "{{ env_path }}"
       when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
 
-    - name: 🚪 Desplegar IngressRoute del Dashboard
+    - name: 🚪 Aplicar IngressRoute del Dashboard (si existe)
       kubernetes.core.k8s:
         state: present
         namespace: kube-system
         src: "{{ ingressroute_path }}"
+      when: ingressroute_path is defined and lookup('file', ingressroute_path, errors='ignore') is not none
