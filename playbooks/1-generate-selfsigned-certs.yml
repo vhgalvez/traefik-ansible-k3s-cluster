@@ -1,5 +1,4 @@
-# import_playbook: generate_certs.yml
-# playbooks/generate_certs.yml
+# playbooks\1-generate-selfsigned-certs.yml
 # fase 1a: Generar certificados autofirmados para Traefik
 ---
 - name: 🛡️ Generar certificados wildcard autofirmados para Traefik

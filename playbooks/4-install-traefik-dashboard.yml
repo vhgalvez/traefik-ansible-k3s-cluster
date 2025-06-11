@@ -1,6 +1,4 @@
-# playbooks/install_traefik.yml
-# Fase 1: Instalar Traefik funcional con Dashboard interno (TLS + Auth)
-# Fase 2 - Instalar Traefik con Helm en K3s
+# playbooks\4-install-traefik-dashboard.yml
 ---
 - name: 🚀 Instalar Traefik con Dashboard interno protegido
   hosts: localhost

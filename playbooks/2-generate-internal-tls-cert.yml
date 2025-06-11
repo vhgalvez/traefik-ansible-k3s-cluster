@@ -1,4 +1,4 @@
-# playbooks\generate_internal_tls_secrets.yml
+# playbooks\2-generate-internal-tls-cert.yml
 ---
 - name: 🔐 Crear Secret TLS autofirmado para dominios internos
   hosts: localhost
