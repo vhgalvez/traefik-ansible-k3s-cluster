@@ -1,8 +1,8 @@
 # playbooks/uninstall-traefik.yml
 # ========================================================
 # 🧹 FASE FINAL: Desinstalación segura de Traefik
-# - Elimina todos los recursos relacionados (Helm release, Secret, PVC, etc.)
-# - Puede ejecutarse después de cualquier fase (1, 2 o 3)
+# - Elimina Helm release y recursos relacionados
+# - Verifica existencia antes de eliminar (evita errores)
 # ========================================================
 
 - name: 🧹 Desinstalar Traefik y limpiar recursos relacionados
@@ -18,68 +18,97 @@
     helm_bin_path: "/usr/local/bin/helm"
     kubectl_bin_path: "/usr/local/bin/kubectl"
     env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-    traefik_namespace: "kube-system"  # Cambia esto si usas otro namespace
-    traefik_release_name: "traefik"   # Cambia esto si tienes otro nombre para tu release
+    traefik_namespace: "kube-system"
+    traefik_release_name: "traefik"
 
   tasks:
 
-    - name: ❌ Desinstalar Helm release de Traefik
+    # ❌ Desinstalar Helm release (si existe)
+    - name: 🔍 Verificar si Helm release existe
+      shell: >
+        {{ helm_bin_path }} status {{ traefik_release_name }} -n {{ traefik_namespace }}
+      environment:
+        PATH: "{{ env_path }}"
+      register: helm_status
+      failed_when: false
+      changed_when: false
+
+    - name: ❌ Desinstalar Helm release Traefik
       shell: >
         {{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }}
       environment:
         PATH: "{{ env_path }}"
-      ignore_errors: true
+      when: helm_status.rc == 0
 
-    - name: ❌ Eliminar SealedSecret del Dashboard (si existe)
+    # ❌ Eliminar SealedSecret y Secret (autenticación dashboard)
+    - name: ❌ Eliminar SealedSecret del Dashboard
       shell: >
-        {{ kubectl_bin_path }} delete sealedsecret traefik-dashboard-secret -n {{ traefik_namespace }}
+        {{ kubectl_bin_path }} delete sealedsecret traefik-dashboard-secret -n {{ traefik_namespace }} --ignore-not-found
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      ignore_errors: true
 
-    - name: ❌ Eliminar Secret plano del Dashboard (fallback)
+    - name: ❌ Eliminar Secret plano del Dashboard
       shell: >
-        {{ kubectl_bin_path }} delete secret traefik-dashboard-secret -n {{ traefik_namespace }}
+        {{ kubectl_bin_path }} delete secret traefik-dashboard-secret -n {{ traefik_namespace }} --ignore-not-found
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      ignore_errors: true
 
-    - name: ❌ Eliminar ConfigMap 'traefik-config' (si existe)
+    # ❌ Eliminar Middleware (si existe)
+    - name: ❌ Eliminar Middleware de autenticación
       shell: >
-        {{ kubectl_bin_path }} delete configmap traefik-config -n {{ traefik_namespace }}
+        {{ kubectl_bin_path }} delete middleware traefik-auth -n {{ traefik_namespace }} --ignore-not-found
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      ignore_errors: true
 
-    - name: ❌ Eliminar IngressRoute del Dashboard (si existe)
+    # ❌ Eliminar IngressRoute y ConfigMap
+    - name: ❌ Eliminar IngressRoute del Dashboard
       shell: >
-        {{ kubectl_bin_path }} delete ingressroute traefik-dashboard -n {{ traefik_namespace }}
+        {{ kubectl_bin_path }} delete ingressroute traefik-dashboard -n {{ traefik_namespace }} --ignore-not-found
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      ignore_errors: true
 
-    - name: ❌ Eliminar PVCs creados por Traefik (si existen)
+    - name: ❌ Eliminar ConfigMap 'traefik-config'
       shell: >
-        {{ kubectl_bin_path }} delete pvc -n {{ traefik_namespace }} --selector=app.kubernetes.io/name=traefik
+        {{ kubectl_bin_path }} delete configmap traefik-config -n {{ traefik_namespace }} --ignore-not-found
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      ignore_errors: true
 
-    - name: ❌ Eliminar PVs huérfanos (si existen)
+    # ❌ Eliminar PVCs y PVs
+    - name: ❌ Eliminar PVCs con label de Traefik
       shell: >
-        {{ kubectl_bin_path }} delete pv --selector=app.kubernetes.io/name=traefik
+        {{ kubectl_bin_path }} delete pvc -n {{ traefik_namespace }} --selector=app.kubernetes.io/name=traefik --ignore-not-found
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      ignore_errors: true
 
-    - name: ❌ Eliminar almacenamiento local persistente (si está habilitado)
+    - name: ❌ Eliminar PVs con label de Traefik
       shell: >
-        rm -rf {{ traefik_storage_path }}
+        {{ kubectl_bin_path }} delete pv --selector=app.kubernetes.io/name=traefik --ignore-not-found
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    # ❌ Eliminar helmchart traefik en caso de instalación automática de K3s
+    - name: ❌ Eliminar HelmChart traefik de K3s (si existe)
+      shell: >
+        {{ kubectl_bin_path }} delete helmchart traefik -n kube-system --ignore-not-found
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    # ❌ Eliminar almacenamiento local si se usó
+    - name: ❌ Eliminar almacenamiento local persistente
+      shell: >
+        rm -rf --preserve-root {{ traefik_storage_path }}
       when: traefik_storage_enabled | default(false) | bool
       ignore_errors: true
 
+    # ✅ Verificar que ya no existan recursos de Traefik
     - name: ✅ Verificar que no quedan recursos de Traefik
       shell: >
-        {{ kubectl_bin_path }} get all -n {{ traefik_namespace }} || echo "✔️ Todos los recursos de Traefik han sido eliminados."
+        {{ kubectl_bin_path }} get all -n {{ traefik_namespace }} | grep -i traefik || echo "✔️ Todos los recursos de Traefik han sido eliminados."
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+      register: traefik_cleanup_check
+      changed_when: false
+
+    - name: 📋 Mostrar estado final de la limpieza
+      debug:
+        var: traefik_cleanup_check.stdout
