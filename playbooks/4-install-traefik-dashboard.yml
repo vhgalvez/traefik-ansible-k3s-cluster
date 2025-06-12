@@ -103,14 +103,15 @@
       until: wait_for_secret.rc == 0
 
     # 📥 Instalar CRDs oficiales de Traefik desde release v3.4
-    - name: 📥 Descargar e instalar CRDs únicos de Traefik v3.4
-      ansible.builtin.shell: |
-        set -euo pipefail
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
-          | {{ kubectl_bin_path }} apply -f -
+    - name: ⏳ Esperar a que CRD IngressRoute esté disponible
+      ansible.builtin.shell: >
+        {{ kubectl_bin_path }} get crd ingressroutes.traefik.io
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      changed_when: true
+      register: check_ingressroute_crd
+      retries: 10
+      delay: 5
+      until: check_ingressroute_crd.rc == 0
 
     # 📦 Instalar Traefik desde Helm
     - name: 📦 Instalar Traefik desde Helm Chart
