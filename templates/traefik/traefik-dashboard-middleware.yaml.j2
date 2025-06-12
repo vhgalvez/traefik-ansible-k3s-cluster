@@ -2,12 +2,9 @@
 apiVersion: traefik.containo.us/v1alpha1
 kind: Middleware
 metadata:
-  name: {{ traefik_dashboard_middleware_name }}
-  namespace: {{ traefik_namespace }}
-  labels:
-    app.kubernetes.io/name: {{ app_name }}
-    app.kubernetes.io/component: ingress
+  name: traefik-auth
+  namespace: kube-system
 spec:
   basicAuth:
-    secret: {{ traefik_dashboard_secret_name }}  # htpasswd cifrado con kubeseal
-    removeHeader: true  # Seguridad adicional (elimina Authorization al reenviar)
+    secret: traefik-dashboard-secret  # El secreto generado previamente
+    removeHeader: true  # Elimina el header Authorization al reenviar
