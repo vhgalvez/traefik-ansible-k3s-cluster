@@ -102,17 +102,11 @@
       delay: 5
       until: wait_for_secret.rc == 0
 
-    # 📥 Instalar CRDs oficiales de Traefik desde release v3.4
-    - name: 📥 Descargar e instalar CRDs oficiales de Traefik
+    # 📥 Descargar e instalar CRDs oficiales de Traefik v3.0
+    - name: 📥 Descargar e instalar CRDs oficiales de Traefik v3.0
       ansible.builtin.shell: |
         set -euo pipefail
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-ingressroutes.yaml | kubectl apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-ingressroutetcps.yaml | kubectl apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-ingressrouteudps.yaml | kubectl apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-tlsoptions.yaml | kubectl apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-tlsstores.yaml | kubectl apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-middlewares.yaml | kubectl apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-serverstransports.yaml | kubectl apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml | kubectl apply -f -
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       changed_when: true
