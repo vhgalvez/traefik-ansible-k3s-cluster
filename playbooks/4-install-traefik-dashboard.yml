@@ -28,60 +28,54 @@
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
 
   tasks:
-    # Asegurar que el directorio de archivos esté presente
     - name: 📁 Asegurar directorio local files/
       ansible.builtin.file:
         path: "{{ files_dir }}"
         state: directory
         mode: "0755"
 
-    # Renderizar el archivo `values.yaml` desde la plantilla
     - name: 📄 Renderizar values.yaml desde plantilla
       ansible.builtin.template:
         src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
-    # Sección de limpieza: Asegura que no haya instalaciones previas de Traefik
-    - name: 🧹 Limpiar instalaciones previas de Traefik (si existen)
+    # 🧹 Limpieza: eliminar Traefik por defecto si quedó instalado
+    - name: 🧼 Verificar y eliminar Traefik por defecto
       block:
-        - name: 🔍 Comprobar si el release de Helm 'traefik' existe
-          ansible.builtin.shell: "{{ helm_bin_path }} status {{ traefik_release_name }} -n {{ traefik_namespace }}"
-          environment:
-            PATH: "{{ env_path }}"
-          register: helm_release_status
-          changed_when: false
-          failed_when: false  # Ignorar error si el release no se encuentra
-
-        - name: ❌ Desinstalar release de Helm 'traefik'
-          ansible.builtin.shell: "{{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }}"
-          environment:
-            PATH: "{{ env_path }}"
-          when: helm_release_status.rc == 0  # Solo desinstalar si el release existe
-          changed_when: true  # Marcar como cambiado si el comando de desinstalación se ejecuta
-
-        - name: 🔍 Comprobar si Traefik por defecto de K3s (helmcharts) existe
-          ansible.builtin.shell: "{{ kubectl_bin_path }} get helmcharts {{ traefik_release_name }} -n kube-system"
+        - name: 🔍 Buscar Deployment traefik en kube-system
+          ansible.builtin.shell: >
+            {{ kubectl_bin_path }} get deployment traefik -n kube-system
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
             PATH: "{{ env_path }}"
+          register: traefik_deploy_check
+          failed_when: false
+          changed_when: false
+
+        - name: ❌ Eliminar Deployment traefik si existe
+          ansible.builtin.shell: >
+            {{ kubectl_bin_path }} delete deployment traefik -n kube-system
+          environment:
+            KUBECONFIG: "{{ kubeconfig_path }}"
+          when: traefik_deploy_check.rc == 0
+
+        - name: 🔍 Buscar HelmChart traefik en kube-system
+          ansible.builtin.shell: >
+            {{ kubectl_bin_path }} get helmchart traefik -n kube-system
+          environment:
+            KUBECONFIG: "{{ kubeconfig_path }}"
           register: k3s_helmchart_status
+          failed_when: false
           changed_when: false
-          failed_when: false  # Ignorar error si el helmchart no se encuentra
 
-        - name: ❌ Eliminar Traefik por defecto de K3s (helmcharts)
-          ansible.builtin.shell: "{{ kubectl_bin_path }} delete helmcharts {{ traefik_release_name }} -n kube-system"
+        - name: ❌ Eliminar HelmChart traefik si existe
+          ansible.builtin.shell: >
+            {{ kubectl_bin_path }} delete helmchart traefik -n kube-system
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
-            PATH: "{{ env_path }}"
-          when: k3s_helmchart_status.rc == 0  # Solo eliminar si el helmchart existe
-          changed_when: true  # Marcar como cambiado si el comando de eliminación se ejecuta
-      rescue:
-        - name: ⚠️ Advertencia durante la limpieza
-          ansible.builtin.debug:
-            msg: "Se produjo un error inesperado durante la limpieza de Traefik, pero el playbook continúa."
-          when: ansible_failed_result is defined and ansible_failed_result.rc != 1
+          when: k3s_helmchart_status.rc == 0
 
-    # Añadir repositorio de Helm de Traefik
+    # ➕ Añadir repositorio Helm de Traefik
     - name: ➕ Añadir repositorio Helm de Traefik
       ansible.builtin.shell: >
         {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
@@ -89,7 +83,7 @@
       environment:
         PATH: "{{ env_path }}"
 
-    # Aplicar el Secret sellado (autenticación) para el dashboard
+    # 📥 Aplicar Secret sellado de autenticación
     - name: 📥 Aplicar Secret sellado (auth)
       kubernetes.core.k8s:
         state: present
@@ -98,7 +92,6 @@
         namespace: "{{ traefik_namespace }}"
       when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
 
-    # Esperar que el Secret sea desencriptado
     - name: ⏳ Esperar Secret desencriptado
       ansible.builtin.shell: >
         {{ kubectl_bin_path }} -n {{ traefik_namespace }} get secret {{ traefik_dashboard_secret_name }}
@@ -109,7 +102,7 @@
       delay: 5
       until: wait_for_secret.rc == 0
 
-    # Instalar Traefik desde el Chart de Helm
+    # 📦 Instalar Traefik desde Helm
     - name: 📦 Instalar Traefik desde Helm Chart
       ansible.builtin.shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
@@ -121,20 +114,29 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
 
-    # Esperar que el despliegue de Traefik sea exitoso
-    - name: ⏳ Esperar despliegue Traefik
+    - name: ⏳ Esperar despliegue de Traefik
       ansible.builtin.shell: >
         {{ kubectl_bin_path }} rollout status deploy/{{ traefik_release_name }} -n {{ traefik_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # Renderizar IngressRoute para el Dashboard
+    # ⏳ Esperar CRD IngressRoute
+    - name: ⏳ Esperar a que CRD IngressRoute esté disponible
+      ansible.builtin.shell: >
+        {{ kubectl_bin_path }} get crd ingressroutes.traefik.containo.us
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: check_ingressroute_crd
+      retries: 10
+      delay: 5
+      until: check_ingressroute_crd.rc == 0
+
+    # 🌐 Renderizar y aplicar IngressRoute del Dashboard
     - name: 🌐 Renderizar IngressRoute del Dashboard
       ansible.builtin.template:
         src: "{{ ingressroute_template }}"
         dest: "{{ rendered_ingressroute }}"
 
-    # Aplicar IngressRoute del Dashboard
     - name: 🚀 Aplicar IngressRoute del Dashboard
       kubernetes.core.k8s:
         state: present
@@ -142,13 +144,12 @@
         src: "{{ rendered_ingressroute }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # Renderizar Middleware de Autenticación
+    # 🌐 Renderizar y aplicar Middleware de Autenticación
     - name: 🌐 Renderizar Middleware de Autenticación
       ansible.builtin.template:
         src: "{{ middleware_template }}"
         dest: "{{ rendered_middleware }}"
 
-    # Aplicar Middleware de Autenticación
     - name: 🚀 Aplicar Middleware de Autenticación
       kubernetes.core.k8s:
         state: present
