@@ -131,17 +131,6 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # ⏳ Esperar CRD IngressRoute
-    - name: ⏳ Esperar a que CRD IngressRoute esté disponible
-      ansible.builtin.shell: >
-        {{ kubectl_bin_path }} get crd ingressroutes.traefik.containo.us
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: check_ingressroute_crd
-      retries: 10
-      delay: 5
-      until: check_ingressroute_crd.rc == 0
-
     # 🌐 Renderizar y aplicar IngressRoute del Dashboard
     - name: 🌐 Renderizar IngressRoute del Dashboard
       ansible.builtin.template:
