@@ -103,17 +103,21 @@
       until: wait_for_secret.rc == 0
 
     # 📥 Instalar CRDs oficiales de Traefik desde release v3.4
-    - name: ⏳ Esperar a que CRD IngressRoute esté disponible
-      ansible.builtin.shell: >
-        {{ kubectl_bin_path }} get crd ingressroutes.traefik.io
+    - name: 📥 Descargar e instalar CRDs oficiales de Traefik
+      ansible.builtin.shell: |
+        set -euo pipefail
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-ingressroutes.yaml | {{ kubectl_bin_path }} apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-ingressroutetcps.yaml | {{ kubectl_bin_path }} apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-ingressrouteudps.yaml | {{ kubectl_bin_path }} apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-tlsoptions.yaml | {{ kubectl_bin_path }} apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-tlsstores.yaml | {{ kubectl_bin_path }} apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-middlewares.yaml | {{ kubectl_bin_path }} apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-serverstransports.yaml | {{ kubectl_bin_path }} apply -f -
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      register: check_ingressroute_crd
-      retries: 10
-      delay: 5
-      until: check_ingressroute_crd.rc == 0
+      changed_when: true
 
-    # 📦 Instalar Traefik desde Helm
+    # 📦 Instalar Traefik desde Helm Chart
     - name: 📦 Instalar Traefik desde Helm Chart
       ansible.builtin.shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
