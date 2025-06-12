@@ -2,7 +2,7 @@
 deployment:
   replicas: 1
   nodeSelector:
-    kubernetes.io/hostname: traefik.socialdevs.site  # O elimina esta línea si deseas que Traefik se agende libremente
+    kubernetes.io/hostname: traefik.socialdevs.site
 
 logs:
   general:
@@ -25,15 +25,12 @@ entryPoints:
 
   websecure:
     address: ":443"
-    http:
-      tls:
-        certResolver: default
 
   metrics:
     address: ":9100"
 
   traefik:
-    address: ":9000"  # Solo interno, sin Service ni Ingress
+    address: ":9000"  # Solo interno, no expuesto como Service
 
 service:
   enabled: true
@@ -42,16 +39,16 @@ service:
   ports:
     web:
       port: 80
-      nodePort: 80         # 🔁 Ahora usa el puerto estándar, útil para HAProxy
+      nodePort: 32209
     websecure:
       port: 443
-      nodePort: 443        # 🔁 Igual
+      nodePort: 30807
     metrics:
       port: 9100
       nodePort: 31900
-
-# No se expone el dashboard vía NodePort
-# Se expone solo vía IngressRoute interna (traefik.socialdevs.site)
+    dashboard:
+      port: 8080  # Agregado para el dashboard
+      nodePort: 30900  # Define un NodePort para el dashboard
 
 metrics:
   prometheus:
@@ -65,7 +62,7 @@ tls:
   stores:
     default:
       defaultCertificate:
-        secretName: internal-tls-secret  # Debe existir en el namespace
+        secretName: internal-tls-secret
 
 additionalArguments:
   - "--api.dashboard=true"
