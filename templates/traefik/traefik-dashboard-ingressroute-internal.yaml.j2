@@ -1,5 +1,5 @@
 # templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1 # <-- ¡CAMBIADO AQUÍ!
 kind: IngressRoute
 metadata:
   name: ingress-{{ app_name }}-dashboard-internal
