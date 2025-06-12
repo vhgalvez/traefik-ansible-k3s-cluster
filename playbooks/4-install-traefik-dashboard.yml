@@ -102,7 +102,6 @@
       delay: 5
       until: wait_for_secret.rc == 0
 
-    # 📥 Descargar e instalar CRDs oficiales de Traefik v3.0
     - name: 📥 Descargar e instalar CRDs oficiales de Traefik v3.0
       ansible.builtin.shell: |
         set -euo pipefail
