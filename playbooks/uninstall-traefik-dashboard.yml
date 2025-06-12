@@ -1,8 +1,7 @@
-
 # playbooks/uninstall-traefik-dashboard.yml
 # ========================================================
 # 🧹 FASE FINAL: Desinstalación segura de Traefik
-# Elimina Helm release, recursos y CRDs relacionados
+# Elimina Helm release, recursos, CRDs relacionados y archivos antiguos
 # ========================================================
 
 - name: 🧹 Desinstalar Traefik y limpiar recursos relacionados
@@ -20,8 +19,17 @@
     env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     traefik_namespace: "kube-system"
     traefik_release_name: "traefik"
+    internal_tls_secret_name: "internal-tls-secret"
+    playbooks_files_path: "playbooks/files/"
 
   tasks:
+
+    # ❌ Eliminar archivos antiguos en el directorio playbooks/files
+    - name: Eliminar archivos antiguos en playbooks/files
+      file:
+        path: "{{ playbooks_files_path }}"
+        state: absent
+      become: true
 
     # ❌ Desinstalar Helm release (si existe)
     - name: 🔍 Verificar si Helm release existe
@@ -40,21 +48,41 @@
         PATH: "{{ env_path }}"
       when: helm_status.rc == 0
 
-    # ❌ Eliminar SealedSecret y Secret (autenticación dashboard)
+    # 🧹 Verificar existencia y eliminar SealedSecret del Dashboard
+    - name: Verificar existencia de SealedSecret del Dashboard
+      shell: >
+        {{ kubectl_bin_path }} get sealedsecret traefik-dashboard-secret -n {{ traefik_namespace }} --ignore-not-found
+      register: sealedsecret_status
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      failed_when: false
+      changed_when: false
+
     - name: ❌ Eliminar SealedSecret del Dashboard
       shell: >
         {{ kubectl_bin_path }} delete sealedsecret traefik-dashboard-secret -n {{ traefik_namespace }} --ignore-not-found
+      when: sealedsecret_status.rc == 0
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
+    # ❌ Eliminar Secret plano del Dashboard
     - name: ❌ Eliminar Secret plano del Dashboard
       shell: >
         {{ kubectl_bin_path }} delete secret traefik-dashboard-secret -n {{ traefik_namespace }} --ignore-not-found
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # 🧹 Eliminar CRDs de Traefik
-    - name: 🧹 Eliminar CRDs de Traefik
+    # 🧹 Verificar existencia y eliminar CRDs de Traefik
+    - name: Verificar existencia de CRDs de Traefik
+      shell: >
+        {{ kubectl_bin_path }} get crd ingressroutes.traefik.io --ignore-not-found
+      register: crd_ingressroutes_status
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      failed_when: false
+      changed_when: false
+
+    - name: Eliminar CRDs de Traefik si existen
       shell: |
         set -euo pipefail
         {{ kubectl_bin_path }} delete crd ingressroutes.traefik.io --ignore-not-found
@@ -66,6 +94,14 @@
         {{ kubectl_bin_path }} delete crd serverstransports.traefik.io --ignore-not-found
         {{ kubectl_bin_path }} delete crd serverstransporttcps.traefik.io --ignore-not-found
         {{ kubectl_bin_path }} delete crd traefikservices.traefik.io --ignore-not-found
+      when: crd_ingressroutes_status.rc == 0
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       changed_when: true
+
+    # ❌ Eliminar Secret TLS interno
+    - name: ❌ Eliminar Secret TLS interno
+      shell: >
+        {{ kubectl_bin_path }} delete secret {{ internal_tls_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
