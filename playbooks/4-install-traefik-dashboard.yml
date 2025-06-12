@@ -106,13 +106,13 @@
     - name: 📥 Descargar e instalar CRDs oficiales de Traefik
       ansible.builtin.shell: |
         set -euo pipefail
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-ingressroutes.yaml | {{ kubectl_bin_path }} apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-ingressroutetcps.yaml | {{ kubectl_bin_path }} apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-ingressrouteudps.yaml | {{ kubectl_bin_path }} apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-tlsoptions.yaml | {{ kubectl_bin_path }} apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-tlsstores.yaml | {{ kubectl_bin_path }} apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-middlewares.yaml | {{ kubectl_bin_path }} apply -f -
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-serverstransports.yaml | {{ kubectl_bin_path }} apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-ingressroutes.yaml | kubectl apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-ingressroutetcps.yaml | kubectl apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-ingressrouteudps.yaml | kubectl apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-tlsoptions.yaml | kubectl apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-tlsstores.yaml | kubectl apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-middlewares.yaml | kubectl apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/crds/crd-serverstransports.yaml | kubectl apply -f -
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       changed_when: true
