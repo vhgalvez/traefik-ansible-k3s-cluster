@@ -2,7 +2,7 @@
 deployment:
   replicas: 1
   nodeSelector:
-    kubernetes.io/hostname: traefik.socialdevs.site  # O elimina esta línea si deseas que Traefik se agende libremente
+    kubernetes.io/hostname: traefik.socialdevs.site  # ✅ O elimínalo para permitir scheduling dinámico
 
 logs:
   general:
@@ -27,13 +27,13 @@ entryPoints:
     address: ":443"
     http:
       tls:
-        certResolver: default
+        certResolver: default  # ⚠️ Este requiere configuración de ACME o Let's Encrypt
 
   metrics:
     address: ":9100"
 
   traefik:
-    address: ":9000"  # Solo interno, sin Service ni Ingress
+    address: ":9000"  # Solo interno, no Service
 
 service:
   enabled: true
@@ -42,17 +42,15 @@ service:
   ports:
     web:
       port: 80
-      nodePort: 80         # 🔁 Ahora usa el puerto estándar, útil para HAProxy
+      nodePort: 80           # ✅ Requiere permisos root o HAProxy con VIPs
     websecure:
       port: 443
-      nodePort: 443        # 🔁 Igual
+      nodePort: 443          # ✅ Igual
     metrics:
       port: 9100
       nodePort: 31900
 
-# No se expone el dashboard vía NodePort
-# Se expone solo vía IngressRoute interna (traefik.socialdevs.site)
-
+# Dashboard accesible solo por IngressRoute (no por NodePort)
 metrics:
   prometheus:
     entryPoint: metrics
@@ -65,7 +63,7 @@ tls:
   stores:
     default:
       defaultCertificate:
-        secretName: internal-tls-secret  # Debe existir en el namespace
+        secretName: internal-tls-secret  # ✅ Asegúrate que existe
 
 additionalArguments:
   - "--api.dashboard=true"
@@ -74,6 +72,7 @@ additionalArguments:
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
   - "--entrypoints.websecure.http.tls=true"
+  - "--entrypoints.websecure.http.tls.certresolver=default"
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
   - "--metrics.prometheus.addEntryPointsLabels=true"
