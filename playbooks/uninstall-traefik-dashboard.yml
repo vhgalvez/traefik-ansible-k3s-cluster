@@ -1,4 +1,5 @@
-# playbooks/uninstall-traefik.yml
+---
+# playbooks/uninstall-traefik-dashboard.yml
 # ========================================================
 # 🧹 FASE FINAL: Desinstalación segura de Traefik
 # Elimina Helm release, recursos y CRDs relacionados
