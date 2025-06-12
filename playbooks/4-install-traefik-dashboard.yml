@@ -102,9 +102,10 @@
       delay: 5
       until: wait_for_secret.rc == 0
 
-   # 📥 Instalar CRDs oficiales desde el Helm Chart de Traefik
+    # 📥 Instalar CRDs oficiales desde el Helm Chart de Traefik
     - name: 📥 Descargar e instalar CRDs oficiales de Traefik
       ansible.builtin.shell: |
+        set -euo pipefail
         curl -sL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-ingressroutes.yaml | {{ kubectl_bin_path }} apply -f -
         curl -sL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-ingressroutetcps.yaml | {{ kubectl_bin_path }} apply -f -
         curl -sL https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/crd-ingressrouteudps.yaml | {{ kubectl_bin_path }} apply -f -
