@@ -107,7 +107,7 @@
       ansible.builtin.shell: |
         set -e
         if ! {{ kubectl_bin_path }} get crd ingressroutes.traefik.containo.us >/dev/null 2>&1; then
-          curl -sL https://github.com/traefik/traefik-helm-chart/raw/master/traefik/crds/crd-traefik.yaml | {{ kubectl_bin_path }} apply -f -
+          curl -sL https://raw.githubusercontent.com/traefik/traefik-helm-chart/v24.0.0/traefik/crds/crd-traefik.yaml | {{ kubectl_bin_path }} apply -f -
         fi
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
