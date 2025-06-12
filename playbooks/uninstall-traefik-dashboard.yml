@@ -1,8 +1,7 @@
 # playbooks/uninstall-traefik.yml
 # ========================================================
 # 🧹 FASE FINAL: Desinstalación segura de Traefik
-# - Elimina Helm release y recursos relacionados
-# - Verifica existencia antes de eliminar (evita errores)
+# Elimina Helm release, recursos y CRDs relacionados
 # ========================================================
 
 - name: 🧹 Desinstalar Traefik y limpiar recursos relacionados
@@ -53,62 +52,19 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # ❌ Eliminar Middleware (si existe)
-    - name: ❌ Eliminar Middleware de autenticación
-      shell: >
-        {{ kubectl_bin_path }} delete middleware traefik-auth -n {{ traefik_namespace }} --ignore-not-found
+    # 🧹 Eliminar CRDs de Traefik
+    - name: 🧹 Eliminar CRDs de Traefik
+      shell: |
+        set -euo pipefail
+        {{ kubectl_bin_path }} delete crd ingressroutes.traefik.io --ignore-not-found
+        {{ kubectl_bin_path }} delete crd ingressroutetcps.traefik.io --ignore-not-found
+        {{ kubectl_bin_path }} delete crd ingressrouteudps.traefik.io --ignore-not-found
+        {{ kubectl_bin_path }} delete crd middlewares.traefik.io --ignore-not-found
+        {{ kubectl_bin_path }} delete crd tlsoptions.traefik.io --ignore-not-found
+        {{ kubectl_bin_path }} delete crd tlsstores.traefik.io --ignore-not-found
+        {{ kubectl_bin_path }} delete crd serverstransports.traefik.io --ignore-not-found
+        {{ kubectl_bin_path }} delete crd serverstransporttcps.traefik.io --ignore-not-found
+        {{ kubectl_bin_path }} delete crd traefikservices.traefik.io --ignore-not-found
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-
-    # ❌ Eliminar IngressRoute y ConfigMap
-    - name: ❌ Eliminar IngressRoute del Dashboard
-      shell: >
-        {{ kubectl_bin_path }} delete ingressroute traefik-dashboard -n {{ traefik_namespace }} --ignore-not-found
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    - name: ❌ Eliminar ConfigMap 'traefik-config'
-      shell: >
-        {{ kubectl_bin_path }} delete configmap traefik-config -n {{ traefik_namespace }} --ignore-not-found
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    # ❌ Eliminar PVCs y PVs
-    - name: ❌ Eliminar PVCs con label de Traefik
-      shell: >
-        {{ kubectl_bin_path }} delete pvc -n {{ traefik_namespace }} --selector=app.kubernetes.io/name=traefik --ignore-not-found
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    - name: ❌ Eliminar PVs con label de Traefik
-      shell: >
-        {{ kubectl_bin_path }} delete pv --selector=app.kubernetes.io/name=traefik --ignore-not-found
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    # ❌ Eliminar helmchart traefik en caso de instalación automática de K3s
-    - name: ❌ Eliminar HelmChart traefik de K3s (si existe)
-      shell: >
-        {{ kubectl_bin_path }} delete helmchart traefik -n kube-system --ignore-not-found
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    # ❌ Eliminar almacenamiento local si se usó
-    - name: ❌ Eliminar almacenamiento local persistente
-      shell: >
-        rm -rf --preserve-root {{ traefik_storage_path }}
-      when: traefik_storage_enabled | default(false) | bool
-      ignore_errors: true
-
-    # ✅ Verificar que ya no existan recursos de Traefik
-    - name: ✅ Verificar que no quedan recursos de Traefik
-      shell: >
-        {{ kubectl_bin_path }} get all -n {{ traefik_namespace }} | grep -i traefik || echo "✔️ Todos los recursos de Traefik han sido eliminados."
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: traefik_cleanup_check
-      changed_when: false
-
-    - name: 📋 Mostrar estado final de la limpieza
-      debug:
-        var: traefik_cleanup_check.stdout
+      changed_when: true
