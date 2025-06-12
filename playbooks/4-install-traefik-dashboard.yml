@@ -102,6 +102,17 @@
       delay: 5
       until: wait_for_secret.rc == 0
 
+    # 📥 Descargar e instalar CRDs de Traefik (solo si no existen)
+    - name: 📥 Descargar e instalar CRDs de Traefik (solo si no existen)
+      ansible.builtin.shell: |
+        set -e
+        if ! {{ kubectl_bin_path }} get crd ingressroutes.traefik.containo.us >/dev/null 2>&1; then
+          curl -sL https://github.com/traefik/traefik-helm-chart/raw/master/traefik/crds/crd-traefik.yaml | {{ kubectl_bin_path }} apply -f -
+        fi
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      changed_when: false
+
     # 📦 Instalar Traefik desde Helm
     - name: 📦 Instalar Traefik desde Helm Chart
       ansible.builtin.shell: >
