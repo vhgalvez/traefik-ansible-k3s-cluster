@@ -1,4 +1,5 @@
 # templates/traefik/values_nopvc.yaml.j2
+# templates/traefik/values_nopvc.yaml.j2
 deployment:
   replicas: 1
   nodeSelector:
@@ -46,7 +47,9 @@ service:
     metrics:
       port: 9100
       nodePort: 31900
-    # ⚠️ NO incluir el puerto 9000 aquí (api@internal no lo necesita)
+    dashboard:
+      port: 8080  # Agregado para el dashboard
+      nodePort: 30900  # Define un NodePort para el dashboard
 
 metrics:
   prometheus:

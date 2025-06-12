@@ -14,7 +14,7 @@ metadata:
     created-by: ansible
 spec:
   entryPoints:
-    - websecure  # Asegúrate de que "websecure" está bien configurado
+    - websecure  # Asegúrate de que "websecure" esté configurado
   routes:
     - match: "Host(`{{ internal_domain }}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
       kind: Rule
@@ -25,4 +25,4 @@ spec:
         - name: api@internal
           kind: TraefikService
   tls:
-    secretName: {{ internal_tls_secret_name }}  # Asegúrate de que el secreto TLS está configurado correctamente
+    secretName: {{ internal_tls_secret_name }}  # Asegúrate de que el secreto TLS esté configurado correctamente
