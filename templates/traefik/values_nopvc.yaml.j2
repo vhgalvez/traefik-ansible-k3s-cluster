@@ -42,15 +42,14 @@ service:
   ports:
     web:
       port: 80
-      nodePort: 80           # ✅ Requiere permisos root o HAProxy con VIPs
+      nodePort: 32591       # ✅ FIJO: usado para redirigir en HAProxy desde 80
     websecure:
       port: 443
-      nodePort: 443          # ✅ Igual
+      nodePort: 31541       # ✅ FIJO: usado por HAProxy desde 443 público
     metrics:
       port: 9100
       nodePort: 31900
 
-# Dashboard accesible solo por IngressRoute (no por NodePort)
 metrics:
   prometheus:
     entryPoint: metrics
@@ -63,7 +62,7 @@ tls:
   stores:
     default:
       defaultCertificate:
-        secretName: internal-tls-secret  # ✅ Asegúrate que existe
+        secretName: internal-tls-secret  # ✅ Asegúrate que existe en kube-system
 
 additionalArguments:
   - "--api.dashboard=true"

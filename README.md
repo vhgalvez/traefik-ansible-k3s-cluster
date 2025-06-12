@@ -211,3 +211,5 @@ sudo ansible-playbook playbooks/uninstall_traefik.yml
 
 
 curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:31541:10.17.4.21 https://traefik.socialdevs.site:31541/dashboard/
+
+curl -k -u admin:SuperPassword123 https://traefik.socialdevs.site/dashboard/
