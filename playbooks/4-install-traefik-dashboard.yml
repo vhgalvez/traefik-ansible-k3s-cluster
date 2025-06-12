@@ -106,12 +106,14 @@
     - name: 📥 Descargar e instalar CRDs de Traefik (solo si no existen)
       ansible.builtin.shell: |
         set -e
-        if ! {{ kubectl_bin_path }} get crd ingressroutes.traefik.containo.us >/dev/null 2>&1; then
-          curl -sL https://raw.githubusercontent.com/traefik/traefik-helm-chart/v22.1.0/traefik/crds/crd-traefik.yaml | {{ kubectl_bin_path }} apply -f -
+        if ! {{ kubectl_bin_path }} get crd ingressroutes.traefik.io >/dev/null 2>&1; then
+          curl -sL https://raw.githubusercontent.com/traefik/traefik/v3.4/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
+            | {{ kubectl_bin_path }} apply -f -
         fi
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       changed_when: false
+
 
     # 📦 Instalar Traefik desde Helm
     - name: 📦 Instalar Traefik desde Helm Chart
