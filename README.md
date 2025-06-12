@@ -208,3 +208,6 @@ sudo ansible-playbook playbooks/uninstall_traefik.yml
 - Generados con OpenSSL (wildcard)
 - Aplicados como `Secret` TLS en el clúster
 - Usados en IngressRoutes internos
+
+
+curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:31541:10.17.4.21 https://traefik.socialdevs.site:31541/dashboard/

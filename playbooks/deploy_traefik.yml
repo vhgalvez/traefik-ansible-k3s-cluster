@@ -1,7 +1,6 @@
 # playbooks/deploy_traefik.yml
 # 🔐 Fase 1 y 🚀 Fase 2 - Despliegue completo sin PVC
 ---
-
 - name: 🔐 Fase 1a - Generar certificados autofirmados
   import_playbook: 1-generate-selfsigned-certs.yml
 
@@ -47,8 +46,14 @@
         var: traefik_status.stdout_lines
 
     - name: 🌐 Verificar acceso al Dashboard (modo tolerante)
-      shell: |
-        curl -k -u {{ traefik_auth_user }}:{{ traefik_auth_pass }} https://traefik.socialdevs.site/dashboard/ --max-time 5 --silent --output /dev/null --write-out '%{http_code}'
-      register: dashboard_status
-      failed_when: dashboard_status.stdout not in ["200", "301", "302"]
+      ansible.builtin.shell: >
+        curl -k -u admin:SuperPassword123
+        --resolve traefik.socialdevs.site:31541:10.17.4.21  # <-- ¡IP del master!
+        https://traefik.socialdevs.site:31541/dashboard/
+        --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: dashboard_access_check
+      failed_when: dashboard_access_check.stdout != "200" and dashboard_access_check.stdout != "302" and dashboard_access_check.stdout != "401"
+      changed_when: false
       ignore_errors: true
