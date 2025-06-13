@@ -225,4 +225,4 @@ curl -k -u admin:SuperPassword123 https://traefik.socialdevs.site:31541/dashboar
 curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:32196:10.17.4.21 https://traefik.socialdevs.site:32196/dashboard/
 
 
-curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:30885:10.17.4.21 https://traefik.socialdevs.site:30885/dashboard/
+curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:30348:10.17.4.21 https://traefik.socialdevs.site:30348/dashboard/
