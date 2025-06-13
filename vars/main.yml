@@ -2,7 +2,7 @@
 
 # 📆 Traefik Helm Chart
 traefik_namespace: kube-system
-traefik_release_name: traefik-kube-system
+traefik_release_name: traefik
 traefik_chart_version: "36.0.0"
 
 # 🔐 Autenticación del Dashboard
