@@ -226,3 +226,5 @@ curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:32196:10.17.
 
 
 curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:30348:10.17.4.21 https://traefik.socialdevs.site:30348/dashboard/
+
+kubectl get svc traefik -n kube-system -o yaml | grep nodePort
