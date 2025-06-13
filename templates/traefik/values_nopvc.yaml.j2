@@ -38,22 +38,16 @@ ports:
   web:
     port: 80
     nodePort: 32591
-    expose: true
-    exposedPort: 80
     protocol: TCP
 
   websecure:
     port: 443
     nodePort: 31541
-    expose: true
-    exposedPort: 443
     protocol: TCP
 
   metrics:
     port: 9100
     nodePort: 31900
-    expose: true
-    exposedPort: 9100
     protocol: TCP
 
 service:
