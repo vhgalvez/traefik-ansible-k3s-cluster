@@ -1,13 +1,13 @@
 # playbooks/uninstall-traefik-dashboard.yml
 # ========================================================
 # 🧹 FASE FINAL: Desinstalación segura de Traefik
-# Elimina Helm release, recursos, CRDs relacionados y archivos antiguos
+# Elimina Helm release, secretos, CRDs, servicios y limpia puertos ocupados
 # ========================================================
 
 - name: 🧹 Desinstalar Traefik y limpiar recursos relacionados
   hosts: localhost
   gather_facts: false
-  become: false
+  become: true
 
   vars_files:
     - ../vars/main.yml
@@ -20,71 +20,44 @@
     traefik_namespace: "kube-system"
     traefik_release_name: "traefik"
     internal_tls_secret_name: "internal-tls-secret"
+    traefik_dashboard_secret_name: "traefik-dashboard-secret"
     playbooks_files_path: "playbooks/files/"
+    ports_to_release: [32591, 31541, 31900]  # Puertos: HTTP, HTTPS, metrics
 
   tasks:
 
-    # ❌ Eliminar archivos antiguos en el directorio playbooks/files
-    - name: Eliminar archivos antiguos en playbooks/files
+    - name: 🗑️ Eliminar archivos generados
       file:
         path: "{{ playbooks_files_path }}"
         state: absent
-      become: true
 
-    # ❌ Desinstalar Helm release (si existe)
     - name: 🔍 Verificar si Helm release existe
-      shell: >
-        {{ helm_bin_path }} status {{ traefik_release_name }} -n {{ traefik_namespace }}
-      environment:
-        PATH: "{{ env_path }}"
+      shell: "{{ helm_bin_path }} status {{ traefik_release_name }} -n {{ traefik_namespace }}"
+      environment: { PATH: "{{ env_path }}" }
       register: helm_status
       failed_when: false
       changed_when: false
 
     - name: ❌ Desinstalar Helm release Traefik
-      shell: >
-        {{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }}
-      environment:
-        PATH: "{{ env_path }}"
+      shell: "{{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }}"
+      environment: { PATH: "{{ env_path }}" }
       when: helm_status.rc == 0
 
-    # 🧹 Verificar existencia y eliminar SealedSecret del Dashboard
-    - name: Verificar existencia de SealedSecret del Dashboard
-      shell: >
-        {{ kubectl_bin_path }} get sealedsecret traefik-dashboard-secret -n {{ traefik_namespace }} --ignore-not-found
-      register: sealedsecret_status
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      failed_when: false
-      changed_when: false
+    - name: ❌ Eliminar Secret plano del Dashboard
+      shell: "{{ kubectl_bin_path }} delete secret {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }} --ignore-not-found"
+      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
 
     - name: ❌ Eliminar SealedSecret del Dashboard
-      shell: >
-        {{ kubectl_bin_path }} delete sealedsecret traefik-dashboard-secret -n {{ traefik_namespace }} --ignore-not-found
-      when: sealedsecret_status.rc == 0
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+      shell: "{{ kubectl_bin_path }} delete sealedsecret {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }} --ignore-not-found"
+      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
 
-    # ❌ Eliminar Secret plano del Dashboard
-    - name: ❌ Eliminar Secret plano del Dashboard
-      shell: >
-        {{ kubectl_bin_path }} delete secret traefik-dashboard-secret -n {{ traefik_namespace }} --ignore-not-found
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+    - name: ❌ Eliminar Secret TLS interno
+      shell: "{{ kubectl_bin_path }} delete secret {{ internal_tls_secret_name }} -n {{ traefik_namespace }} --ignore-not-found"
+      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
 
-    # 🧹 Verificar existencia y eliminar CRDs de Traefik
-    - name: Verificar existencia de CRDs de Traefik
-      shell: >
-        {{ kubectl_bin_path }} get crd ingressroutes.traefik.io --ignore-not-found
-      register: crd_ingressroutes_status
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      failed_when: false
-      changed_when: false
-
-    - name: Eliminar CRDs de Traefik si existen
+    - name: ❌ Eliminar CRDs de Traefik si existen
       shell: |
-        set -euo pipefail
+        set -e
         {{ kubectl_bin_path }} delete crd ingressroutes.traefik.io --ignore-not-found
         {{ kubectl_bin_path }} delete crd ingressroutetcps.traefik.io --ignore-not-found
         {{ kubectl_bin_path }} delete crd ingressrouteudps.traefik.io --ignore-not-found
@@ -94,14 +67,30 @@
         {{ kubectl_bin_path }} delete crd serverstransports.traefik.io --ignore-not-found
         {{ kubectl_bin_path }} delete crd serverstransporttcps.traefik.io --ignore-not-found
         {{ kubectl_bin_path }} delete crd traefikservices.traefik.io --ignore-not-found
-      when: crd_ingressroutes_status.rc == 0
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      changed_when: true
+      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
 
-    # ❌ Eliminar Secret TLS interno
-    - name: ❌ Eliminar Secret TLS interno
-      shell: >
-        {{ kubectl_bin_path }} delete secret {{ internal_tls_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+    - name: 🧼 Eliminar el Service traefik si existe
+      shell: "{{ kubectl_bin_path }} delete svc traefik -n {{ traefik_namespace }} --ignore-not-found"
+      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
+
+    - name: 🔒 Verificar servicios que ocupan los puertos
+      shell: |
+        ss -tulnp | grep -E '{{ ports_to_release | join("|") }}' || true
+      register: used_ports_output
+      changed_when: false
+
+    - name: 🔒 Bloquear puertos abiertos (localmente con nftables)
+      shell: |
+        for port in {{ ports_to_release | join(" ") }}; do
+          if ss -tuln | grep ":$port"; then
+            echo "🛑 Cerrando puerto $port"
+            nft delete rule inet filter input tcp dport $port accept || true
+          fi
+        done
+      when: used_ports_output.stdout != ""
+      register: firewall_cleanup
+      failed_when: false
+
+    - name: ✅ Confirmación final
+      debug:
+        msg: "✅ Traefik desinstalado y puertos liberados con éxito."
