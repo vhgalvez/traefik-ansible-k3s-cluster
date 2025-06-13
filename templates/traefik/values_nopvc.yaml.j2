@@ -1,9 +1,16 @@
 # templates/traefik/values_nopvc.yaml.j2
-
 deployment:
   replicas: 1
   nodeSelector:
-    kubernetes.io/hostname: traefik.socialdevs.site  # ✅ O elimínalo para permitir scheduling dinámico
+    kubernetes.io/hostname: traefik.socialdevs.site
+
+  hostPorts:
+    web:
+      port: 32591
+    websecure:
+      port: 31541
+    metrics:
+      port: 31900
 
 logs:
   general:
@@ -17,7 +24,7 @@ securityContext:
 
 entryPoints:
   web:
-    address: ":80"
+    address: ":32591"
     http:
       redirections:
         entryPoint:
@@ -25,32 +32,20 @@ entryPoints:
           scheme: https
 
   websecure:
-    address: ":443"
+    address: ":31541"
     http:
       tls:
-        certResolver: default  # Para Let's Encrypt o ACME
-        certStore: acme-certstore  # Se usará para el tráfico público (Let's Encrypt)
+        certResolver: default
+        certStore: acme-certstore
 
   metrics:
-    address: ":9100"
+    address: ":31900"
 
   traefik:
-    address: ":9000"  # Solo interno, no Service
+    address: ":9000"
 
 service:
-  enabled: true
-  type: NodePort
-  externalTrafficPolicy: Cluster
-  ports:
-    web:
-      port: 80
-      nodePort: 32591       # Usado para redirigir en HAProxy desde 80
-    websecure:
-      port: 443
-      nodePort: 31541       # Usado por HAProxy desde 443 público
-    metrics:
-      port: 9100
-      nodePort: 31900
+  enabled: false  # Deshabilitamos NodePort porque usamos hostPort
 
 metrics:
   prometheus:
@@ -64,18 +59,18 @@ tls:
   stores:
     default:
       defaultCertificate:
-        secretName: internal-tls-secret  # Secreto para tráfico interno
-    acme-certstore: 
+        secretName: internal-tls-secret
+    acme-certstore:
       defaultCertificate:
-        secretName: acme-tls-secret  # Secreto para certificados ACME (Let's Encrypt)
+        secretName: acme-tls-secret
 
 certificatesResolvers:
   default:
     acme:
-      email: your-email@example.com   # Cambia por tu email
-      storage: /data/acme.json        # Almacena los certificados en un archivo
+      email: your-email@example.com
+      storage: /data/acme.json
       httpChallenge:
-        entryPoint: web               # Asegura que el challenge HTTP está en el puerto 80
+        entryPoint: web
 
 additionalArguments:
   - "--api.dashboard=true"
@@ -84,7 +79,7 @@ additionalArguments:
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
   - "--entrypoints.websecure.http.tls=true"
-  - "--entrypoints.websecure.http.tls.certresolver=default"  # Certificado para tráfico público
+  - "--entrypoints.websecure.http.tls.certresolver=default"
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
   - "--metrics.prometheus.addEntryPointsLabels=true"
