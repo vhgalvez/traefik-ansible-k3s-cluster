@@ -1,9 +1,8 @@
 # templates/traefik/values_nopvc.yaml.j2
 
 deployment:
-  replicas: 2  # ✅ Alta disponibilidad: al menos 2 réplicas
-  # No usar nodeSelector para permitir scheduling dinámico en cualquier nodo
-  # Si quieres forzarlo a nodos específicos, usa tolerations o affinity en su lugar
+  replicas: 2  # ✅ Alta disponibilidad
+  # No usar nodeSelector para evitar que todas las réplicas caigan en el mismo nodo
 
 logs:
   general:
@@ -40,17 +39,17 @@ entryPoints:
 service:
   enabled: true
   type: NodePort
-  externalTrafficPolicy: Cluster  # ✅ Balancea tráfico desde cualquier nodo
+  externalTrafficPolicy: Cluster  # Balancea tráfico desde cualquier nodo
   ports:
     web:
       port: 80
-      nodePort: 32591  # HAProxy redirige aquí el tráfico HTTP
+      nodePort: 32591  # Puerto fijo para HAProxy (HTTP)
     websecure:
       port: 443
-      nodePort: 31541  # HAProxy redirige aquí el tráfico HTTPS
+      nodePort: 31541  # Puerto fijo para HAProxy (HTTPS)
     metrics:
       port: 9100
-      nodePort: 31900  # Métricas Prometheus opcional
+      nodePort: 31900  # Puerto fijo para Prometheus
 
 metrics:
   prometheus:
@@ -81,10 +80,13 @@ additionalArguments:
   - "--api.dashboard=true"
   - "--api.insecure=false"
   - "--ping=true"
+  - "--entrypoints.web.address=:80"
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+  - "--entrypoints.websecure.address=:443"
   - "--entrypoints.websecure.http.tls=true"
   - "--entrypoints.websecure.http.tls.certresolver=default"
+  - "--entrypoints.metrics.address=:9100"
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
   - "--metrics.prometheus.addEntryPointsLabels=true"
