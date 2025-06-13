@@ -42,9 +42,9 @@
     # 🧹 Limpieza: eliminar Traefik por defecto si quedó instalado
     - name: 🧼 Verificar y eliminar Traefik por defecto
       block:
-        - name: 🔍 Buscar Deployment traefik en kube-system
+        - name: 🔍 Buscar Deployment por release name
           ansible.builtin.shell: >
-            {{ kubectl_bin_path }} get deployment traefik -n kube-system
+            {{ kubectl_bin_path }} get deployment {{ traefik_release_name }} -n {{ traefik_namespace }}
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
             PATH: "{{ env_path }}"
@@ -52,25 +52,25 @@
           failed_when: false
           changed_when: false
 
-        - name: ❌ Eliminar Deployment traefik si existe
+        - name: ❌ Eliminar Deployment si existe
           ansible.builtin.shell: >
-            {{ kubectl_bin_path }} delete deployment traefik -n kube-system
+            {{ kubectl_bin_path }} delete deployment {{ traefik_release_name }} -n {{ traefik_namespace }}
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
           when: traefik_deploy_check.rc == 0
 
-        - name: 🔍 Buscar HelmChart traefik en kube-system
+        - name: 🔍 Buscar HelmChart traefik en kube-system (solo si K3s instaló uno por defecto)
           ansible.builtin.shell: >
-            {{ kubectl_bin_path }} get helmchart traefik -n kube-system
+            {{ kubectl_bin_path }} get helmchart traefik -n {{ traefik_namespace }}
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
           register: k3s_helmchart_status
           failed_when: false
           changed_when: false
 
-        - name: ❌ Eliminar HelmChart traefik si existe
+        - name: ❌ Eliminar HelmChart si existe
           ansible.builtin.shell: >
-            {{ kubectl_bin_path }} delete helmchart traefik -n kube-system
+            {{ kubectl_bin_path }} delete helmchart traefik -n {{ traefik_namespace }}
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
           when: k3s_helmchart_status.rc == 0
