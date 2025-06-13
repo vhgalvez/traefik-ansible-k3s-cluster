@@ -1,16 +1,9 @@
 # templates/traefik/values_nopvc.yaml.j2
-deployment:
-  replicas: 1
-  nodeSelector:
-    kubernetes.io/hostname: traefik.socialdevs.site
 
-  hostPorts:
-    web:
-      port: 32591
-    websecure:
-      port: 31541
-    metrics:
-      port: 31900
+deployment:
+  replicas: 2  # ✅ Alta disponibilidad: al menos 2 réplicas
+  # No usar nodeSelector para permitir scheduling dinámico en cualquier nodo
+  # Si quieres forzarlo a nodos específicos, usa tolerations o affinity en su lugar
 
 logs:
   general:
@@ -24,7 +17,7 @@ securityContext:
 
 entryPoints:
   web:
-    address: ":32591"
+    address: ":80"
     http:
       redirections:
         entryPoint:
@@ -32,20 +25,32 @@ entryPoints:
           scheme: https
 
   websecure:
-    address: ":31541"
+    address: ":443"
     http:
       tls:
         certResolver: default
         certStore: acme-certstore
 
   metrics:
-    address: ":31900"
+    address: ":9100"
 
   traefik:
     address: ":9000"
 
 service:
-  enabled: false  # Deshabilitamos NodePort porque usamos hostPort
+  enabled: true
+  type: NodePort
+  externalTrafficPolicy: Cluster  # ✅ Balancea tráfico desde cualquier nodo
+  ports:
+    web:
+      port: 80
+      nodePort: 32591  # HAProxy redirige aquí el tráfico HTTP
+    websecure:
+      port: 443
+      nodePort: 31541  # HAProxy redirige aquí el tráfico HTTPS
+    metrics:
+      port: 9100
+      nodePort: 31900  # Métricas Prometheus opcional
 
 metrics:
   prometheus:
