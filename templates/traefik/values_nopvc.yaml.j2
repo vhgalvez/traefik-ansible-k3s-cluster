@@ -1,6 +1,8 @@
 # templates/traefik/values_nopvc.yaml.j2
+
 deployment:
   replicas: 2  # ✅ Alta disponibilidad
+  # No usar nodeSelector para evitar que todas las réplicas caigan en el mismo nodo
 
 logs:
   general:
@@ -37,17 +39,17 @@ entryPoints:
 service:
   enabled: true
   type: NodePort
-  externalTrafficPolicy: Cluster
+  externalTrafficPolicy: Cluster  # Balancea tráfico desde cualquier nodo
   ports:
     web:
       port: 80
-      nodePort: 32591  # ✅ Fijo para HTTP
+      nodePort: 32591  # Puerto fijo para HAProxy (HTTP)
     websecure:
       port: 443
-      nodePort: 31541  # ✅ Fijo para HTTPS
+      nodePort: 31541  # Puerto fijo para HAProxy (HTTPS)
     metrics:
       port: 9100
-      nodePort: 31900  # ✅ Fijo para Prometheus
+      nodePort: 31900  # Puerto fijo para Prometheus
 
 metrics:
   prometheus:
@@ -69,7 +71,7 @@ tls:
 certificatesResolvers:
   default:
     acme:
-      email: {{ letsencrypt_email }}
+      email: your-email@example.com
       storage: /data/acme.json
       httpChallenge:
         entryPoint: web
@@ -94,4 +96,4 @@ additionalArguments:
   - "--providers.kubernetescrd.allowEmptyServices=true"
   - "--providers.kubernetesingress"
   - "--providers.kubernetesingress.allowEmptyServices=true"
-  - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/{{ service_name }}"
+  - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
