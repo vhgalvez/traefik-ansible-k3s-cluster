@@ -153,3 +153,26 @@
         namespace: "{{ traefik_namespace }}"
         src: "{{ rendered_middleware }}"
         kubeconfig: "{{ kubeconfig_path }}"
+
+    - name: ✅ Forzar NodePorts fijos en el Service de Traefik
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        namespace: "{{ traefik_namespace }}"
+        kind: Service
+        name: traefik
+        definition:
+          spec:
+            type: NodePort
+            ports:
+              - name: web
+                port: 80
+                targetPort: 80
+                nodePort: 32591
+              - name: websecure
+                port: 443
+                targetPort: 443
+                nodePort: 31541
+              - name: metrics
+                port: 9100
+                targetPort: 9100
+                nodePort: 31900
