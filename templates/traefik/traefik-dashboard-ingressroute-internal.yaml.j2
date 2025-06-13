@@ -14,15 +14,15 @@ metadata:
     created-by: ansible
 spec:
   entryPoints:
-    - websecure  # Asegúrate de que "websecure" esté configurado
+    - websecure  # Asegúrate de que "websecure" esté configurado en los entrypoints de Traefik
   routes:
     - match: "Host(`{{ internal_domain }}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
       kind: Rule
       middlewares:
-        - name: {{ traefik_dashboard_middleware_name }}
+        - name: {{ traefik_dashboard_middleware_name }}  # Aplica autenticación o configuración de middleware
           namespace: {{ traefik_namespace }}
       services:
         - name: api@internal
           kind: TraefikService
   tls:
-    secretName: {{ internal_tls_secret_name }}  # Asegúrate de que el secreto TLS esté configurado correctamente
+    secretName: {{ internal_tls_secret_name }}  # Secreto con certificado autofirmado (por ejemplo: internal-tls-secret)

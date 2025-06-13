@@ -27,8 +27,8 @@ entryPoints:
     address: ":443"
     http:
       tls:
-        certResolver: default  # ⚠️ Este requiere configuración de ACME o Let's Encrypt
-        # Asegúrate de tener un resolver configurado en la sección de certificados
+        certResolver: default  # Para Let's Encrypt o ACME
+        certStore: acme-certstore  # Se usará para el tráfico público (Let's Encrypt)
 
   metrics:
     address: ":9100"
@@ -43,10 +43,10 @@ service:
   ports:
     web:
       port: 80
-      nodePort: 32591       # ✅ FIJO: usado para redirigir en HAProxy desde 80
+      nodePort: 32591       # Usado para redirigir en HAProxy desde 80
     websecure:
       port: 443
-      nodePort: 31541       # ✅ FIJO: usado por HAProxy desde 443 público
+      nodePort: 31541       # Usado por HAProxy desde 443 público
     metrics:
       port: 9100
       nodePort: 31900
@@ -63,8 +63,10 @@ tls:
   stores:
     default:
       defaultCertificate:
-        secretName: internal-tls-secret  # ✅ Asegúrate que existe en kube-system
-        # Verifica que el secreto con el certificado TLS esté creado
+        secretName: internal-tls-secret  # Secreto para tráfico interno
+    acme-certstore: 
+      defaultCertificate:
+        secretName: acme-tls-secret  # Secreto para certificados ACME (Let's Encrypt)
 
 certificatesResolvers:
   default:
@@ -81,7 +83,7 @@ additionalArguments:
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
   - "--entrypoints.websecure.http.tls=true"
-  - "--entrypoints.websecure.http.tls.certresolver=default"   # Asegúrate de que sea el resolver de ACME
+  - "--entrypoints.websecure.http.tls.certresolver=default"  # Certificado para tráfico público
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
   - "--metrics.prometheus.addEntryPointsLabels=true"
