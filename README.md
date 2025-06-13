@@ -228,3 +228,12 @@ curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:32196:10.17.
 curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:30348:10.17.4.21 https://traefik.socialdevs.site:30348/dashboard/
 
 kubectl get svc traefik -n kube-system -o yaml | grep nodePort
+
+
+[victory@virtualizacion-server ~]$ curl -k https://traefik.socialdevs.site/dashboard/
+401 Unauthorized
+[victory@virtualizacion-server ~]$ curl -k -u admin:SuperPassword123 https://traefik.socialdevs.site/dashboard/
+<!DOCTYPE html><html><head><script>window.APIURL = "/api/"</script><title>Traefik</title><meta charset=utf-8><meta name=description content="Traefik UI"><meta name=format-detection content="telephone=no"><meta name=msapplication-tap-highlight content=no><meta name=viewport content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width"><link rel=icon type=image/png href=./app-logo-128x128.png><link rel=icon type=image/png sizes=16x16 href=./icons/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=./icons/favicon-32x32.png><link rel=icon type=image/png sizes=96x96 href=./icons/favicon-96x96.png><link rel=icon type=image/ico href=./icons/favicon.ico><link rel=apple-touch-icon href=./icons/apple-icon-152x152.png><link rel=apple-touch-icon sizes=152x152 href=./icons/apple-icon-152x152.png><link rel=apple-touch-icon sizes=167x167 href=./icons/apple-icon-167x167.png><link rel=apple-touch-icon sizes=180x180 href=./icons/apple-icon-180x180.png>  <script type="module" crossorigin src="./assets/index-BH-fqmTU.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-jjiyEA_O.css">
+</head><body><div id=q-app></div></body></html>[victory@virtualizacion-server ~]$
+
