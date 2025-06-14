@@ -18,7 +18,7 @@ letsencrypt_email: admin@socialdevs.site
 traefik_storage_path: "/data"
 traefik_storage_class: "longhorn"
 
-internal_tls_secret_name: internal-tls-secret
+internal_tls_secret_name: traefik-tls-secret
 app_name: traefik
 internal_domain: traefik.socialdevs.site
 service_name: traefik

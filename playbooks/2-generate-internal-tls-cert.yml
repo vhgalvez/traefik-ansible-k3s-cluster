@@ -19,7 +19,7 @@
     cert_name: "traefik"
     rendered_secret: "{{ playbook_dir }}/files/internal-tls-secret.yaml"
     kubeconfig_path: "/home/victory/.kube/config"
-    internal_tls_secret_name: "internal-tls-secret"
+    internal_tls_secret_name: "traefik-tls-secret"
 
   tasks:
 

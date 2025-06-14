@@ -18,7 +18,7 @@
     env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     traefik_namespace: "kube-system"
     traefik_release_name: "traefik"
-    internal_tls_secret_name: "internal-tls-secret"
+    internal_tls_secret_name: "traefik-tls-secret"
     traefik_dashboard_secret_name: "traefik-dashboard-secret"
     playbooks_files_path: "playbooks/files/"
     ports_to_release: [32591, 31541, 31900, 32124, 31050]  # Fijos + los dinámicos recientes
