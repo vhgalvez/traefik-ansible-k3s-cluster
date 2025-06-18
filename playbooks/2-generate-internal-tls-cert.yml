@@ -16,10 +16,10 @@
 
   vars:
     certs_dir: "/etc/traefik/certs"
-    cert_name: "traefik"
+    cert_name: "wildcard-socialdevs-tls"
     rendered_secret: "{{ playbook_dir }}/files/internal-tls-secret.yaml"
     kubeconfig_path: "/home/victory/.kube/config"
-    internal_tls_secret_name: "traefik-tls-secret"
+    internal_tls_secret_name: "wildcard-socialdevs-tls"
 
   tasks:
 

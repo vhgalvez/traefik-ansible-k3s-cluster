@@ -5,7 +5,7 @@
 # - Se copian automáticamente a /etc/traefik/certs en master1
 # ============================================================
 
-- name: 🛡️ Generar certificados wildcard autofirmados para Traefik
+- name: 🛡️ Generar certificados wildcard autofirmados para wildcard-socialdevs-tls
   hosts: localhost
   become: true
 
@@ -14,7 +14,7 @@
 
   vars:
     certs_dir: "./files/certs"
-    cert_name: "traefik"
+    cert_name: "wildcard-socialdevs-tls"
     country: "ES"
     state: "Madrid"
     locality: "Madrid"
