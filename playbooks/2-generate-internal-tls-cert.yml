@@ -1,10 +1,6 @@
 # playbooks/2-generate-internal-tls-cert.yml
 # ===============================================================
 # 🔐 FASE 1B: Crear Secret TLS a partir de certificados autofirmados
-# - Lee los archivos .crt y .key desde /etc/traefik/certs (master1)
-# - Codifica en base64
-# - Renderiza plantilla Kubernetes tipo Secret TLS
-# - Aplica el Secret al clúster
 # ===============================================================
 
 - name: 🔐 Crear Secret TLS autofirmado para dominios internos
@@ -15,7 +11,7 @@
     - ../vars/main.yml
 
   vars:
-    certs_dir: "/etc/traefik/certs"
+    certs_dir: "{{ playbook_dir }}/files/certs"
     cert_name: "wildcard-socialdevs-tls"
     rendered_secret: "{{ playbook_dir }}/files/internal-tls-secret.yaml"
     kubeconfig_path: "/home/victory/.kube/config"
