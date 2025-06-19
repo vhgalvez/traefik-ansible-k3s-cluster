@@ -15,8 +15,10 @@ traefik_auth_pass: SuperPassword123
 letsencrypt_email: admin@socialdevs.site
 
 # 💾 Persistencia (solo para values_pvc.yaml)
-traefik_storage_path: "/data"
-traefik_storage_class: "longhorn"
+traefik_storage_path: "/certs"
+traefik_pvc_name: certificados-longhorn
+traefik_pvc_size: 1Gi
+traefik_pvc_sc: longhorn
 
 # ✅  wildcard-socialdevs-tls\ 
 internal_tls_secret_name: wildcard-socialdevs-tls

@@ -57,3 +57,5 @@
         dashboard_access_check.stdout not in ["200", "302", "401"]
       changed_when: false
       ignore_errors: true
+
+- import_playbook: 2a-create-cert-pvc.yml

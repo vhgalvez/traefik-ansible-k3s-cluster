@@ -1,0 +1,61 @@
+deployment:
+  replicas: 1
+  nodeSelector:
+    kubernetes.io/hostname: master1.socialdevs.site
+
+logs:
+  general:
+    level: INFO
+  access:
+    enabled: true
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    buckets: "0.1,0.3,1.2,5.0"
+
+service:
+  enabled: true
+  type: LoadBalancer
+
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+  metrics:
+    address: ":9100"
+
+persistence:
+  enabled: true
+  name: cert-volume
+  size: {{ traefik_pvc_size }}
+  storageClass: {{ traefik_pvc_sc }}
+  accessMode: ReadWriteOnce
+  mountPath: {{ traefik_storage_path }}
+
+certificatesResolvers:
+  default:
+    acme:
+      email: {{ letsencrypt_email }}
+      storage: {{ traefik_storage_path }}/acme.json
+      httpChallenge:
+        entryPoint: web
+
+tls:
+  enabled: true
+  stores:
+    default:
+      defaultCertificate:
+        secretName: {{ internal_tls_secret_name }}

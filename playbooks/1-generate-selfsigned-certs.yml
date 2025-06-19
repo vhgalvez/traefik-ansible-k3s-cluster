@@ -95,29 +95,3 @@
       file:
         path: "{{ san_file }}"
         state: absent
-
-    - name: 📁 Crear directorio remoto /etc/traefik/certs en master1
-      ansible.builtin.raw: mkdir -p /etc/traefik/certs && chmod 755 /etc/traefik/certs
-      delegate_to: "{{ master1_ip }}"
-      become: true
-
-    - name: 📤 Copiar traefik.crt a master1
-      ansible.builtin.shell: >
-        scp -i {{ ssh_key_path }} -o StrictHostKeyChecking=no
-        {{ certs_dir }}/{{ cert_name }}.crt
-        root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.crt
-      delegate_to: localhost
-
-    - name: 📤 Copiar traefik.key a master1
-      ansible.builtin.shell: >
-        scp -i {{ ssh_key_path }} -o StrictHostKeyChecking=no
-        {{ certs_dir }}/{{ cert_name }}.key
-        root@{{ master1_ip }}:/etc/traefik/certs/{{ cert_name }}.key
-      delegate_to: localhost
-
-    - name: 🔐 Establecer permisos remotos en master1
-      ansible.builtin.raw: |
-        chmod 0644 /etc/traefik/certs/{{ cert_name }}.crt
-        chmod 0600 /etc/traefik/certs/{{ cert_name }}.key
-      delegate_to: "{{ master1_ip }}"
-      become: true
