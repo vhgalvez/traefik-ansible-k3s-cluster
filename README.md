@@ -236,3 +236,20 @@ curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:443:10.17.4.
 kubectl get svc traefik -n kube-system -o yaml | grep nodePort
 ```
 
+3. Certificados “globales” en todos los Namespaces
+Ya los tienes:
+
+Secret TLS kube-system/wildcard-socialdevs-tls.
+
+PVC kube-system/certificados-longhorn con los mismos ficheros (*.crt, *.key).
+
+TLSStore default en Traefik apunta al certificado dentro del contenedor montado desde el PVC.
+
+Eso permite:
+
+yaml
+Copiar
+Editar
+# En cualquier IngressRoute de cualquier namespace:
+tls: {}                # sin secretName
+Traefik usará el defaultCertificate del TLSStore global.
