@@ -74,17 +74,6 @@
       register: used_ports_output
       changed_when: false
 
-    - name: 🔒 Limpiar reglas de nftables para los puertos abiertos
-      shell: |
-        for port in {{ ports_to_release | join(" ") }}; do
-          if ss -tuln | grep ":$port"; then
-            echo "🛑 Cerrando puerto $port"
-            nft delete rule inet filter input tcp dport $port accept || true
-          fi
-        done
-      when: used_ports_output.stdout != ""
-      failed_when: false
-
     - name: ✅ Confirmación final
       debug:
         msg: "✅ Traefik desinstalado completamente y recursos limpiados."
