@@ -1,4 +1,5 @@
 # templates/traefik/values_pvc.yaml.j2
+
 deployment:
   replicas: 2
 
@@ -100,12 +101,13 @@ additionalArguments:
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
 
+# ✅ PVC con certificados autofirmados (Longhorn)
+volumeMounts:
+  - mountPath: /etc/traefik/certs
+    name: certs
+    readOnly: true
+
 volumes:
   - name: certs
     persistentVolumeClaim:
       claimName: {{ traefik_pvc_name }}
-
-volumeMounts:
-  - name: certs
-    mountPath: /etc/traefik/certs
-    readOnly: true

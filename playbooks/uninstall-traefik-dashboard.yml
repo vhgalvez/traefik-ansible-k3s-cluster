@@ -1,8 +1,9 @@
-# playbooks\uninstall-traefik-dashboard.yml
+# playbooks/uninstall-traefik-dashboard.yml
 # ========================================================
 # 🧹 Desinstalación segura de Traefik
 # Elimina Helm release, secretos, CRDs, servicios, PVCs y limpia puertos ocupados
 # ========================================================
+
 - name: 🧹 Desinstalar Traefik y limpiar recursos relacionados
   hosts: localhost
   gather_facts: false
@@ -80,4 +81,4 @@
 
     - name: ✅ Confirmación final
       debug:
-        msg: "✅ Traefik desinstalado completamente, incluyendo PVC, CRDs y secretos."
+        msg: "✅ Traefik desinstalado completamente, incluyendo PVC, CRDs, Job y secretos."
