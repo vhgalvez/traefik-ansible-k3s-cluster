@@ -54,7 +54,7 @@
         cert_base64: "{{ cert_crt.content }}"
         key_base64: "{{ cert_key.content }}"
         secret_name: "{{ internal_tls_secret_name }}"
-        namespace: "{{ namespace }}"
+        namespace: "{{ traefik_namespace }}"
 
     - name: "🚀 Aplicar Secret TLS al clúster (namespace: {{ namespace }})"
       command: kubectl apply -f "{{ rendered_secret }}"
