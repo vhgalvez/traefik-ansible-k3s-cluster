@@ -1,4 +1,4 @@
-# templates/traefik/values_nopvc.yaml.j2
+#  templates\traefik\values_pvc.yaml.j2 
 deployment:
   replicas: 2
 
@@ -26,7 +26,7 @@ entryPoints:
     http:
       tls:
         certResolver: default
-        certStore: acme-certstore
+        certStore: default
 
   metrics:
     address: ":9100"
@@ -66,10 +66,8 @@ tls:
   stores:
     default:
       defaultCertificate:
-        secretName: wildcard-socialdevs-tls
-    acme-certstore:
-      defaultCertificate:
-        secretName: acme-tls-secret
+        certFile: /etc/traefik/certs/wildcard-socialdevs-tls.crt
+        keyFile: /etc/traefik/certs/wildcard-socialdevs-tls.key
 
 certificatesResolvers:
   default:
@@ -89,6 +87,7 @@ additionalArguments:
   - "--entrypoints.websecure.address=:443"
   - "--entrypoints.websecure.http.tls=true"
   - "--entrypoints.websecure.http.tls.certresolver=default"
+  - "--entrypoints.websecure.http.tls.certstore=default"
   - "--entrypoints.metrics.address=:9100"
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
@@ -100,3 +99,13 @@ additionalArguments:
   - "--providers.kubernetesingress"
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
+
+additionalVolumeMounts:
+  - name: certs
+    mountPath: /etc/traefik/certs
+    readOnly: true
+
+additionalVolumes:
+  - name: certs
+    persistentVolumeClaim:
+      claimName: "{{ traefik_pvc_name }}"

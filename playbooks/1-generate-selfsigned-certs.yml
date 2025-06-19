@@ -1,8 +1,8 @@
 # playbooks/1-generate-selfsigned-certs.yml
 # ============================================================
-# 🛡️ FASE 1A: Generar certificados wildcard autofirmados
+#    Generar certificados wildcard autofirmados
 # - Se crean en ./files/certs/
-# - Se copian automáticamente a /etc/traefik/certs en master1
+# - Usados como base para crear Secret TLS
 # ============================================================
 
 - name: 🛡️ Generar certificados wildcard autofirmados para wildcard-socialdevs-tls
@@ -22,9 +22,9 @@
     common_name: "*.socialdevs.site"
     san_file: "/tmp/san.cnf"
     force_recreate: false
-    ssh_key_path: "/root/.ssh/cluster_k3s/shared/id_rsa_shared_cluster"
 
   tasks:
+
     - name: 📁 Crear directorio de certificados local
       file:
         path: "{{ certs_dir }}"

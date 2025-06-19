@@ -1,6 +1,7 @@
 # playbooks/2-generate-internal-tls-cert.yml
 # ===============================================================
-# 🔐 FASE 1B: Crear Secret TLS a partir de certificados autofirmados
+#   Crear Secret TLS a partir de certificados autofirmados
+# - Genera el Secret `wildcard-socialdevs-tls` en el namespace kube-system
 # ===============================================================
 
 - name: 🔐 Crear Secret TLS autofirmado para dominios internos
@@ -16,28 +17,46 @@
     rendered_secret: "{{ playbook_dir }}/files/internal-tls-secret.yaml"
     kubeconfig_path: "/home/victory/.kube/config"
     internal_tls_secret_name: "wildcard-socialdevs-tls"
+    namespace: "kube-system"
 
   tasks:
 
-    - name: 📦 Leer certificado (traefik.crt)
-      ansible.builtin.slurp:
+    - name: 📦 Validar existencia de certificado
+      stat:
+        path: "{{ certs_dir }}/{{ cert_name }}.crt"
+      register: cert_crt_stat
+
+    - name: 🔐 Validar existencia de clave privada
+      stat:
+        path: "{{ certs_dir }}/{{ cert_name }}.key"
+      register: cert_key_stat
+
+    - name: ❌ Abortar si falta el certificado o clave privada
+      fail:
+        msg: "❌ Faltan los archivos necesarios: {{ cert_name }}.crt o .key"
+      when: not cert_crt_stat.stat.exists or not cert_key_stat.stat.exists
+
+    - name: 📦 Leer certificado ({{ cert_name }}.crt)
+      slurp:
         src: "{{ certs_dir }}/{{ cert_name }}.crt"
       register: cert_crt
 
-    - name: 🔐 Leer clave privada (traefik.key)
-      ansible.builtin.slurp:
+    - name: 🔐 Leer clave privada ({{ cert_name }}.key)
+      slurp:
         src: "{{ certs_dir }}/{{ cert_name }}.key"
       register: cert_key
 
     - name: 📝 Renderizar plantilla YAML del Secret TLS (base64)
-      ansible.builtin.template:
+      template:
         src: ../templates/secrets/tls-secret.yaml.j2
         dest: "{{ rendered_secret }}"
       vars:
         cert_base64: "{{ cert_crt.content }}"
         key_base64: "{{ cert_key.content }}"
+        secret_name: "{{ internal_tls_secret_name }}"
+        namespace: "{{ namespace }}"
 
-    - name: 🚀 Aplicar Secret TLS al clúster
-      ansible.builtin.command: kubectl apply -f "{{ rendered_secret }}"
+    - name: 🚀 Aplicar Secret TLS al clúster (namespace: {{ namespace }})
+      command: kubectl apply -f "{{ rendered_secret }}"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"

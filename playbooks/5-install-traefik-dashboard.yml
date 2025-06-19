@@ -1,6 +1,6 @@
-# playbooks/4-install-traefik-dashboard.yml
+# playbooks/5-install-traefik-dashboard.yml
 # ========================================================
-# 🚀 FASE 2: Instalar Traefik con dashboard interno protegido
+#  Instalar Traefik con dashboard interno protegido
 # Usa certificados y secretos generados en la fase 1.
 # Despliega Traefik con autenticación y dashboard local.
 # ========================================================
