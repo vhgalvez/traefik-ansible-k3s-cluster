@@ -1,6 +1,21 @@
 # templates/traefik/values_pvc.yaml.j2
+#######################################################################
+#          Valores Helm – Traefik con certificados en un PVC          #
+#######################################################################
+
 deployment:
   replicas: 2
+
+  # Volumen Longhorn con los certificados autofirmados ---------------
+  additionalVolumeMounts:
+    - name: certs
+      mountPath: /etc/traefik/certs
+      readOnly: true
+
+  additionalVolumes:
+    - name: certs
+      persistentVolumeClaim:
+        claimName: {{ traefik_pvc_name }}
 
 logs:
   general: { level: INFO }
@@ -18,9 +33,7 @@ entryPoints:
   websecure:
     address: ":443"
     http:
-      tls:
-        certResolver: default
-        certStore:    default
+      tls: { certResolver: default, certStore: default }
 
   metrics: { address: ":9100" }
   traefik: { address: ":9000" }
@@ -77,16 +90,3 @@ additionalArguments:
   - "--providers.kubernetesingress"
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice={{ traefik_namespace }}/{{ traefik_release_name }}"
-
-# ------------------------------------------------------------------
-# Volumen Longhorn con los certificados autofirmados
-# ------------------------------------------------------------------
-additionalVolumeMounts:
-  - name: certs
-    mountPath: /etc/traefik/certs
-    readOnly: true
-
-additionalVolumes:
-  - name: certs
-    persistentVolumeClaim:
-      claimName: {{ traefik_pvc_name | quote }}
