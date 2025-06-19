@@ -1,5 +1,4 @@
 # templates/traefik/values_pvc.yaml.j2
-
 deployment:
   replicas: 2
 
@@ -40,12 +39,10 @@ ports:
     port: 80
     nodePort: 32591
     protocol: TCP
-
   websecure:
     port: 443
     nodePort: 31541
     protocol: TCP
-
   metrics:
     port: 9100
     nodePort: 31900
@@ -68,7 +65,7 @@ tls:
     default:
       defaultCertificate:
         certFile: /etc/traefik/certs/wildcard-socialdevs-tls.crt
-        keyFile: /etc/traefik/certs/wildcard-socialdevs-tls.key
+        keyFile:  /etc/traefik/certs/wildcard-socialdevs-tls.key
 
 certificatesResolvers:
   default:
@@ -101,13 +98,15 @@ additionalArguments:
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
 
-# ✅ PVC con certificados autofirmados (Longhorn)
-volumeMounts:
-  - mountPath: /etc/traefik/certs
-    name: certs
+# --------------------------------------------------------------------
+# ✅ Punto clave: volúmenes para los certificados autofirmados
+# --------------------------------------------------------------------
+additionalVolumeMounts:
+  - name: certs
+    mountPath: /etc/traefik/certs       # <-- obligatorio
     readOnly: true
 
-volumes:
+additionalVolumes:
   - name: certs
     persistentVolumeClaim:
       claimName: {{ traefik_pvc_name }}
