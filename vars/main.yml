@@ -3,7 +3,7 @@
 # 📆 Traefik Helm Chart
 traefik_namespace: kube-system
 traefik_release_name: traefik
-traefik_chart_version: "36.0.0"
+traefik_chart_version: "36.1.0"
 
 # 🔐 Autenticación del Dashboard
 traefik_dashboard_secret_name: traefik-dashboard-secret
@@ -28,3 +28,4 @@ service_name: traefik
 service_port: 80
 public_domain: public.socialdevs.site
 master1_ip: "10.17.4.21"
+
