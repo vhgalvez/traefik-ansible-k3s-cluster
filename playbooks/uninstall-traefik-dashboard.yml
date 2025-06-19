@@ -21,97 +21,97 @@
     PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
   tasks:
-  # ----------------------------------------------------------------------
-  # 1. Limpieza local
-  # ----------------------------------------------------------------------
-  - name: 🗑️ Borrar directorio temporal playbooks/files
-    file:
-      path: "{{ files_dir }}"
-      state: absent
+    # ----------------------------------------------------------------------
+    # 1. Limpieza local
+    # ----------------------------------------------------------------------
+    - name: 🗑️ Borrar directorio temporal playbooks/files
+      file:
+        path: "{{ files_dir }}"
+        state: absent
 
-  # ----------------------------------------------------------------------
-  # 2. Helm release
-  # ----------------------------------------------------------------------
-  - name: 🔍 ¿Existe release Traefik?
-    shell: "{{ helm_bin_path }} status {{ traefik_release_name }} -n {{ traefik_namespace }}"
-    register: helm_status
-    failed_when: false
-    changed_when: false
+    # ----------------------------------------------------------------------
+    # 2. Helm release
+    # ----------------------------------------------------------------------
+    - name: 🔍 ¿Existe release Traefik?
+      shell: "{{ helm_bin_path }} status {{ traefik_release_name }} -n {{ traefik_namespace }}"
+      register: helm_status
+      failed_when: false
+      changed_when: false
 
-  - name: ❌ Desinstalar Helm release (si existe)
-    shell: "{{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }}"
-    when: helm_status.rc == 0
+    - name: ❌ Desinstalar Helm release (si existe)
+      shell: "{{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }}"
+      when: helm_status.rc == 0
 
-  # ----------------------------------------------------------------------
-  # 3. Eliminar Job que copió los certificados
-  # ----------------------------------------------------------------------
-  - name: ❌ Eliminar Job copy-wildcard-cert (si existe)
-    shell: "{{ kubectl_bin_path }} delete job copy-wildcard-cert -n {{ traefik_namespace }} --ignore-not-found"
+    # ----------------------------------------------------------------------
+    # 3. Eliminar Job que copió los certificados
+    # ----------------------------------------------------------------------
+    - name: ❌ Eliminar Job copy-wildcard-cert (si existe)
+      shell: "{{ kubectl_bin_path }} delete job copy-wildcard-cert -n {{ traefik_namespace }} --ignore-not-found"
 
-  # ----------------------------------------------------------------------
-  # 4. Eliminar PVC  ➜  si se queda «Terminating» quitamos finalizers
-  # ----------------------------------------------------------------------
-  - name: 🔍 Obtener YAML del PVC certificados-longhorn
-    shell: "{{ kubectl_bin_path }} get pvc {{ traefik_pvc_name }} -n {{ traefik_namespace }} -o json"
-    register: pvc_json
-    failed_when: false
-    changed_when: false
+    # ----------------------------------------------------------------------
+    # 4. Eliminar PVC  ➜  si se queda «Terminating» quitamos finalizers
+    # ----------------------------------------------------------------------
+    - name: 🔍 Obtener YAML del PVC certificados-longhorn
+      shell: "{{ kubectl_bin_path }} get pvc {{ traefik_pvc_name }} -n {{ traefik_namespace }} -o json"
+      register: pvc_json
+      failed_when: false
+      changed_when: false
 
-  - name: 🧪 Verificar si el PVC tiene finalizers
-    set_fact:
-      has_finalizers: "{{ pvc_json.stdout is search('\"finalizers\"') }}"
+    - name: 🧪 Verificar si el PVC tiene finalizers
+      set_fact:
+        has_finalizers: '{{ pvc_json.stdout is search(''"finalizers"'') }}'
 
-  - name: 🧰 Quitar finalizers si el PVC está bloqueado
-    when:
-      - pvc_json.rc == 0
-      - has_finalizers
-    shell: >
-      {{ kubectl_bin_path }} patch pvc {{ traefik_pvc_name }}
-      -n {{ traefik_namespace }}
-      -p '{"metadata":{"finalizers":[]}}' --type=merge
+    - name: 🧰 Quitar finalizers si el PVC está bloqueado
+      when:
+        - pvc_json.rc == 0
+        - has_finalizers
+      shell: >
+        {{ kubectl_bin_path }} patch pvc {{ traefik_pvc_name }}
+        -n {{ traefik_namespace }}
+        -p '{"metadata":{"finalizers":[]}}' --type=merge
 
-  - name: ❌ Eliminar PVC certificados-longhorn
-    shell: "{{ kubectl_bin_path }} delete pvc {{ traefik_pvc_name }} -n {{ traefik_namespace }} --ignore-not-found --wait=true --timeout=60s"
+    - name: ❌ Eliminar PVC certificados-longhorn
+      shell: "{{ kubectl_bin_path }} delete pvc {{ traefik_pvc_name }} -n {{ traefik_namespace }} --ignore-not-found --wait=true --timeout=60s"
 
-  # ----------------------------------------------------------------------
-  # 5. Eliminar PV asociado si quedó huérfano
-  # ----------------------------------------------------------------------
-  - name: ❌ Eliminar PV huérfano (si aparece)
-    shell: >
-      {{ kubectl_bin_path }} delete pv $( {{ kubectl_bin_path }} get pv -o name |
-      grep {{ traefik_pvc_name }} | cut -d/ -f2 ) --ignore-not-found
-    ignore_errors: true
+    # ----------------------------------------------------------------------
+    # 5. Eliminar PV asociado si quedó huérfano
+    # ----------------------------------------------------------------------
+    - name: ❌ Eliminar PV huérfano (si aparece)
+      shell: >
+        {{ kubectl_bin_path }} delete pv $( {{ kubectl_bin_path }} get pv -o name |
+        grep {{ traefik_pvc_name }} | cut -d/ -f2 ) --ignore-not-found
+      ignore_errors: true
 
-  # ----------------------------------------------------------------------
-  # 6. Secretos (plano + SealedSecret)
-  # ----------------------------------------------------------------------
-  - name: ❌ Eliminar secretos/SealedSecrets
-    shell: |
-      {{ kubectl_bin_path }} delete secret       {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
-      {{ kubectl_bin_path }} delete sealedsecret {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
-      {{ kubectl_bin_path }} delete secret       {{ internal_tls_secret_name }}    -n {{ traefik_namespace }} --ignore-not-found
-      {{ kubectl_bin_path }} delete sealedsecret {{ internal_tls_secret_name }}    -n {{ traefik_namespace }} --ignore-not-found
+    # ----------------------------------------------------------------------
+    # 6. Secretos (plano + SealedSecret)
+    # ----------------------------------------------------------------------
+    - name: ❌ Eliminar secretos/SealedSecrets
+      shell: |
+        {{ kubectl_bin_path }} delete secret       {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
+        {{ kubectl_bin_path }} delete sealedsecret {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
+        {{ kubectl_bin_path }} delete secret       {{ internal_tls_secret_name }}    -n {{ traefik_namespace }} --ignore-not-found
+        {{ kubectl_bin_path }} delete sealedsecret {{ internal_tls_secret_name }}    -n {{ traefik_namespace }} --ignore-not-found
 
-  # ----------------------------------------------------------------------
-  # 7. CRDs Traefik v3
-  # ----------------------------------------------------------------------
-  - name: ❌ Eliminar CRDs Traefik v3 (si existen)
-    shell: |
-      for crd in ingressroutes ingressroutetcps ingressrouteudps \
-                middlewares tlsoptions tlsstores \
-                serverstransports serverstransporttcps traefikservices; do
-        {{ kubectl_bin_path }} delete crd ${crd}.traefik.io --ignore-not-found
-      done
+    # ----------------------------------------------------------------------
+    # 7. CRDs Traefik v3
+    # ----------------------------------------------------------------------
+    - name: ❌ Eliminar CRDs Traefik v3 (si existen)
+      shell: |
+        for crd in ingressroutes ingressroutetcps ingressrouteudps \
+                  middlewares tlsoptions tlsstores \
+                  serverstransports serverstransporttcps traefikservices; do
+          {{ kubectl_bin_path }} delete crd ${crd}.traefik.io --ignore-not-found
+        done
 
-  # ----------------------------------------------------------------------
-  # 8. Service / NodePort
-  # ----------------------------------------------------------------------
-  - name: ❌ Eliminar Service traefik
-    shell: "{{ kubectl_bin_path }} delete svc traefik -n {{ traefik_namespace }} --ignore-not-found"
+    # ----------------------------------------------------------------------
+    # 8. Service / NodePort
+    # ----------------------------------------------------------------------
+    - name: ❌ Eliminar Service traefik
+      shell: "{{ kubectl_bin_path }} delete svc traefik -n {{ traefik_namespace }} --ignore-not-found"
 
-  # ----------------------------------------------------------------------
-  # 9. Confirmación final
-  # ----------------------------------------------------------------------
-  - name: ✅ Todo limpio
-    debug:
-      msg: "✅ Traefik, Job, PVC, PV, CRDs y secretos eliminados satisfactoriamente."
+    # ----------------------------------------------------------------------
+    # 9. Confirmación final
+    # ----------------------------------------------------------------------
+    - name: ✅ Todo limpio
+      debug:
+        msg: "✅ Traefik, Job, PVC, PV, CRDs y secretos eliminados satisfactoriamente."
