@@ -1,10 +1,9 @@
-# playbooks/3-create-cert-pvc.yml
----
+# playbooks\3-create-cert-pvc.yml
 # ============================================================
 # 📦 Crear PVC con Longhorn y copiar certificados TLS como archivos
 # Usado por Traefik si se montan desde un volumen (PVC)
 # ============================================================
-
+---
 - name: 📦 Crear PVC Longhorn para certificados
   hosts: localhost
   gather_facts: false
@@ -18,19 +17,22 @@
     tls_secret_name: "{{ internal_tls_secret_name }}"
     pvc_size: "{{ traefik_pvc_size }}"
     storage_class: "{{ traefik_pvc_sc }}"
+    kubeconfig_path: "/home/victory/.kube/config"
 
   tasks:
-
     - name: 🧺 Verificar si PVC ya existe
       kubernetes.core.k8s_info:
         kind: PersistentVolumeClaim
         namespace: "{{ pvc_namespace }}"
         name: "{{ pvc_name }}"
+        kubeconfig: "{{ kubeconfig_path }}"
       register: pvc_check
       failed_when: false
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
 
     - name: 📦 Crear PVC si no existe
-      when: pvc_check.resources is not defined or pvc_check.resources | length == 0
+      when: not pvc_check.resources is defined or pvc_check.resources | length == 0
       kubernetes.core.k8s:
         state: present
         definition:
@@ -45,6 +47,9 @@
               requests:
                 storage: "{{ pvc_size }}"
             storageClassName: "{{ storage_class }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
 
     - name: 📨 Crear Job para copiar certificados al PVC
       kubernetes.core.k8s:
@@ -66,7 +71,7 @@
                     command: ["/bin/sh", "-c"]
                     args:
                       - |
-                        cp /src/tls.crt /dst/wildcard-socialdevs-tls.crt && \
+                        cp /src/tls.crt /dst/wildcard-socialdevs-tls.crt &&
                         cp /src/tls.key /dst/wildcard-socialdevs-tls.key
                     volumeMounts:
                       - name: src
@@ -80,3 +85,6 @@
                   - name: dst
                     persistentVolumeClaim:
                       claimName: "{{ pvc_name }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
