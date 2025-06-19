@@ -8,8 +8,8 @@
 #   2  Helm Traefik (values_pvc)→ 5-install-traefik-dashboard.yml
 #   3  Smoke-test de despliegue → bloque final de verificación
 # =========================================================================
----
 
+---
 # 1A – Generar *.crt / *.key autofirmados
 - import_playbook: 1-generate-selfsigned-certs.yml
 
@@ -31,7 +31,7 @@
   gather_facts: false
 
   vars_files:
-    - ../vars/main.yml            # reutiliza variables globales
+    - ../vars/main.yml # reutiliza variables globales
 
   vars:
     kubeconfig_path: "/home/victory/.kube/config"

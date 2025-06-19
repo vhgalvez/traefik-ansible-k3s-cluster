@@ -56,7 +56,7 @@
         secret_name: "{{ internal_tls_secret_name }}"
         namespace: "{{ namespace }}"
 
-    - name: 🚀 Aplicar Secret TLS al clúster (namespace: {{ namespace }})
+    - name: "🚀 Aplicar Secret TLS al clúster (namespace: {{ namespace }})"
       command: kubectl apply -f "{{ rendered_secret }}"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
