@@ -3,12 +3,10 @@ deployment:
   replicas: 2
 
 logs:
-  general:    { level: INFO }
-  access:     { enabled: true }
+  general: { level: INFO }
+  access:  { enabled: true }
 
-securityContext:
-  runAsUser:  1000
-  runAsGroup: 1000
+securityContext: { runAsUser: 1000, runAsGroup: 1000 }
 
 entryPoints:
   web:
@@ -22,15 +20,15 @@ entryPoints:
     http:
       tls:
         certResolver: default
-        certStore:    default        # usa un único TLSStore
+        certStore:    default
 
-  metrics:  { address: ":9100" }
-  traefik:  { address: ":9000" }
+  metrics: { address: ":9100" }
+  traefik: { address: ":9000" }
 
 ports:
-  web:       { port: 80,   nodePort: 32591, protocol: TCP }
-  websecure: { port: 443,  nodePort: 31541, protocol: TCP }
-  metrics:   { port: 9100, nodePort: 31900, protocol: TCP }
+  web:       { port: 80,  nodePort: 32591, protocol: TCP }
+  websecure: { port: 443, nodePort: 31541, protocol: TCP }
+  metrics:   { port: 9100,nodePort: 31900, protocol: TCP }
 
 service:
   type: NodePort
@@ -81,8 +79,7 @@ additionalArguments:
   - "--providers.kubernetesingress.ingressendpoint.publishedservice={{ traefik_namespace }}/{{ traefik_release_name }}"
 
 # ------------------------------------------------------------------
-# ✅  Volumen PVC con los certificados autofirmados
-#      · el chart espera *additional*Volume(s|Mounts)
+# Volumen Longhorn con los certificados autofirmados
 # ------------------------------------------------------------------
 additionalVolumeMounts:
   - name: certs
@@ -92,4 +89,4 @@ additionalVolumeMounts:
 additionalVolumes:
   - name: certs
     persistentVolumeClaim:
-      claimName: {{ traefik_pvc_name }}
+      claimName: {{ traefik_pvc_name | quote }}
