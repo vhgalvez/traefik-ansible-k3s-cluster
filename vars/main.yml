@@ -18,7 +18,7 @@ letsencrypt_email: admin@socialdevs.site
 traefik_storage_path: "/data"
 traefik_storage_class: "longhorn"
 
-# ✅ Actualización para usar wildcard-socialdevs-tls\ 
+# ✅  wildcard-socialdevs-tls\ 
 internal_tls_secret_name: wildcard-socialdevs-tls
 app_name: traefik
 internal_domain: traefik.socialdevs.site
