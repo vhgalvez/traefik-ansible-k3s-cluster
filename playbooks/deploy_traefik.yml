@@ -1,61 +1,73 @@
 # playbooks/deploy_traefik.yml
-# 🔐 Fase 1 y 🚀 Fase 2 - Despliegue completo sin PVC
+# =========================================================================
+# 🚀 PIPELINE COMPLETO
+#  1A  Certificados             → 1-generate-selfsigned-certs.yml
+#  1B  Secret TLS (wildcard)    → 2-generate-internal-tls-cert.yml
+#  1C  PVC Longhorn + copiado   → 3-create-cert-pvc.yml
+#  1D  Secret basic-auth sellado→ 4-seal-traefik-auth-secret.yml
+#   2  Helm Traefik (values_pvc)→ 5-install-traefik-dashboard.yml
+#   3  Smoke-test de despliegue → bloque final de verificación
+# =========================================================================
 ---
-- name: 🔐 Fase 1a - Generar certificados autofirmados
-  import_playbook: 1-generate-selfsigned-certs.yml
 
-- name: 🔐 Fase 1b - Generar Secret para autenticación básica
-  import_playbook: 3-seal-traefik-auth-secret.yml
+# 1A – Generar *.crt / *.key autofirmados
+- import_playbook: 1-generate-selfsigned-certs.yml
 
-- name: 🔐 Fase 1c - Crear Secret TLS interno
-  import_playbook: 2-generate-internal-tls-cert.yml
+# 1B – Crear Secret TLS wildcard-socialdevs-tls en kube-system
+- import_playbook: 2-generate-internal-tls-cert.yml
 
-- name: 🚀 Fase 2 - Instalar Traefik con Helm
-  import_playbook: 4-install-traefik-dashboard.yml
+# 1C – Crear PVC Longhorn y copiar los ficheros .crt/.key al volumen
+- import_playbook: 3-create-cert-pvc.yml
 
-- name: ✅ Fase 2 - Verificar despliegue de Traefik
+# 1D – Generar y sellar el Secret de basic-auth para el dashboard
+- import_playbook: 4-seal-traefik-auth-secret.yml
+
+# 2 – Instalar Traefik con Helm usando values_pvc.yaml (monta el PVC)
+- import_playbook: 5-install-traefik-dashboard.yml
+
+# 3 – Verificación rápida del despliegue
+- name: ✅ Verificar despliegue final de Traefik
   hosts: localhost
   gather_facts: false
+
+  vars_files:
+    - ../vars/main.yml            # reutiliza variables globales
 
   vars:
     kubeconfig_path: "/home/victory/.kube/config"
     kubectl_bin_path: "/usr/local/bin/kubectl"
 
-  vars_files:
-    - ../vars/main.yml
-
   tasks:
-    - name: ⏳ Esperar a que el pod de Traefik esté listo
+    - name: ⏳ Esperar a que los pods Traefik estén Ready
       shell: >
-        {{ kubectl_bin_path }} -n kube-system wait --for=condition=Ready pod
-        -l app.kubernetes.io/name=traefik --timeout=90s
+        {{ kubectl_bin_path }} -n {{ traefik_namespace }} wait --for=condition=Ready pod
+        -l app.kubernetes.io/name={{ traefik_release_name }} --timeout=120s
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      register: wait_output
       changed_when: false
 
-    - name: 🔍 Verificar estado de pods de Traefik
+    - name: 🔍 Listar pods Traefik
       shell: >
-        {{ kubectl_bin_path }} get pods -n kube-system -l app.kubernetes.io/name=traefik
+        {{ kubectl_bin_path }} get pods -n {{ traefik_namespace }}
+        -l app.kubernetes.io/name={{ traefik_release_name }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: traefik_status
+      changed_when: false
 
-    - name: 🧾 Mostrar estado de pods de Traefik
+    - name: 🧾 Mostrar estado de pods
       debug:
         var: traefik_status.stdout_lines
 
-    - name: 🌐 Verificar acceso al Dashboard (modo tolerante)
-      ansible.builtin.shell: >
-        curl -k -u admin:SuperPassword123 https://traefik.socialdevs.site/dashboard/
+    - name: 🌐 Probar acceso al dashboard (200 / 302 / 401 aceptables)
+      shell: >
+        curl -k -u {{ traefik_auth_user }}:{{ traefik_auth_pass }}
+        https://{{ internal_domain }}/dashboard/
         --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: dashboard_access_check
-      failed_when: >
-        dashboard_access_check.stdout is defined and
-        dashboard_access_check.stdout not in ["200", "302", "401"]
+      register: dashboard_http
       changed_when: false
-      ignore_errors: true
+      failed_when: dashboard_http.stdout not in ["200", "302", "401"]
 
-- import_playbook: 2a-create-cert-pvc.yml
+    - name: ✅ Resultado de la prueba de dashboard
+      debug:
+        msg: "Código HTTP devuelto por el dashboard → {{ dashboard_http.stdout }}"
