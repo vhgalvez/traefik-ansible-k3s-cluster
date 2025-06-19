@@ -1,9 +1,8 @@
 # playbooks\uninstall-traefik-dashboard.yml
 # ========================================================
 # 🧹 Desinstalación segura de Traefik
-# Elimina Helm release, secretos, CRDs, servicios y limpia puertos ocupados
+# Elimina Helm release, secretos, CRDs, servicios, PVCs y limpia puertos ocupados
 # ========================================================
-
 - name: 🧹 Desinstalar Traefik y limpiar recursos relacionados
   hosts: localhost
   gather_facts: false
@@ -41,6 +40,16 @@
         PATH: "{{ env_path }}"
       when: helm_status.rc == 0
 
+    - name: ❌ Eliminar Job de copia de certificados si existe
+      shell: "{{ kubectl_bin_path }} delete job copy-wildcard-cert -n {{ traefik_namespace }} --ignore-not-found"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: ❌ Eliminar PVC usado por Traefik para certificados
+      shell: "{{ kubectl_bin_path }} delete pvc {{ traefik_pvc_name }} -n {{ traefik_namespace }} --ignore-not-found"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
     - name: ❌ Eliminar secretos planos y sellados
       shell: |
         {{ kubectl_bin_path }} delete secret {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
@@ -71,4 +80,4 @@
 
     - name: ✅ Confirmación final
       debug:
-        msg: "✅ Traefik desinstalado completamente y recursos limpiados."
+        msg: "✅ Traefik desinstalado completamente, incluyendo PVC, CRDs y secretos."
