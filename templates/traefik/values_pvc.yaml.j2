@@ -50,11 +50,6 @@ ports:
     nodePort: 31900
     protocol: TCP
 
-  traefik:
-    port: 9000
-    nodePort: 31990
-    protocol: TCP
-
 service:
   type: NodePort
   externalTrafficPolicy: Cluster
@@ -94,7 +89,6 @@ additionalArguments:
   - "--entrypoints.websecure.http.tls.certresolver=default"
   - "--entrypoints.websecure.http.tls.certstore=default"
   - "--entrypoints.metrics.address=:9100"
-  - "--entrypoints.traefik.address=:9000"
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
   - "--metrics.prometheus.addEntryPointsLabels=true"
@@ -106,12 +100,12 @@ additionalArguments:
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
 
-additionalVolumeMounts:
+volumes:
+  - name: certs
+    persistentVolumeClaim:
+      claimName: {{ traefik_pvc_name }}
+
+volumeMounts:
   - name: certs
     mountPath: /etc/traefik/certs
     readOnly: true
-
-additionalVolumes:
-  - name: certs
-    persistentVolumeClaim:
-      claimName: "{{ traefik_pvc_name }}"
