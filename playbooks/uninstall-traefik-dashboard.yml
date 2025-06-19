@@ -69,11 +69,6 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    - name: 🔎 Verificar puertos abiertos en uso
-      shell: "ss -tulnp | grep -E '{{ ports_to_release | join(\"|\") }}' || true"
-      register: used_ports_output
-      changed_when: false
-
     - name: ✅ Confirmación final
       debug:
         msg: "✅ Traefik desinstalado completamente y recursos limpiados."

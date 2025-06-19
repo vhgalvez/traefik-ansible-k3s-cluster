@@ -1,132 +1,94 @@
-# 📦 Proyecto: Traefik Ansible K3s Cluster
+# 📄 Summary - Traefik Ansible K3s Cluster
 
-Este proyecto automatiza la instalación y configuración de **Traefik como Ingress Controller** en un clúcster Kubernetes K3s de alta disponibilidad, utilizando **Helm y Ansible**, con enfoque profesional, seguro y modular.
+Este proyecto instala y gestiona **Traefik** como controlador de Ingress en un clúster **K3s**, con enfoque en:
 
----
-
-## 🎯 Objetivo Principal
-
-> Desplegar un entorno seguro y automatizado de Traefik en K3s con soporte para:
->
-> * HTTPS vía Let's Encrypt (público)
-> * TLS autofirmado para dominios internos (privado)
-> * Dashboard seguro con autenticación
-> * IngressRoutes separados por contexto
-> * Buenas prácticas DevOps, GitOps y seguridad
+- Seguridad (certificados TLS internos y/o Let's Encrypt)
+- Almacenamiento persistente (PVC con Longhorn)
+- Acceso controlado (auth básica + VPN)
+- Acceso público a través de Cloudflare + IP dinámica
 
 ---
 
-## 📁 Estructura del Proyecto
+## 📦 Fases del Despliegue
 
-```
-traefik-ansible-k3s-cluster/
-├── ansible.cfg
-├── inventory/                # Inventario Ansible
-│   └── hosts.ini
-├── LICENSE
-├── playbooks/               # Playbooks automatizados
-│   ├── apply_ingress_and_middlewares.yml
-│   ├── deploy_traefik.yml
-│   ├── deploy_traefik_pvc.yml
-│   ├── generate_certs.yml
-│   ├── generate_internal_tls_secrets.yml
-│   ├── generate_traefik_secrets.yml
-│   ├── install_traefik.yml
-│   ├── uninstall_traefik.yml
-│   └── files/               # YAMLs estáticos (sellados)
-│       ├── traefik-dashboard-ingressroute.yaml
-│       ├── traefik-dashboard-middleware.yaml
-│       ├── traefik-dashboard-sealed.yaml
-│       └── traefik-dashboard-secret.yaml
-├── templates/               # Plantillas Jinja2 renderizables
-│   ├── secrets/
-│   │   ├── tls-secret.yaml.j2
-│   │   └── traefik-dashboard-secret.yaml.j2
-│   └── traefik/
-│       ├── ingressroute-internal.yaml.j2
-│       ├── ingressroute-public.yaml.j2
-│       ├── traefik-dashboard-ingressroute.yaml.j2
-│       ├── traefik-dashboard-middleware.yaml.j2
-│       ├── middleware-secure-headers.yaml.j2
-│       ├── values_nopvc.yaml.j2
-│       └── values_pvc.yaml.j2
-├── vars/
-│   └── main.yml             # Variables globales centralizadas
-├── README.md
-└── SUMMARY.md               # (Este archivo)
-```
+### 🔐 Fase 1 – Preparación de certificados y secretos
+
+1. `1-generate-selfsigned-certs.yml`  
+   → Genera certificados autofirmados `*.socialdevs.site` en `files/certs/`
+
+2. `2-generate-internal-tls-cert.yml`  
+   → Crea un Secret TLS con los certificados anteriores, en `kube-system`
+
+3. `3-seal-traefik-auth-secret.yml`  
+   → Cifra el secreto de acceso al dashboard con `kubeseal`
 
 ---
 
-## 🔧 Funcionalidades Clave
+### 🚀 Fase 2 – Despliegue de Traefik
 
-### 🔹 Helm Chart Profesional
+4. `4-install-traefik-dashboard.yml`  
+   → Instala Traefik vía Helm, usando el chart `traefik/traefik` y valores customizados desde plantilla
 
-* Versión configurable: `traefik_chart_version: "36.0.0"`
-* Modos con y sin almacenamiento persistente (PVC / no-PVC)
-* Opciones en `values_pvc.yaml.j2` y `values_nopvc.yaml.j2`
-
-### 🔹 IngressRoutes
-
-* **Público (`ingressroute-public.yaml.j2`)** con `certResolver: letsencrypt`
-* **Interno (`ingressroute-internal.yaml.j2`)** con `tls.secretName`
-* Separación clara entre tráfico externo e interno
-
-### 🔹 Seguridad y Headers
-
-* Middleware `secure-headers` para CSP y headers seguros
-* Redirección HTTP → HTTPS activada
-
-### 🔹 Dashboard de Traefik Seguro
-
-* `traefik-dashboard-ingressroute.yaml.j2` solo accesible desde LAN/VPN
-* Protegido con autenticación básica (secret gestionado)
-
-### 🔹 Certificados
-
-* TLS autofirmado (interno) con secret `internal_tls_secret_name`
-* Let's Encrypt (externo) por dominio vía ACME + certResolver
-* Secrets creados y sellados mediante Sealed Secrets opcionalmente
+5. `deploy_traefik.yml`  
+   → Orquesta las fases anteriores para un despliegue inicial sin almacenamiento persistente
 
 ---
 
-## 🔐 Seguridad
+### 📦 Fase 3 – Certificado desde PVC y TLSStore global
 
-* Uso de BasicAuth para el Dashboard
-* Headers seguros
-* Certificados diferenciados por entorno (externo/público, interno)
-* Dashboard no expuesto a Internet
-* Separación de permisos y nombres de middleware por namespace
+6. `2a-create-cert-pvc.yml`  
+   → Copia los certificados a un PVC Longhorn y crea un Secret TLS compartido
 
----
+7. `values_pvc.yaml.j2`  
+   → Define el `tlsStore.default` apuntando al Secret almacenado en `kube-system`
 
-## 📌 Requisitos Previos
-
-* Kubernetes K3s en ejecución con acceso a `kubectl` y `helm`
-* Nodo de control o bastión con Ansible instalado
-* Acceso al clúcster via kubeconfig
+8. `deploy_traefik_pvc.yml`  
+   → Reinstala Traefik usando configuración persistente con PVC y TLS global
 
 ---
 
-## 🚀 Ejecución Rápida (ejemplo)
+### 🧹 Fase Final – Desinstalación
 
-## 📞 Contacto / Mantenimiento
-
-Este proyecto es mantenido por [vhgalvez](https://github.com/vhgalvez) como parte del ecosistema **FlatcarMicroCloud** para entornos bare-metal con K3s y automatización total.
-
-> 🌟 Licencia MIT - Uso libre con crédito al autor
+9. `uninstall-traefik-dashboard.yml`  
+   → Borra Helm release, secretos, CRDs, y limpia puertos
 
 ---
 
-## ✅ Estado
+## 🌐 Red y Exposición
 
-| Componente               | Estado |
-| ------------------------ | ------ |
-| Traefik instalado        | ✅      |
-| Dashboard seguro         | ✅      |
-| HTTPS con Let's Encrypt  | ✅      |
-| TLS interno              | ✅      |
-| IngressRoute interno     | ✅      |
-| IngressRoute público     | ✅      |
-| Middleware de headers    | ✅      |
-| Helm + Ansible funcional | ✅      |
+- Cloudflare + DDNS → IP dinámica pública
+- Router doméstico redirige puertos 80/443 a `VIP` (192.168.0.33)
+- HAProxy + Keepalived redirige a pods de Traefik
+- VPN WireGuard permite acceso administrativo
+
+---
+
+## 🔒 Seguridad
+
+- Acceso al dashboard protegido por autenticación HTTP básica (`htpasswd`)
+- Certificados TLS internos y wildcard
+- Secrets cifrados con SealedSecrets
+- Firewall basado en `nftables`
+
+---
+
+## 📂 Estructura de Archivos
+
+- `playbooks/` → Todas las fases automatizadas con Ansible
+- `templates/` → YAMLs renderizados para Traefik y secrets
+- `files/certs/` → Certificados autofirmados
+- `vars/main.yml` → Configuración reutilizable global
+- `README.md` → Documentación extendida
+- `Summary.md` → Resumen estructurado (este archivo)
+
+---
+
+## ✅ Estado Actual
+
+Traefik se despliega automáticamente con:
+
+- Dashboard seguro (`/dashboard`)
+- TLS wildcard funcional para dominios internos
+- Opción de Let's Encrypt para producción
+- Certificados desde PVC con sincronización multi-namespace
+- Integración Cloudflare y WireGuard
