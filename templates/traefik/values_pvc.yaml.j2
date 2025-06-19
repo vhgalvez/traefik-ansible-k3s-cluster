@@ -3,13 +3,11 @@ deployment:
   replicas: 2
 
 logs:
-  general:
-    level: INFO
-  access:
-    enabled: true
+  general:    { level: INFO }
+  access:     { enabled: true }
 
 securityContext:
-  runAsUser: 1000
+  runAsUser:  1000
   runAsGroup: 1000
 
 entryPoints:
@@ -17,36 +15,22 @@ entryPoints:
     address: ":80"
     http:
       redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
+        entryPoint: { to: websecure, scheme: https }
 
   websecure:
     address: ":443"
     http:
       tls:
         certResolver: default
-        certStore: default
+        certStore:    default        # usa un único TLSStore
 
-  metrics:
-    address: ":9100"
-
-  traefik:
-    address: ":9000"
+  metrics:  { address: ":9100" }
+  traefik:  { address: ":9000" }
 
 ports:
-  web:
-    port: 80
-    nodePort: 32591
-    protocol: TCP
-  websecure:
-    port: 443
-    nodePort: 31541
-    protocol: TCP
-  metrics:
-    port: 9100
-    nodePort: 31900
-    protocol: TCP
+  web:       { port: 80,   nodePort: 32591, protocol: TCP }
+  websecure: { port: 443,  nodePort: 31541, protocol: TCP }
+  metrics:   { port: 9100, nodePort: 31900, protocol: TCP }
 
 service:
   type: NodePort
@@ -56,7 +40,7 @@ metrics:
   prometheus:
     entryPoint: metrics
     addEntryPointsLabels: true
-    addServicesLabels: true
+    addServicesLabels:    true
     buckets: "0.1,0.3,1.2,5.0"
 
 tls:
@@ -70,14 +54,12 @@ tls:
 certificatesResolvers:
   default:
     acme:
-      email: your-email@example.com
+      email: {{ letsencrypt_email }}
       storage: /data/acme.json
-      httpChallenge:
-        entryPoint: web
+      httpChallenge: { entryPoint: web }
 
 additionalArguments:
   - "--api.dashboard=true"
-  - "--api.insecure=false"
   - "--ping=true"
   - "--entrypoints.web.address=:80"
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
@@ -96,14 +78,15 @@ additionalArguments:
   - "--providers.kubernetescrd.allowEmptyServices=true"
   - "--providers.kubernetesingress"
   - "--providers.kubernetesingress.allowEmptyServices=true"
-  - "--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik"
+  - "--providers.kubernetesingress.ingressendpoint.publishedservice={{ traefik_namespace }}/{{ traefik_release_name }}"
 
-# --------------------------------------------------------------------
-# ✅ Punto clave: volúmenes para los certificados autofirmados
-# --------------------------------------------------------------------
+# ------------------------------------------------------------------
+# ✅  Volumen PVC con los certificados autofirmados
+#      · el chart espera *additional*Volume(s|Mounts)
+# ------------------------------------------------------------------
 additionalVolumeMounts:
   - name: certs
-    mountPath: /etc/traefik/certs       # <-- obligatorio
+    mountPath: /etc/traefik/certs
     readOnly: true
 
 additionalVolumes:
