@@ -1,6 +1,7 @@
 # playbooks/3-create-cert-pvc.yml
 # ============================================================
-# 📦 Crear PVC con Longhorn y copiar certificados TLS como archivos
+# 📦 Crear PVC con Longhorn y copiar certificados TLS
+# Se monta en Traefik desde /etc/traefik/certs
 # ============================================================
 
 - name: 📦 Crear PVC Longhorn para certificados y copiar certificados TLS
@@ -12,7 +13,7 @@
 
   vars:
     pvc_name: "{{ traefik_pvc_name }}"
-    pvc_namespace: kube-system
+    pvc_namespace: "kube-system"
     tls_secret_name: "{{ internal_tls_secret_name }}"
     pvc_size: "{{ traefik_pvc_size }}"
     storage_class: "{{ traefik_pvc_sc }}"
@@ -34,7 +35,6 @@
       when: pvc_check.resources | length == 0
       kubernetes.core.k8s:
         state: present
-        kubeconfig: "{{ kubeconfig_path }}"
         definition:
           apiVersion: v1
           kind: PersistentVolumeClaim
@@ -47,6 +47,7 @@
               requests:
                 storage: "{{ pvc_size }}"
             storageClassName: "{{ storage_class }}"
+        kubeconfig: "{{ kubeconfig_path }}"
 
     - name: 📨 Crear Job para copiar certificados al PVC
       kubernetes.core.k8s:
@@ -57,7 +58,7 @@
           kind: Job
           metadata:
             name: copy-wildcard-cert
-            namespace: {{ pvc_namespace }}
+            namespace: "{{ pvc_namespace }}"
           spec:
             ttlSecondsAfterFinished: 60
             template:
@@ -68,9 +69,9 @@
                     image: alpine:3.19
                     command: ["/bin/sh", "-c"]
                     args:
-                      - |
-                        install -m 0644 /src/tls.crt /dst/wildcard-socialdevs-tls.crt && \
-                        install -m 0644 /src/tls.key /dst/wildcard-socialdevs-tls.key
+                      - >-
+                        cp /src/tls.crt /dst/wildcard-socialdevs-tls.crt &&
+                        cp /src/tls.key /dst/wildcard-socialdevs-tls.key
                     volumeMounts:
                       - name: src
                         mountPath: /src
