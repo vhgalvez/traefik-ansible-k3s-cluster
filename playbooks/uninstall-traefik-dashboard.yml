@@ -66,7 +66,7 @@
   # Detectar y borrar PV huérfano
   - name: 🔍 Buscar PV asociado al PVC
     shell: >
-      {{ kubectl_bin_path }} get pv -o jsonpath='{range .items[?(@.spec.claimRef.name=="{{ traefik_pvc_name }}" && @.spec.claimRef.namespace=="{{ traefik_namespace }}")]}{.metadata.name}{"\n"}{end}'
+      {{ kubectl_bin_path }} get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="certificados-longhorn" && @.spec.claimRef.namespace=="kube-system")].metadata.name}'
     register: pv_name
     changed_when: false
 
