@@ -1,47 +1,69 @@
-# templates/traefik/values_pvc.yaml.j2
+# templates\traefik\values_pvc.yaml.j2
 #######################################################################
-#          Valores Helm – Traefik con certificados en un PVC          #
+#          Valores Helm  Traefik con certificados en un PVC          #
 #######################################################################
 
-deployment:
-  replicas: 2
+replicaCount: 1  # Evitamos conflictos RWX si Longhorn no soporta multienganche
 
-  # Volumen Longhorn con los certificados autofirmados ---------------
-  additionalVolumeMounts:
-    - name: certs
-      mountPath: /etc/traefik/certs
-      readOnly: true
+additionalVolumeMounts:
+  - name: certs
+    mountPath: /etc/traefik/certs
+    readOnly: true
 
-  additionalVolumes:
-    - name: certs
-      persistentVolumeClaim:
-        claimName: {{ traefik_pvc_name }}
+additionalVolumes:
+  - name: certs
+    persistentVolumeClaim:
+      claimName: {{ traefik_pvc_name }}
 
 logs:
-  general: { level: INFO }
-  access:  { enabled: true }
+  general:
+    level: INFO
+  access:
+    enabled: true
 
-securityContext: { runAsUser: 1000, runAsGroup: 1000 }
+deployment:
+  podSecurityContext:
+    fsGroup: 1000  # Para que uid 1000 pueda leer aunque .key sea 0600
+
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
 
 entryPoints:
   web:
     address: ":80"
     http:
       redirections:
-        entryPoint: { to: websecure, scheme: https }
+        entryPoint:
+          to: websecure
+          scheme: https
 
   websecure:
     address: ":443"
     http:
-      tls: { certResolver: default, certStore: default }
+      tls: {}
 
-  metrics: { address: ":9100" }
-  traefik: { address: ":9000" }
+  metrics:
+    address: ":9100"
+
+  traefik:
+    address: ":9000"
 
 ports:
-  web:       { port: 80,  nodePort: 32591, protocol: TCP }
-  websecure: { port: 443, nodePort: 31541, protocol: TCP }
-  metrics:   { port: 9100,nodePort: 31900, protocol: TCP }
+  web:
+    port: 80
+    nodePort: 32591
+    protocol: TCP
+
+  websecure:
+    port: 443
+    nodePort: 31541
+    protocol: TCP
+
+  metrics:
+    port: 9100
+    nodePort: 31900
+    protocol: TCP
 
 service:
   type: NodePort
@@ -51,7 +73,7 @@ metrics:
   prometheus:
     entryPoint: metrics
     addEntryPointsLabels: true
-    addServicesLabels:    true
+    addServicesLabels: true
     buckets: "0.1,0.3,1.2,5.0"
 
 tls:
@@ -60,14 +82,15 @@ tls:
     default:
       defaultCertificate:
         certFile: /etc/traefik/certs/wildcard-socialdevs-tls.crt
-        keyFile:  /etc/traefik/certs/wildcard-socialdevs-tls.key
+        keyFile: /etc/traefik/certs/wildcard-socialdevs-tls.key
 
 certificatesResolvers:
   default:
     acme:
       email: {{ letsencrypt_email }}
       storage: /data/acme.json
-      httpChallenge: { entryPoint: web }
+      httpChallenge:
+        entryPoint: web
 
 additionalArguments:
   - "--api.dashboard=true"
@@ -77,8 +100,6 @@ additionalArguments:
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
   - "--entrypoints.websecure.address=:443"
   - "--entrypoints.websecure.http.tls=true"
-  - "--entrypoints.websecure.http.tls.certresolver=default"
-  - "--entrypoints.websecure.http.tls.certstore=default"
   - "--entrypoints.metrics.address=:9100"
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"

@@ -42,7 +42,7 @@
             name: "{{ pvc_name }}"
             namespace: "{{ pvc_namespace }}"
           spec:
-            accessModes: ["ReadWriteOnce"]
+            accessModes: ["ReadWriteMany"]
             resources:
               requests:
                 storage: "{{ pvc_size }}"
@@ -67,10 +67,9 @@
                   - name: copier
                     image: alpine:3.19
                     command: ["/bin/sh", "-c"]
-                    args:
-                      - |
-                        cp /src/tls.crt /dst/wildcard-socialdevs-tls.crt &&
-                        cp /src/tls.key /dst/wildcard-socialdevs-tls.key
+                    args: |
+                      install -m 0644 /src/tls.crt /dst/wildcard-socialdevs-tls.crt && \
+                      install -m 0644 /src/tls.key /dst/wildcard-socialdevs-tls.key
                     volumeMounts:
                       - name: src
                         mountPath: /src
