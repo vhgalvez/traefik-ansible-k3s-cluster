@@ -1,4 +1,3 @@
-# playbooks/5-install-traefik-dashboard.yml
 # ========================================================
 #  Instalar Traefik con dashboard interno protegido
 # Usa certificados y secretos generados en la fase 1.
@@ -26,6 +25,7 @@
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+    rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"  # Archivo renderizado de tlsstore-default.yaml
 
   tasks:
     - name: 📁 Asegurar directorio local files/
@@ -150,10 +150,15 @@
         src: "{{ rendered_middleware }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 🚀 Aplicar TLSStore global
+    # 🚀 Renderizar y aplicar TLSStore global
+    - name: 📄 Renderizar TLSStore desde plantilla
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/templates/traefik/tlsstore-default.yaml.j2"
+        dest: "{{ rendered_tlsstore_file }}"
+
     - name: 🚀 Aplicar TLSStore global
       kubernetes.core.k8s:
         state: present
         kubeconfig: "{{ kubeconfig_path }}"
-        src: "{{ playbook_dir }}/templates/traefik/tlsstore-default.yaml.j2"
+        src: "{{ rendered_tlsstore_file }}"
         remote_src: no
