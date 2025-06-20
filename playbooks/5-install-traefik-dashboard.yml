@@ -1,9 +1,7 @@
+# playbooks\5-install-traefik-dashboard.yml
 # ========================================================
 #  Instalar Traefik con dashboard interno protegido
-# Usa certificados y secretos generados en la fase 1.
-# Despliega Traefik con autenticación y dashboard local.
 # ========================================================
-
 - name: 🚀 Instalar Traefik con Dashboard interno protegido
   hosts: localhost
   gather_facts: false
@@ -54,7 +52,7 @@
 
         - name: ❌ Eliminar Deployment si existe
           ansible.builtin.shell: >
-            {{ kubectl_bin_path }} delete deployment {{ traefik_release_name }} -n {{ traefik_namespace }}
+            {{ kubectl_bin_path }} delete deployment {{ traefik_release_name }} -n {{ traefik_namespace }} --wait=true --timeout=60s
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
           when: traefik_deploy_check.rc == 0
@@ -70,7 +68,7 @@
 
         - name: ❌ Eliminar HelmChart si existe
           ansible.builtin.shell: >
-            {{ kubectl_bin_path }} delete helmchart traefik -n {{ traefik_namespace }}
+            {{ kubectl_bin_path }} delete helmchart traefik -n {{ traefik_namespace }} --wait=true --timeout=60s
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
           when: k3s_helmchart_status.rc == 0
@@ -163,5 +161,3 @@
         kubeconfig: "{{ kubeconfig_path }}"
         src: "{{ rendered_tlsstore_file }}"
         remote_src: no
-
-
