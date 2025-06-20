@@ -153,11 +153,9 @@
       ansible.builtin.template:
         src: "../templates/traefik/tlsstore-default.yaml.j2"
         dest: "{{ rendered_tlsstore_file }}"
-        remote_src: no
 
     - name: 🚀 Aplicar TLSStore global
       kubernetes.core.k8s:
         state: present
         kubeconfig: "{{ kubeconfig_path }}"
         src: "{{ rendered_tlsstore_file }}"
-        remote_src: no
