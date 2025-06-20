@@ -1,4 +1,3 @@
-# playbooks/2-generate-internal-tls-cert.yml
 # ===============================================================
 #   Crear Secret TLS a partir de certificados autofirmados
 # - Genera el Secret `wildcard-socialdevs-tls` en el namespace kube-system
@@ -21,6 +20,16 @@
 
   tasks:
 
+    # Asegurarse de que los archivos de certificado tengan los permisos correctos
+    - name: Asegurar que los archivos de certificado tengan los permisos correctos
+      ansible.builtin.file:
+        path: "{{ certs_dir }}/{{ item }}"
+        mode: '0644'
+      with_items:
+        - "{{ cert_name }}.crt"
+        - "{{ cert_name }}.key"
+
+    # Verificar existencia de los archivos
     - name: 📦 Validar existencia de certificado
       stat:
         path: "{{ certs_dir }}/{{ cert_name }}.crt"
@@ -36,16 +45,19 @@
         msg: "❌ Faltan los archivos necesarios: {{ cert_name }}.crt o .key"
       when: not cert_crt_stat.stat.exists or not cert_key_stat.stat.exists
 
+    # Leer certificado (wildcard-socialdevs-tls.crt)
     - name: 📦 Leer certificado ({{ cert_name }}.crt)
       slurp:
         src: "{{ certs_dir }}/{{ cert_name }}.crt"
       register: cert_crt
 
+    # Leer clave privada (wildcard-socialdevs-tls.key)
     - name: 🔐 Leer clave privada ({{ cert_name }}.key)
       slurp:
         src: "{{ certs_dir }}/{{ cert_name }}.key"
       register: cert_key
 
+    # Renderizar plantilla YAML del Secret TLS (base64)
     - name: 📝 Renderizar plantilla YAML del Secret TLS (base64)
       template:
         src: ../templates/secrets/tls-secret.yaml.j2
@@ -56,6 +68,7 @@
         secret_name: "{{ internal_tls_secret_name }}"
         namespace: "{{ traefik_namespace }}"
 
+    # Aplicar Secret TLS al clúster (namespace: {{ namespace }})
     - name: "🚀 Aplicar Secret TLS al clúster (namespace: {{ namespace }})"
       command: kubectl apply -f "{{ rendered_secret }}"
       environment:
