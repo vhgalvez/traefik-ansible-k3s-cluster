@@ -153,7 +153,7 @@
     # 🚀 Renderizar y aplicar TLSStore global
     - name: 📄 Renderizar TLSStore desde plantilla
       ansible.builtin.template:
-        src: "{{ playbook_dir }}/templates/traefik/tlsstore-default.yaml.j2"
+        src: "templates/traefik/tlsstore-default.yaml.j2"
         dest: "{{ rendered_tlsstore_file }}"
         remote_src: no
 
