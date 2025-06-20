@@ -1,10 +1,17 @@
 # templates\traefik\values_pvc.yaml.j2
 #######################################################################
-#          Valores Helm  Traefik con certificados en un PVC          #
+#                Traefik   Valores Helm con certificados en PVC       #
 #######################################################################
 
-replicaCount: 1  # Evitamos conflictos RWX si Longhorn no soporta multienganche
+# ‼️ Usa el campo oficial de la chart (`deployment.replicas`)
+deployment:
+  replicas: 1                  # con RWX evitamos problemas de varios pods
+  podSecurityContext:
+    fsGroup: 1000              # el uid 1000 puede leer /etc/traefik/certs
 
+# --------------------------------------------------------------------
+# 📦  PVC con los ficheros wildcard-socialdevs-tls.{crt,key}
+# --------------------------------------------------------------------
 additionalVolumeMounts:
   - name: certs
     mountPath: /etc/traefik/certs
@@ -13,22 +20,27 @@ additionalVolumeMounts:
 additionalVolumes:
   - name: certs
     persistentVolumeClaim:
-      claimName: {{ traefik_pvc_name }}
+      claimName: {{ traefik_pvc_name | quote }}
 
+# --------------------------------------------------------------------
+# 🔊 Logs
+# --------------------------------------------------------------------
 logs:
   general:
     level: INFO
   access:
     enabled: true
 
-deployment:
-  podSecurityContext:
-    fsGroup: 1000  # Para que uid 1000 pueda leer aunque .key sea 0600
-
+# --------------------------------------------------------------------
+# 🔐 Seguridad del contenedor
+# --------------------------------------------------------------------
 securityContext:
-  runAsUser: 1000
+  runAsUser:  1000
   runAsGroup: 1000
 
+# --------------------------------------------------------------------
+# 🔌 EntryPoints
+# --------------------------------------------------------------------
 entryPoints:
   web:
     address: ":80"
@@ -41,7 +53,7 @@ entryPoints:
   websecure:
     address: ":443"
     http:
-      tls: {}
+      tls: {}                  # dejamos que la TLSOptions por defecto se aplique
 
   metrics:
     address: ":9100"
@@ -49,41 +61,42 @@ entryPoints:
   traefik:
     address: ":9000"
 
+# --------------------------------------------------------------------
+# ⛓ Puertos / Service
+# --------------------------------------------------------------------
 ports:
-  web:
-    port: 80
-    nodePort: 32591
-    protocol: TCP
-
-  websecure:
-    port: 443
-    nodePort: 31541
-    protocol: TCP
-
-  metrics:
-    port: 9100
-    nodePort: 31900
-    protocol: TCP
+  web:       { port: 80,   nodePort: 32591, protocol: TCP }
+  websecure: { port: 443,  nodePort: 31541, protocol: TCP }
+  metrics:   { port: 9100, nodePort: 31900, protocol: TCP }
 
 service:
   type: NodePort
   externalTrafficPolicy: Cluster
 
+# --------------------------------------------------------------------
+# 📈 Prometheus
+# --------------------------------------------------------------------
 metrics:
   prometheus:
-    entryPoint: metrics
-    addEntryPointsLabels: true
-    addServicesLabels: true
+    entryPoint:             metrics
+    addEntryPointsLabels:   true
+    addServicesLabels:      true
     buckets: "0.1,0.3,1.2,5.0"
 
+# --------------------------------------------------------------------
+# ✨ TLS por defecto (certificado autofirmado del PVC)
+# --------------------------------------------------------------------
 tls:
   enabled: true
   stores:
     default:
       defaultCertificate:
         certFile: /etc/traefik/certs/wildcard-socialdevs-tls.crt
-        keyFile: /etc/traefik/certs/wildcard-socialdevs-tls.key
+        keyFile:  /etc/traefik/certs/wildcard-socialdevs-tls.key
 
+# --------------------------------------------------------------------
+# 🔑 ACME (opcional, por si luego usas LE)
+# --------------------------------------------------------------------
 certificatesResolvers:
   default:
     acme:
@@ -92,6 +105,9 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
 
+# --------------------------------------------------------------------
+# ⚙️ Flags Traefik v3
+# --------------------------------------------------------------------
 additionalArguments:
   - "--api.dashboard=true"
   - "--ping=true"
@@ -100,6 +116,8 @@ additionalArguments:
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
   - "--entrypoints.websecure.address=:443"
   - "--entrypoints.websecure.http.tls=true"
+  - "--entrypoints.websecure.http.tls.certresolver=default"
+    # (el flag `certstore` desaparece en Traefik v3)
   - "--entrypoints.metrics.address=:9100"
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
