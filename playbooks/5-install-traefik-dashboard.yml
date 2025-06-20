@@ -25,7 +25,7 @@
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-    rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"  # Archivo renderizado de tlsstore-default.yaml
+    rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml" # Archivo renderizado de tlsstore-default.yaml
 
   tasks:
     - name: 📁 Asegurar directorio local files/
@@ -153,8 +153,9 @@
     # 🚀 Renderizar y aplicar TLSStore global
     - name: 📄 Renderizar TLSStore desde plantilla
       ansible.builtin.template:
-        src: "{{ playbook_dir }}/templates/traefik/tlsstore-default.yaml.j2"
+        src: "/home/victory/code-FlatcarMicroCloud/traefik-ansible-k3s-cluster/playbooks/templates/traefik/tlsstore-default.yaml.j2"
         dest: "{{ rendered_tlsstore_file }}"
+        remote_src: yes
 
     - name: 🚀 Aplicar TLSStore global
       kubernetes.core.k8s:
