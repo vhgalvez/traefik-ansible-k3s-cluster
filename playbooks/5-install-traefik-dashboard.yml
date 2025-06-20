@@ -149,3 +149,10 @@
         namespace: "{{ traefik_namespace }}"
         src: "{{ rendered_middleware }}"
         kubeconfig: "{{ kubeconfig_path }}"
+
+    # 🚀 Aplicar TLSStore global
+    - name: 🚀 Aplicar TLSStore global
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ kubeconfig_path }}"
+        src: "{{ playbook_dir }}/templates/traefik/tlsstore-default.yaml.j2"
