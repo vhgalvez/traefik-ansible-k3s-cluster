@@ -153,9 +153,9 @@
     # 🚀 Renderizar y aplicar TLSStore global
     - name: 📄 Renderizar TLSStore desde plantilla
       ansible.builtin.template:
-        src: "/home/victory/code-FlatcarMicroCloud/traefik-ansible-k3s-cluster/playbooks/templates/traefik/tlsstore-default.yaml.j2"
+        src: "{{ playbook_dir }}/templates/traefik/tlsstore-default.yaml.j2"
         dest: "{{ rendered_tlsstore_file }}"
-        remote_src: yes
+        remote_src: no
 
     - name: 🚀 Aplicar TLSStore global
       kubernetes.core.k8s:
