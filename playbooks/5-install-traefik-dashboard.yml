@@ -155,5 +155,5 @@
       kubernetes.core.k8s:
         state: present
         kubeconfig: "{{ kubeconfig_path }}"
-        src: "templates/traefik/tlsstore-default.yaml.j2"
-        remote_src: yes
+        src: "{{ playbook_dir }}/templates/traefik/tlsstore-default.yaml.j2"
+        remote_src: no
