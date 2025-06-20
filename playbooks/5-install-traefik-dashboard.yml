@@ -113,11 +113,7 @@
     # 📦 Instalar Traefik desde Helm Chart
     - name: 📦 Instalar Traefik desde Helm Chart
       ansible.builtin.shell: >
-        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
-        --namespace {{ traefik_namespace }}
-        --create-namespace
-        --version {{ traefik_chart_version }}
-        --values {{ traefik_values_file }}
+        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik --namespace {{ traefik_namespace }} --create-namespace --version {{ traefik_chart_version }} --values {{ traefik_values_file }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
