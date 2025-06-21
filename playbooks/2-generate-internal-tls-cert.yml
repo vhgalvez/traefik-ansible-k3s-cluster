@@ -25,9 +25,10 @@
       ansible.builtin.file:
         path: "{{ certs_dir }}/{{ item }}"
         mode: '0644'
-      with_items:
+      loop:
         - "{{ cert_name }}.crt"
         - "{{ cert_name }}.key"
+      ignore_errors: yes  # Ignora errores si el archivo ya tiene los permisos correctos
 
     # Verificar existencia de los archivos
     - name: 📦 Validar existencia de certificado
@@ -70,7 +71,8 @@
 
     # Aplicar Secret TLS al clúster (namespace: {{ namespace }})
     - name: "🚀 Aplicar Secret TLS al clúster (namespace: {{ namespace }})"
-      command: kubectl apply -f "{{ rendered_secret }}"
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        definition: "{{ lookup('file', rendered_secret) }}"
+        state: present
       failed_when: false # Esta opción ayuda a que el playbook no falle si el Secret ya está creado
