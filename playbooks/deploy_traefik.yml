@@ -11,29 +11,33 @@
 
 ---
 # Verificar que kubectl y helm estén instalados
-- name: Verificar que kubectl esté instalado
-  stat:
-    path: "/usr/local/bin/kubectl"
-  register: kubectl_check
-  failed_when: false
-  changed_when: false
+- name: Verificar que kubectl y helm estén instalados
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Verificar que kubectl esté instalado
+      stat:
+        path: "/usr/local/bin/kubectl"
+      register: kubectl_check
+      failed_when: false
+      changed_when: false
 
-- name: Abortamos si kubectl no está instalado
-  fail:
-    msg: "❌ kubectl no está instalado. Por favor, instálalo."
-  when: not kubectl_check.stat.exists
+    - name: Abortamos si kubectl no está instalado
+      fail:
+        msg: "❌ kubectl no está instalado. Por favor, instálalo."
+      when: not kubectl_check.stat.exists
 
-- name: Verificar que helm esté instalado
-  stat:
-    path: "/usr/local/bin/helm"
-  register: helm_check
-  failed_when: false
-  changed_when: false
+    - name: Verificar que helm esté instalado
+      stat:
+        path: "/usr/local/bin/helm"
+      register: helm_check
+      failed_when: false
+      changed_when: false
 
-- name: Abortamos si helm no está instalado
-  fail:
-    msg: "❌ helm no está instalado. Por favor, instálalo."
-  when: not helm_check.stat.exists
+    - name: Abortamos si helm no está instalado
+      fail:
+        msg: "❌ helm no está instalado. Por favor, instálalo."
+      when: not helm_check.stat.exists
 
 # 1A – Generar *.crt / *.key autofirmados
 - import_playbook: 1-generate-selfsigned-certs.yml
@@ -54,7 +58,6 @@
 - name: ✅ Verificar despliegue final de Traefik
   hosts: localhost
   gather_facts: false
-
   vars_files:
     - ../vars/main.yml
 
