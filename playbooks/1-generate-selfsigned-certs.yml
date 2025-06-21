@@ -30,18 +30,18 @@
         state: directory
         mode: "0755"
 
-    # Verificar existencia de certificado
+    # Verificar existencia de certificado y clave privada
     - name: 📋 Verificar existencia de certificado
       stat:
         path: "{{ certs_dir }}/{{ cert_name }}.crt"
       register: cert_stat
 
-    # Verificar existencia de clave privada
     - name: 📋 Verificar existencia de clave privada
       stat:
         path: "{{ certs_dir }}/{{ cert_name }}.key"
       register: key_stat
 
+    # Abortamos si los certificados ya existen y no se está forzando la recreación
     - name: ❌ Abortar si los certificados ya existen y force_recreate es false
       fail:
         msg: "❌ Los certificados ya existen y no se está forzando la recreación."
