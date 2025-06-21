@@ -1,7 +1,8 @@
 # playbooks\5-install-traefik-dashboard.yml
 # ========================================================
-#  Instalar Traefik con dashboard interno protegido
+#  Instalar Traefik con Dashboard interno protegido
 # ========================================================
+
 - name: 🚀 Instalar Traefik con Dashboard interno protegido
   hosts: localhost
   gather_facts: false
@@ -23,7 +24,7 @@
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-    rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml" # Archivo renderizado de tlsstore-default.yaml
+    rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"
 
   tasks:
     - name: 📁 Asegurar directorio local files/

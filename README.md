@@ -253,3 +253,64 @@ Editar
 # En cualquier IngressRoute de cualquier namespace:
 tls: {}                # sin secretName
 Traefik usará el defaultCertificate del TLSStore global.
+
+
+
+1. Crear el archivo .env
+Primero, crea el archivo .env en el directorio donde estás trabajando. Esto es lo que debes hacer:
+
+Abre tu terminal.
+
+Navega al directorio donde quieres crear el archivo .env.
+
+Crea el archivo .env con el siguiente contenido:
+
+bash
+Copiar
+Editar
+# Crea el archivo .env
+nano .env
+Añade estas líneas en el archivo .env:
+
+text
+Copiar
+Editar
+LONGHORN_AUTH_USER=admin
+LONGHORN_AUTH_PASS=SuperSecure456
+# Puedes añadir otras variables como TRAEFIK_AUTH_USER y TRAEFIK_AUTH_PASS si lo necesitas
+Guarda el archivo y sal de nano presionando Ctrl + X, luego Y para confirmar y Enter.
+
+2. Cargar las variables de entorno
+Ahora, para cargar las variables de entorno definidas en el archivo .env a tu sesión de terminal y hacerlas accesibles para los playbooks de Ansible, usa el siguiente comando:
+
+Cargar las variables de entorno:
+bash
+Copiar
+Editar
+export $(cat .env | xargs)
+Esto carga las variables definidas en el archivo .env al entorno actual de la terminal. Puedes verificar que se cargaron correctamente con el comando:
+
+bash
+Copiar
+Editar
+echo $LONGHORN_AUTH_USER
+echo $LONGHORN_AUTH_PASS
+Si ves las variables correctamente, entonces las configuraste bien.
+
+3. Ejecutar el playbook de Ansible
+Ahora que las variables de entorno están cargadas, puedes ejecutar tu playbook de Ansible utilizando esas variables.
+
+Por ejemplo, para ejecutar un playbook, usa:
+
+bash
+Copiar
+Editar
+ansible-playbook -i inventory/hosts.ini playbooks/02_ingress-longhorn-internal.yml
+Resumen:
+Crear el archivo .env con tus variables de entorno.
+
+Cargar las variables de entorno con el comando export $(cat .env | xargs).
+
+Ejecutar tu playbook de Ansible con las variables de entorno ya cargadas.
+
+Con estos pasos, no es necesario declarar manualmente las variables de entorno, ya que se cargan automáticamente desde el archivo .env en tu terminal y están listas para usar en el playbook de Ansible.
