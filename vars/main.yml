@@ -1,4 +1,4 @@
-# vars\main.yml
+# vars/main.yml
 
 # 📆 Traefik Helm Chart
 traefik_namespace: kube-system
@@ -6,10 +6,11 @@ traefik_release_name: traefik
 traefik_chart_version: "36.1.0"
 
 # 🔐 Autenticación del Dashboard
+# Se cargan desde variables de entorno, con fallback seguro
 traefik_dashboard_secret_name: traefik-dashboard-secret
 traefik_dashboard_middleware_name: traefik-auth
-traefik_auth_user: "{{ lookup('env', 'TRAEFIK_AUTH_USER') }}"
-traefik_auth_pass: "{{ lookup('env', 'TRAEFIK_AUTH_PASS') }}"
+traefik_auth_user: "{{ lookup('env', 'TRAEFIK_AUTH_USER') | default('admin', true) }}"
+traefik_auth_pass: "{{ lookup('env', 'TRAEFIK_AUTH_PASS') | default('', true) }}"
 letsencrypt_email: admin@socialdevs.site
 
 # 💾 Persistencia (solo para values_pvc.yaml)
@@ -18,7 +19,7 @@ traefik_pvc_name: certificados-longhorn
 traefik_pvc_size: 1Gi
 traefik_pvc_sc: longhorn
 
-# ✅  wildcard-socialdevs-tls\ 
+# ✅ wildcard-socialdevs-tls
 internal_tls_secret_name: wildcard-socialdevs-tls
 app_name: traefik
 internal_domain: traefik.socialdevs.site
