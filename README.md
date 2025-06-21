@@ -257,62 +257,58 @@ tls: {}  # sin secretName
 # Traefik usará el defaultCertificate del TLSStore global.
 ```
 
-### Creación del Archivo .env
 
-El archivo `.env` es utilizado para definir las variables de entorno que se usarán en los playbooks de Ansible. Sigue estos pasos para crearlo:
 
-#### Paso 1: Crear el archivo .env
+# ✅ Configuración de Variables de Entorno para Playbooks Ansible
 
-Abre tu terminal.
+Los playbooks de Ansible utilizan variables de entorno para configurar autenticación, generar Secrets y desplegar recursos como dashboards seguros para **Traefik** y **Longhorn**.
 
-Navega al directorio donde deseas crear el archivo `.env`.
+---
 
-Crea el archivo `.env` con el siguiente contenido:
+## 🛠 Paso 1: Crear el archivo `.env`
 
-```bash
-sudo nano .env
-```
-
-Añade las siguientes líneas al archivo `.env`:
+En tu terminal, crea el archivo con:
 
 ```bash
-LONGHORN_AUTH_USER=admin
-LONGHORN_AUTH_PASS=SuperSecure456
-# Puedes añadir otras variables como TRAEFIK_AUTH_USER y TRAEFIK_AUTH_PASS si lo necesitas
+nano .env
 ```
 
-Guarda y cierra el archivo presionando `Ctrl + X`, luego `Y` para confirmar y `Enter`.
+### Contenido sugerido
 
-#### Paso 2: Cargar las Variables de Entorno
+```dotenv
+# 🔐 Traefik (Dashboard protegido con autenticación básica)
+export TRAEFIK_AUTH_USER=admin
+export TRAEFIK_AUTH_PASS=SuperSecure123
 
-Una vez creado el archivo `.env`, debes cargar las variables de entorno para que estén disponibles en tu sesión de terminal y sean accesibles para los playbooks de Ansible.
+# 🔐 Longhorn (si usas autenticación para el dashboard)
+export LONGHORN_AUTH_USER=admin
+export LONGHORN_AUTH_PASS=SuperSecure456
+```
 
-Usa el siguiente comando para cargar las variables de entorno desde el archivo `.env`:
+Guarda y cierra (Ctrl + X, luego Y, y Enter).
+
+---
+
+## 🔄 Paso 2: Cargar las variables en tu sesión
+
+Ejecuta:
 
 ```bash
-export $(cat .env | xargs)
+source .env
 ```
 
-Para verificar que las variables se cargaron correctamente, puedes usar:
+Esto cargará todas las variables para que estén disponibles en los playbooks Ansible.
+
+---
+
+## ✅ Paso 3: Verificar que se cargaron correctamente
+
+Comprueba los valores con:
 
 ```bash
 echo $TRAEFIK_AUTH_USER
 echo $TRAEFIK_AUTH_PASS
-```
 
-```bash
 echo $LONGHORN_AUTH_USER
 echo $LONGHORN_AUTH_PASS
-```
-
-Si las variables muestran los valores correctos, significa que se cargaron correctamente.
-
-### Ejecutar el Playbook de Ansible
-
-Ahora que las variables de entorno están cargadas, puedes ejecutar los playbooks de Ansible utilizando esas variables.
-
-#### Ejemplo de ejecución del playbook
-
-```bash
-ansible-playbook -i inventory/hosts.ini playbooks/02_ingress-longhorn-internal.yml
 ```
