@@ -21,7 +21,8 @@
 
   tasks:
 
-    - name: 🧺 Verificar si el PVC ya existe
+    # 🧺 Verificar si el PVC ya existe
+    - name: 📋 Verificar existencia del PVC
       kubernetes.core.k8s_info:
         api_version: v1
         kind: PersistentVolumeClaim
@@ -30,7 +31,9 @@
         kubeconfig: "{{ kubeconfig_path }}"
       register: pvc_check
       failed_when: false
+      changed_when: false
 
+    # 📦 Crear PVC si no existe
     - name: 📦 Crear PVC si no existe
       when: pvc_check.resources | length == 0
       kubernetes.core.k8s:
@@ -49,6 +52,7 @@
             storageClassName: "{{ storage_class }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
+    # 📨 Crear Job para copiar certificados al PVC
     - name: 📨 Crear Job para copiar certificados al PVC
       kubernetes.core.k8s:
         state: present
@@ -69,9 +73,7 @@
                     image: alpine:3.19
                     command: ["/bin/sh", "-c"]
                     args:
-                      - >-
-                        cp /src/tls.crt /dst/wildcard-socialdevs-tls.crt &&
-                        cp /src/tls.key /dst/wildcard-socialdevs-tls.key
+                      - "cp /src/tls.crt /dst/wildcard-socialdevs-tls.crt && cp /src/tls.key /dst/wildcard-socialdevs-tls.key"
                     volumeMounts:
                       - name: src
                         mountPath: /src
@@ -86,6 +88,7 @@
                     persistentVolumeClaim:
                       claimName: "{{ pvc_name }}"
 
+    # ⏳ Esperar a que el Job finalice correctamente
     - name: ⏳ Esperar a que el Job finalice correctamente
       kubernetes.core.k8s_info:
         api_version: batch/v1
@@ -98,6 +101,7 @@
       retries: 20
       delay: 6
 
+    # 🧹 Eliminar Job después de completar (limpieza)
     - name: 🧹 Eliminar Job después de completar (limpieza)
       kubernetes.core.k8s:
         state: absent

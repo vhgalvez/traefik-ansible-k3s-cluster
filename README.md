@@ -236,81 +236,78 @@ curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:443:10.17.4.
 kubectl get svc traefik -n kube-system -o yaml | grep nodePort
 ```
 
-3. Certificados “globales” en todos los Namespaces
-Ya los tienes:
+---
 
-Secret TLS kube-system/wildcard-socialdevs-tls.
+## Configuración y Despliegue de Certificados y Variables de Entorno
 
-PVC kube-system/certificados-longhorn con los mismos ficheros (*.crt, *.key).
+### Certificados Globales en Todos los Namespaces
 
-TLSStore default en Traefik apunta al certificado dentro del contenedor montado desde el PVC.
+Los certificados TLS necesarios ya están configurados para ser utilizados globalmente en todos los namespaces. A continuación se describen los recursos relevantes:
 
-Eso permite:
+- **Secret TLS**: El secret `wildcard-socialdevs-tls` se encuentra en el namespace `kube-system`.
+- **PVC**: El PVC `certificados-longhorn` en el namespace `kube-system` contiene los certificados en los archivos `*.crt` y `*.key`.
+- **TLSStore**: El TLSStore por defecto en Traefik apunta al certificado dentro del contenedor montado desde el PVC, lo que permite que este certificado sea utilizado globalmente.
 
-yaml
-Copiar
-Editar
-# En cualquier IngressRoute de cualquier namespace:
-tls: {}                # sin secretName
-Traefik usará el defaultCertificate del TLSStore global.
+Esto significa que, para cualquier IngressRoute en cualquier namespace, puedes omitir la definición de `secretName` en la configuración del TLS. Traefik utilizará el certificado configurado en el TLSStore global.
 
+#### Ejemplo de configuración de IngressRoute
 
+```yaml
+tls: {}  # sin secretName
+# Traefik usará el defaultCertificate del TLSStore global.
+```
 
-1. Crear el archivo .env
-Primero, crea el archivo .env en el directorio donde estás trabajando. Esto es lo que debes hacer:
+### Creación del Archivo .env
+
+El archivo `.env` es utilizado para definir las variables de entorno que se usarán en los playbooks de Ansible. Sigue estos pasos para crearlo:
+
+#### Paso 1: Crear el archivo .env
 
 Abre tu terminal.
 
-Navega al directorio donde quieres crear el archivo .env.
+Navega al directorio donde deseas crear el archivo `.env`.
 
-Crea el archivo .env con el siguiente contenido:
+Crea el archivo `.env` con el siguiente contenido:
 
-bash
-Copiar
-Editar
-# Crea el archivo .env
+```bash
 nano .env
-Añade estas líneas en el archivo .env:
+```
 
-text
-Copiar
-Editar
+Añade las siguientes líneas al archivo `.env`:
+
+```bash
 LONGHORN_AUTH_USER=admin
 LONGHORN_AUTH_PASS=SuperSecure456
 # Puedes añadir otras variables como TRAEFIK_AUTH_USER y TRAEFIK_AUTH_PASS si lo necesitas
-Guarda el archivo y sal de nano presionando Ctrl + X, luego Y para confirmar y Enter.
+```
 
-2. Cargar las variables de entorno
-Ahora, para cargar las variables de entorno definidas en el archivo .env a tu sesión de terminal y hacerlas accesibles para los playbooks de Ansible, usa el siguiente comando:
+Guarda y cierra el archivo presionando `Ctrl + X`, luego `Y` para confirmar y `Enter`.
 
-Cargar las variables de entorno:
-bash
-Copiar
-Editar
+#### Paso 2: Cargar las Variables de Entorno
+
+Una vez creado el archivo `.env`, debes cargar las variables de entorno para que estén disponibles en tu sesión de terminal y sean accesibles para los playbooks de Ansible.
+
+Usa el siguiente comando para cargar las variables de entorno desde el archivo `.env`:
+
+```bash
 export $(cat .env | xargs)
-Esto carga las variables definidas en el archivo .env al entorno actual de la terminal. Puedes verificar que se cargaron correctamente con el comando:
+```
 
-bash
-Copiar
-Editar
+Para verificar que las variables se cargaron correctamente, puedes usar:
+
+```bash
 echo $LONGHORN_AUTH_USER
 echo $LONGHORN_AUTH_PASS
-Si ves las variables correctamente, entonces las configuraste bien.
+```
 
-3. Ejecutar el playbook de Ansible
-Ahora que las variables de entorno están cargadas, puedes ejecutar tu playbook de Ansible utilizando esas variables.
+Si las variables muestran los valores correctos, significa que se cargaron correctamente.
 
-Por ejemplo, para ejecutar un playbook, usa:
+### Ejecutar el Playbook de Ansible
 
-bash
-Copiar
-Editar
+Ahora que las variables de entorno están cargadas, puedes ejecutar los playbooks de Ansible utilizando esas variables.
+
+#### Ejemplo de ejecución del playbook
+
+```bash
 ansible-playbook -i inventory/hosts.ini playbooks/02_ingress-longhorn-internal.yml
-Resumen:
-Crear el archivo .env con tus variables de entorno.
-
-Cargar las variables de entorno con el comando export $(cat .env | xargs).
-
-Ejecutar tu playbook de Ansible con las variables de entorno ya cargadas.
-
-Con estos pasos, no es necesario declarar manualmente las variables de entorno, ya que se cargan automáticamente desde el archivo .env en tu terminal y están listas para usar en el playbook de Ansible.
+```

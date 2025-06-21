@@ -21,26 +21,33 @@
     organization: "FlatcarMicroCloud"
     common_name: "*.socialdevs.site"
     san_file: "/tmp/san.cnf"
-    force_recreate: false
+    force_recreate: false  # Cambia a true para forzar la creación de nuevos certificados
 
   tasks:
-
     - name: 📁 Crear directorio de certificados local
       file:
         path: "{{ certs_dir }}"
         state: directory
         mode: "0755"
 
+    # Verificar existencia de certificado
     - name: 📋 Verificar existencia de certificado
       stat:
         path: "{{ certs_dir }}/{{ cert_name }}.crt"
       register: cert_stat
 
+    # Verificar existencia de clave privada
     - name: 📋 Verificar existencia de clave privada
       stat:
         path: "{{ certs_dir }}/{{ cert_name }}.key"
       register: key_stat
 
+    - name: ❌ Abortar si los certificados ya existen y force_recreate es false
+      fail:
+        msg: "❌ Los certificados ya existen y no se está forzando la recreación."
+      when: not force_recreate and cert_stat.stat.exists and key_stat.stat.exists
+
+    # Crear archivo SAN temporal
     - name: 📝 Crear archivo SAN temporal
       copy:
         dest: "{{ san_file }}"
@@ -70,10 +77,12 @@
           DNS.5 = argocd.socialdevs.site
           DNS.6 = prometheus.socialdevs.site
 
+    # Generar clave privada
     - name: 🔐 Generar clave privada
       command: openssl genrsa -out {{ certs_dir }}/{{ cert_name }}.key 4096
       when: force_recreate or not key_stat.stat.exists
 
+    # Generar certificado wildcard autofirmado
     - name: 📜 Generar certificado wildcard autofirmado
       command: >
         openssl req -x509 -nodes -days 3650
@@ -83,6 +92,7 @@
         -extensions req_ext
       when: force_recreate or not cert_stat.stat.exists
 
+    # Establecer permisos locales para los archivos generados
     - name: 🔐 Establecer permisos locales
       file:
         path: "{{ item.path }}"
@@ -91,6 +101,7 @@
         - { path: "{{ certs_dir }}/{{ cert_name }}.crt", mode: "0644" }
         - { path: "{{ certs_dir }}/{{ cert_name }}.key", mode: "0600" }
 
+    # Eliminar archivo temporal SAN
     - name: 🧹 Eliminar archivo temporal SAN
       file:
         path: "{{ san_file }}"

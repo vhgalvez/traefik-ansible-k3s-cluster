@@ -1,4 +1,4 @@
-# playbooks\5-install-traefik-dashboard.yml
+# playbooks/5-install-traefik-dashboard.yml
 # ========================================================
 #  Instalar Traefik con Dashboard interno protegido
 # ========================================================
@@ -27,6 +27,26 @@
     rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"
 
   tasks:
+    - name: 📋 Verificar si kubectl está instalado
+      stat:
+        path: "{{ kubectl_bin_path }}"
+      register: kubectl_check
+
+    - name: Abortamos si kubectl no está instalado
+      fail:
+        msg: "❌ kubectl no está instalado en la ruta {{ kubectl_bin_path }}. Por favor, instálalo."
+      when: not kubectl_check.stat.exists
+
+    - name: 📋 Verificar si helm está instalado
+      stat:
+        path: "{{ helm_bin_path }}"
+      register: helm_check
+
+    - name: Abortamos si helm no está instalado
+      fail:
+        msg: "❌ helm no está instalado en la ruta {{ helm_bin_path }}. Por favor, instálalo."
+      when: not helm_check.stat.exists
+
     - name: 📁 Asegurar directorio local files/
       ansible.builtin.file:
         path: "{{ files_dir }}"

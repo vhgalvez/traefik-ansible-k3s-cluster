@@ -1,6 +1,6 @@
-# playbooks\2-generate-internal-tls-cert.yml
+# playbooks/2-generate-internal-tls-cert.yml
 # ===============================================================
-#   Crear Secret TLS a partir de certificados autofirmados
+# Crear Secret TLS a partir de certificados autofirmados
 # - Genera el Secret `wildcard-socialdevs-tls` en el namespace kube-system
 # ===============================================================
 
@@ -20,7 +20,6 @@
     namespace: "kube-system"
 
   tasks:
-
     # Asegurarse de que los archivos de certificado tengan los permisos correctos
     - name: Asegurar que los archivos de certificado tengan los permisos correctos
       ansible.builtin.file:
@@ -64,8 +63,8 @@
         src: ../templates/secrets/tls-secret.yaml.j2
         dest: "{{ rendered_secret }}"
       vars:
-        cert_base64: "{{ cert_crt.content }}"
-        key_base64: "{{ cert_key.content }}"
+        cert_base64: "{{ cert_crt.content | b64encode }}"
+        key_base64: "{{ cert_key.content | b64encode }}"
         secret_name: "{{ internal_tls_secret_name }}"
         namespace: "{{ traefik_namespace }}"
 
@@ -74,3 +73,4 @@
       command: kubectl apply -f "{{ rendered_secret }}"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+      failed_when: false # Esta opción ayuda a que el playbook no falle si el Secret ya está creado
