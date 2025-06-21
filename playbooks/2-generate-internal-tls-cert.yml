@@ -58,14 +58,15 @@
         src: "{{ certs_dir }}/{{ cert_name }}.key"
       register: cert_key
 
-    # Renderizar plantilla YAML del Secret TLS (base64)
+    # Renderizar plantilla YAML del Secret TLS
     - name: 📝 Renderizar plantilla YAML del Secret TLS (base64)
       template:
         src: ../templates/secrets/tls-secret.yaml.j2
         dest: "{{ rendered_secret }}"
       vars:
-        cert_base64: "{{ cert_crt.content | b64encode }}"
-        key_base64: "{{ cert_key.content | b64encode }}"
+        # Certificado y clave privada ya están en base64, así que los usamos directamente
+        cert_base64: "{{ cert_crt.content }}"
+        key_base64: "{{ cert_key.content }}"
         secret_name: "{{ internal_tls_secret_name }}"
         namespace: "{{ namespace }}"
 
