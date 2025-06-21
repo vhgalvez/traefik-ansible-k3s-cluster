@@ -270,7 +270,7 @@ Navega al directorio donde deseas crear el archivo `.env`.
 Crea el archivo `.env` con el siguiente contenido:
 
 ```bash
-nano .env
+sudo nano .env
 ```
 
 Añade las siguientes líneas al archivo `.env`:
