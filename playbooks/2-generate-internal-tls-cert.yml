@@ -1,3 +1,4 @@
+# playbooks\2-generate-internal-tls-cert.yml
 # ===============================================================
 #   Crear Secret TLS a partir de certificados autofirmados
 # - Genera el Secret `wildcard-socialdevs-tls` en el namespace kube-system

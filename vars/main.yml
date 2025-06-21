@@ -8,10 +8,8 @@ traefik_chart_version: "36.1.0"
 # 🔐 Autenticación del Dashboard
 traefik_dashboard_secret_name: traefik-dashboard-secret
 traefik_dashboard_middleware_name: traefik-auth
-traefik_auth_user: admin
-traefik_auth_pass: SuperPassword123
-
-# 📧 Let's Encrypt
+traefik_auth_user: "{{ lookup('env', 'TRAEFIK_AUTH_USER') }}"
+traefik_auth_pass: "{{ lookup('env', 'TRAEFIK_AUTH_PASS') }}"
 letsencrypt_email: admin@socialdevs.site
 
 # 💾 Persistencia (solo para values_pvc.yaml)
@@ -28,4 +26,3 @@ service_name: traefik
 service_port: 80
 public_domain: public.socialdevs.site
 master1_ip: "10.17.4.21"
-
