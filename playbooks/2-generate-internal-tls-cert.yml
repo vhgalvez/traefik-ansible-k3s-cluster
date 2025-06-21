@@ -66,7 +66,7 @@
         cert_base64: "{{ cert_crt.content | b64encode }}"
         key_base64: "{{ cert_key.content | b64encode }}"
         secret_name: "{{ internal_tls_secret_name }}"
-        namespace: "{{ traefik_namespace }}"
+        namespace: "{{ namespace }}"
 
     # Aplicar Secret TLS al clúster (namespace: {{ namespace }})
     - name: "🚀 Aplicar Secret TLS al clúster (namespace: {{ namespace }})"
