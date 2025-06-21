@@ -296,6 +296,11 @@ export $(cat .env | xargs)
 Para verificar que las variables se cargaron correctamente, puedes usar:
 
 ```bash
+echo $TRAEFIK_AUTH_USER
+echo $TRAEFIK_AUTH_PASS
+```
+
+```bash
 echo $LONGHORN_AUTH_USER
 echo $LONGHORN_AUTH_PASS
 ```
