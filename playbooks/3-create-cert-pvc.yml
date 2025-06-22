@@ -35,7 +35,7 @@
 
     # 📦 Crear PVC si no existe
     - name: 📦 Crear PVC si no existe
-      when: pvc_check.resources | length == 0
+      when: pvc_check.resources is defined and pvc_check.resources | length == 0
       kubernetes.core.k8s:
         state: present
         definition:

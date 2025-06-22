@@ -270,7 +270,7 @@ Los playbooks de Ansible utilizan variables de entorno para configurar autentica
 En tu terminal, crea el archivo con:
 
 ```bash
-nano .env
+sudo nano .env
 ```
 
 ### Contenido sugerido
