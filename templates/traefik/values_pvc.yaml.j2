@@ -1,6 +1,6 @@
 # templates\traefik\values_pvc.yaml.j2
 #######################################################################
-#         Traefik – valores Helm para doble sistema de certificados   #
+#         Traefik  valores Helm para doble sistema de certificados   #
 #     • Autofirmado (local) por defecto                               #
 #     • Let's Encrypt (público) vía HTTP-01 bajo resolver “letsencrypt”#
 #######################################################################
@@ -85,13 +85,16 @@ metrics:
 
 #############################
 # TLSStore por DEFECTO (PVC)#
+# ⚠️ Se requiere que los archivos tengan nombres exactos:
+#    - wildcard-socialdevs-tls.crt
+#    - wildcard-socialdevs-tls.key
 #############################
 tls:
   stores:
     default:
       defaultCertificate:
-        certFile: /etc/traefik/certs/wildcard-socialdevs-tls.crt
-        keyFile:  /etc/traefik/certs/wildcard-socialdevs-tls.key
+        certFile: "/etc/traefik/certs/wildcard-socialdevs-tls.crt"
+        keyFile:  "/etc/traefik/certs/wildcard-socialdevs-tls.key"
 
 ###########################################
 # Resolver ACME para Let's Encrypt público #
@@ -102,17 +105,17 @@ certificatesResolvers:
       email: {{ letsencrypt_email }}
       storage: /data/acme.json
       httpChallenge:
-        entryPoint: web          # HTTP-01 en :80
+        entryPoint: web
 
-############################
-# Argumentos CLI adicionales
-############################
+###########################################
+# Argumentos CLI adicionales              #
+###########################################
 additionalArguments:
   # Core / observabilidad
   - "--api.dashboard=true"
   - "--ping=true"
 
-  # EntryPoints (web / websecure / metrics)
+  # EntryPoints
   - "--entrypoints.web.address=:80"
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
@@ -134,7 +137,7 @@ additionalArguments:
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice={{ traefik_namespace }}/{{ traefik_release_name }}"
 
-  # Flags redundantes para ACME (evitan errores de parsing si algún campo YAML no se aplica)
+  # ACME (Let's Encrypt) - Redundante por seguridad
   - "--certificatesresolvers.letsencrypt.acme.email={{ letsencrypt_email }}"
   - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
   - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
