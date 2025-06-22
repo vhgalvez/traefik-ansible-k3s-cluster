@@ -21,6 +21,7 @@
   vars:
     certs_dir: "{{ playbook_dir }}/files/certs"
     ca_key: ca-root.key
+    ca_csr: ca-root.csr
     ca_crt: ca-root.crt
     server_key: wildcard-socialdevs-tls.key
     server_csr: wildcard-socialdevs-tls.csr
@@ -60,23 +61,27 @@
         mode: "0600"
         force: "{{ force_recreate | bool }}"
 
-    - name: 📜 Crear certificado autofirmado de la CA
-      community.crypto.openssl_certificate:
+    - name: 📝 Crear CSR de la CA
+      community.crypto.openssl_csr:
+        path: "{{ certs_dir }}/{{ ca_csr }}"
+        privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
+        common_name: "RootCA"
+        country_name: "{{ country }}"
+        state_or_province_name: "{{ state }}"
+        locality_name: "{{ locality }}"
+        organization_name: "{{ organization }}"
+        force: "{{ force_recreate | bool }}"
+
+    - name: 📜 Crear certificado autofirmado de la CA desde CSR
+      community.crypto.x509_certificate:
         path: "{{ certs_dir }}/{{ ca_crt }}"
+        csr_path: "{{ certs_dir }}/{{ ca_csr }}"
         privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
         provider: selfsigned
         selfsigned_not_after: "+3650d"
         selfsigned_version: 3
         selfsigned_create_subject_key_identifier: create_if_not_provided
-        subject:
-          C: "{{ country }}"
-          ST: "{{ state }}"
-          L: "{{ locality }}"
-          O: "{{ organization }}"
-          CN: "RootCA"
-        mode: "0644"
         force: "{{ force_recreate | bool }}"
-
 
     - name: 🔑 Crear clave privada para el certificado wildcard
       community.crypto.openssl_privatekey:
@@ -113,10 +118,13 @@
         mode: "0644"
         force: "{{ force_recreate | bool }}"
 
-    - name: 🧹 Borrar CSR temporal (opcional)
+    - name: 🧹 Borrar CSRs temporales (opcional)
       file:
-        path: "{{ certs_dir }}/{{ server_csr }}"
+        path: "{{ item }}"
         state: absent
+      loop:
+        - "{{ certs_dir }}/{{ ca_csr }}"
+        - "{{ certs_dir }}/{{ server_csr }}"
       when: not force_recreate | bool
 
     - name: 📄 Mostrar resumen de archivos generados
