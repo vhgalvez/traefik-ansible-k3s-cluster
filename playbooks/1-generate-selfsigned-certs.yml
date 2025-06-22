@@ -105,9 +105,9 @@
       community.crypto.x509_certificate:
         path: "{{ certs_dir }}/{{ server_crt }}"
         csr_path: "{{ certs_dir }}/{{ server_csr }}"
-        privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
-        ownca_path: "{{ certs_dir }}/{{ ca_crt }}"
         provider: ownca
+        ownca_path: "{{ certs_dir }}/{{ ca_crt }}"
+        ownca_privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
         ownca_not_after: "+3650d"
         attributes:
           - name: basicConstraints
@@ -121,6 +121,7 @@
               DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
         mode: "0644"
         force: "{{ force_recreate | bool }}"
+
 
     - name: 🧹 Borrar CSRs temporales (opcional)
       file:
