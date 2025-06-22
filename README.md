@@ -321,3 +321,8 @@ source .env && export TRAEFIK_AUTH_USER && export TRAEFIK_AUTH_PASS && sudo -E a
 
 
 ansible-galaxy collection install community.crypto
+
+
+sudo chmod +x check_traefik.sh
+
+./check_traefik.sh
