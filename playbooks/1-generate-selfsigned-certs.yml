@@ -64,15 +64,16 @@
       community.crypto.x509_certificate:
         path: "{{ certs_dir }}/{{ ca_crt }}"
         privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
-        subject: "/C={{ country }}/ST={{ state }}/L={{ locality }}/O={{ organization }}/CN=RootCA"
         provider: selfsigned
         selfsigned_not_after: "+3650d"
-        basic_constraints:
-          ca: true
-          pathlen: 0
-        key_usage:
-          - keyCertSign
-          - cRLSign
+        selfsigned_version: 3
+        selfsigned_create_subject_key_identifier: true
+        subject:
+          common_name: "RootCA"
+          country_name: "{{ country }}"
+          state_or_province_name: "{{ state }}"
+          locality_name: "{{ locality }}"
+          organization_name: "{{ organization }}"
         mode: "0644"
         force: "{{ force_recreate | bool }}"
 
