@@ -1,9 +1,36 @@
+# playbooks/01_generate-ca-and-wildcard.yml
+# =========================================
+#  Genera una autoridad certificadora (CA)
+#  raíz autofirmada (RootCA) si no existe,
+#  y un certificado wildcard firmado para
+#  *.socialdevs.site con su clave privada.
+#
+#  ✔ CA: ca-root.crt y ca-root.key
+#  ✔ Wildcard: wildcard-socialdevs-tls.crt y .key
+#  ✔ SANs incluidos (*.socialdevs.site, grafana, jenkins, etc.)
+#  ✔ Compatible para importar la CA en Firefox/Chrome
+#
+#  ➜ Salida en: files/certs/
+#  ➜ Útil para desarrollo, clusters internos o laboratorios
+# =========================================
+
+# playbooks/01_generate-ca-and-wildcard.yml
+# =========================================
+#  Genera una CA raíz autofirmada y un
+#  certificado wildcard firmado (*.socialdevs.site)
+#  para uso interno en Kubernetes (Traefik TLS)
+#
+#  ✔ Archivos en: /opt/certs/
+#  ✔ Certificados: wildcard-socialdevs-tls.crt y .key
+#  ✔ CA: ca-root.crt (importable en navegador)
+# =========================================
+
 - name: 🛡️ Generar CA raíz y certificado wildcard firmado
   hosts: localhost
   gather_facts: false
 
   vars:
-    certs_dir: "{{ playbook_dir }}/files/certs"
+    certs_dir: "/opt/certs"
     ca_key: ca-root.key
     ca_csr: ca-root.csr
     ca_crt: ca-root.crt
@@ -40,6 +67,7 @@
         path: "{{ certs_dir }}/{{ ca_key }}"
         size: 4096
         type: RSA
+        mode: "0600"
         force: "{{ force_recreate | bool }}"
 
     - name: 📝 Crear CSR de la CA
@@ -69,6 +97,7 @@
         path: "{{ certs_dir }}/{{ server_key }}"
         size: 2048
         type: RSA
+        mode: "0600"
         force: "{{ force_recreate | bool }}"
 
     - name: 📝 Crear CSR para el wildcard (*.socialdevs.site)
@@ -78,6 +107,7 @@
         common_name: "{{ common_name }}"
         subject_alt_name: >-
           DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
+        mode: "0644"
         force: "{{ force_recreate | bool }}"
 
     - name: ✅ Firmar el CSR con la CA raíz
@@ -100,23 +130,23 @@
               DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
         force: "{{ force_recreate | bool }}"
 
-    # ✅ Corrección de permisos después de generar los certificados
-    - name: ⚙️ Ajustar permisos para la clave privada de la CA
+    # 🔐 Permisos correctos post generación
+    - name: ⚙️ Ajustar permisos clave privada de la CA
       file:
         path: "{{ certs_dir }}/{{ ca_key }}"
         mode: "0600"
 
-    - name: ⚙️ Ajustar permisos para el certificado de la CA
+    - name: ⚙️ Ajustar permisos certificado de la CA
       file:
         path: "{{ certs_dir }}/{{ ca_crt }}"
         mode: "0644"
 
-    - name: ⚙️ Ajustar permisos para la clave privada del wildcard
+    - name: ⚙️ Ajustar permisos clave privada del wildcard
       file:
         path: "{{ certs_dir }}/{{ server_key }}"
         mode: "0600"
 
-    - name: ⚙️ Ajustar permisos para el certificado wildcard
+    - name: ⚙️ Ajustar permisos certificado wildcard
       file:
         path: "{{ certs_dir }}/{{ server_crt }}"
         mode: "0644"
