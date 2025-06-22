@@ -228,7 +228,7 @@ ansible-playbook playbooks/uninstall-traefik-dashboard.yml
 ## 🧪 Comandos de prueba
 
 ```bash
-curl -k -u admin:SuperPassword123 https://traefik.socialdevs.site/dashboard/
+curl -k -u admin:SuperSecure123 https://traefik.socialdevs.site/dashboard/
 
 curl -k -u admin:SuperPassword123 --resolve traefik.socialdevs.site:443:10.17.4.21 \
   https://traefik.socialdevs.site/dashboard/
@@ -315,3 +315,5 @@ echo $LONGHORN_AUTH_PASS
 
 
 sudo TRAEFIK_AUTH_USER=$TRAEFIK_AUTH_USER TRAEFIK_AUTH_PASS=$TRAEFIK_AUTH_PASS ansible-playbook playbooks/deploy_traefik.yml
+
+source .env && export TRAEFIK_AUTH_USER && export TRAEFIK_AUTH_PASS && sudo -E ansible-playbook playbooks/deploy_traefik.yml
