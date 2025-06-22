@@ -61,7 +61,7 @@
         force: "{{ force_recreate | bool }}"
 
     - name: 📜 Crear certificado autofirmado de la CA
-      community.crypto.x509_certificate:
+      community.crypto.openssl_certificate:
         path: "{{ certs_dir }}/{{ ca_crt }}"
         privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
         provider: selfsigned
@@ -74,7 +74,9 @@
           L: "{{ locality }}"
           O: "{{ organization }}"
           CN: "RootCA"
+        mode: "0644"
         force: "{{ force_recreate | bool }}"
+
 
     - name: 🔑 Crear clave privada para el certificado wildcard
       community.crypto.openssl_privatekey:
