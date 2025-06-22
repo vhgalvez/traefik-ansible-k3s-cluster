@@ -106,15 +106,19 @@
         path: "{{ certs_dir }}/{{ server_crt }}"
         csr_path: "{{ certs_dir }}/{{ server_csr }}"
         privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
-        signer_cert_path: "{{ certs_dir }}/{{ ca_crt }}"
+        ownca_path: "{{ certs_dir }}/{{ ca_crt }}"
         provider: ownca
         ownca_not_after: "+3650d"
         ownca_extensions:
-          basicConstraints: "CA:FALSE"
-          keyUsage: "digitalSignature,keyEncipherment"
-          extendedKeyUsage: "serverAuth"
-          subjectAltName: >-
-            DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
+          - name: basicConstraints
+            value: "CA:FALSE"
+          - name: keyUsage
+            value: "digitalSignature,keyEncipherment"
+          - name: extendedKeyUsage
+            value: "serverAuth"
+          - name: subjectAltName
+            value: >-
+              DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
         mode: "0644"
         force: "{{ force_recreate | bool }}"
 
