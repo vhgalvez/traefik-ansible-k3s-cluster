@@ -318,3 +318,6 @@ sudo -E ansible-playbook playbooks/uninstall-traefik-dashboard.yml
 sudo TRAEFIK_AUTH_USER=$TRAEFIK_AUTH_USER TRAEFIK_AUTH_PASS=$TRAEFIK_AUTH_PASS ansible-playbook playbooks/deploy_traefik.yml
 
 source .env && export TRAEFIK_AUTH_USER && export TRAEFIK_AUTH_PASS && sudo -E ansible-playbook playbooks/deploy_traefik.yml
+
+
+ansible-galaxy collection install community.crypto

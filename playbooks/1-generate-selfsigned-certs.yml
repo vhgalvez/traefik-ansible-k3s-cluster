@@ -1,108 +1,121 @@
-# playbooks/1-generate-selfsigned-certs.yml
-# ============================================================
-#    Generar certificados wildcard autofirmados
-# - Se crean en ./files/certs/
-# - Usados como base para crear Secret TLS
-# ============================================================
+# playbooks/01_generate-ca-and-wildcard.yml
+# =========================================
+#  Genera una autoridad certificadora (CA)
+#  raíz autofirmada (RootCA) si no existe,
+#  y un certificado wildcard firmado para
+#  *.socialdevs.site con su clave privada.
+#
+#  ✔ CA: ca-root.crt y ca-root.key
+#  ✔ Wildcard: wildcard-socialdevs-tls.crt y .key
+#  ✔ SANs incluidos (*.socialdevs.site, grafana, jenkins, etc.)
+#  ✔ Compatible para importar la CA en Firefox/Chrome
+#
+#  ➜ Salida en: files/certs/
+#  ➜ Útil para desarrollo, clusters internos o laboratorios
+# =========================================
 
-- name: 🛡️ Generar certificados wildcard autofirmados para wildcard-socialdevs-tls
+- name: 🛡️ Generar CA raíz y certificado wildcard firmado
   hosts: localhost
-  become: true
-
-  vars_files:
-    - ../vars/main.yml
+  gather_facts: false
 
   vars:
-    certs_dir: "./files/certs"
-    cert_name: "wildcard-socialdevs-tls"
-    country: "ES"
-    state: "Madrid"
-    locality: "Madrid"
-    organization: "FlatcarMicroCloud"
-    common_name: "*.socialdevs.site"
-    san_file: "/tmp/san.cnf"
-    force_recreate: false  # Cambia a true para forzar la creación de nuevos certificados
+    certs_dir: "{{ playbook_dir }}/files/certs"
+    ca_key:   ca-root.key
+    ca_crt:   ca-root.crt
+    server_key: wildcard-socialdevs-tls.key
+    server_csr: wildcard-socialdevs-tls.csr
+    server_crt: wildcard-socialdevs-tls.crt
+
+    # Distinguish names:
+    country:      ES
+    state:        Madrid
+    locality:     Madrid
+    organization: FlatcarMicroCloud
+    common_name:  "*.socialdevs.site"
+
+    extra_sans:
+      - socialdevs.site
+      - jenkins.socialdevs.site
+      - grafana.socialdevs.site
+      - argocd.socialdevs.site
+      - prometheus.socialdevs.site
+
+    force_recreate: false
 
   tasks:
-    - name: 📁 Crear directorio de certificados local
+    - name: 📁 Crear directorio para certificados
       file:
         path: "{{ certs_dir }}"
         state: directory
         mode: "0755"
 
-    # Verificar existencia de certificado y clave privada
-    - name: 📋 Verificar existencia de certificado
-      stat:
-        path: "{{ certs_dir }}/{{ cert_name }}.crt"
-      register: cert_stat
+    - name: 🔐 Crear clave privada de CA raíz
+      community.crypto.openssl_privatekey:
+        path: "{{ certs_dir }}/{{ ca_key }}"
+        size: 4096
+        type: RSA
+        mode: "0600"
+        force: "{{ force_recreate | bool }}"
 
-    - name: 📋 Verificar existencia de clave privada
-      stat:
-        path: "{{ certs_dir }}/{{ cert_name }}.key"
-      register: key_stat
+    - name: 📜 Generar certificado de CA raíz (autofirmado)
+      community.crypto.openssl_certificate:
+        path: "{{ certs_dir }}/{{ ca_crt }}"
+        privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
+        provider: selfsigned
+        selfsigned_subject: "/C={{ country }}/ST={{ state }}/L={{ locality }}/O={{ organization }}/CN=RootCA"
+        selfsigned_not_after: "+3650d"
+        basic_constraints:
+          ca: true
+          pathlen: 0
+        key_usage:
+          - keyCertSign
+          - cRLSign
+        mode: "0644"
+        force: "{{ force_recreate | bool }}"
 
-    # Abortamos si los certificados ya existen y no se está forzando la recreación
-    - name: ❌ Abortar si los certificados ya existen y force_recreate es false
-      fail:
-        msg: "❌ Los certificados ya existen y no se está forzando la recreación."
-      when: not force_recreate and cert_stat.stat.exists and key_stat.stat.exists
+    - name: 🔑 Generar clave privada para el servidor
+      community.crypto.openssl_privatekey:
+        path: "{{ certs_dir }}/{{ server_key }}"
+        size: 2048
+        type: RSA
+        mode: "0600"
+        force: "{{ force_recreate | bool }}"
 
-    # Crear archivo SAN temporal
-    - name: 📝 Crear archivo SAN temporal
-      copy:
-        dest: "{{ san_file }}"
-        content: |
-          [req]
-          default_bits       = 4096
-          prompt             = no
-          default_md         = sha256
-          req_extensions     = req_ext
-          distinguished_name = dn
+    - name: 📄 Crear CSR para el wildcard
+      community.crypto.openssl_csr:
+        path: "{{ certs_dir }}/{{ server_csr }}"
+        privatekey_path: "{{ certs_dir }}/{{ server_key }}"
+        common_name: "{{ common_name }}"
+        subject_alt_name: >-
+          DNS:{{ common_name }},
+          {% for san in extra_sans %}
+          DNS:{{ san }}{% if not loop.last %},{% endif %}
+          {% endfor %}
+        mode: "0644"
+        force: "{{ force_recreate | bool }}"
 
-          [dn]
-          C={{ country }}
-          ST={{ state }}
-          L={{ locality }}
-          O={{ organization }}
-          CN={{ common_name }}
+    - name: ✍️ Firmar CSR con CA raíz
+      community.crypto.openssl_certificate:
+        path: "{{ certs_dir }}/{{ server_crt }}"
+        csr_path: "{{ certs_dir }}/{{ server_csr }}"
+        privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
+        certificate: "{{ certs_dir }}/{{ ca_crt }}"
+        provider: ownca
+        ownca_not_after: "+3650d"
+        ownca_extensions:
+          basicConstraints: "CA:FALSE"
+          keyUsage: "digitalSignature,keyEncipherment"
+          extendedKeyUsage: "serverAuth"
+          subjectAltName: >-
+            DNS:{{ common_name }},
+            {% for san in extra_sans %}
+            DNS:{{ san }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        mode: "0644"
+        force: "{{ force_recreate | bool }}"
 
-          [req_ext]
-          subjectAltName = @alt_names
-
-          [alt_names]
-          DNS.1 = *.socialdevs.site
-          DNS.2 = socialdevs.site
-          DNS.3 = jenkins.socialdevs.site
-          DNS.4 = grafana.socialdevs.site
-          DNS.5 = argocd.socialdevs.site
-          DNS.6 = prometheus.socialdevs.site
-
-    # Generar clave privada
-    - name: 🔐 Generar clave privada
-      command: openssl genrsa -out {{ certs_dir }}/{{ cert_name }}.key 4096
-      when: force_recreate or not key_stat.stat.exists
-
-    # Generar certificado wildcard autofirmado
-    - name: 📜 Generar certificado wildcard autofirmado
-      command: >
-        openssl req -x509 -nodes -days 3650
-        -key {{ certs_dir }}/{{ cert_name }}.key
-        -out {{ certs_dir }}/{{ cert_name }}.crt
-        -config {{ san_file }}
-        -extensions req_ext
-      when: force_recreate or not cert_stat.stat.exists
-
-    # Establecer permisos locales para los archivos generados
-    - name: 🔐 Establecer permisos locales
+    - name: 🧹 Eliminar CSR temporal (opcional)
       file:
-        path: "{{ item.path }}"
-        mode: "{{ item.mode }}"
-      loop:
-        - { path: "{{ certs_dir }}/{{ cert_name }}.crt", mode: "0644" }
-        - { path: "{{ certs_dir }}/{{ cert_name }}.key", mode: "0600" }
-
-    # Eliminar archivo temporal SAN
-    - name: 🧹 Eliminar archivo temporal SAN
-      file:
-        path: "{{ san_file }}"
+        path: "{{ certs_dir }}/{{ server_csr }}"
         state: absent
+      when: not force_recreate | bool
