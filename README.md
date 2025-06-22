@@ -326,3 +326,6 @@ ansible-galaxy collection install community.crypto
 sudo chmod +x check_traefik.sh
 
 ./check_traefik.sh
+
+
+sudo ansible-galaxy collection install community.crypto --upgrade

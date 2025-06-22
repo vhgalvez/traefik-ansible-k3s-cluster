@@ -20,20 +20,20 @@
 
   vars:
     certs_dir: "{{ playbook_dir }}/files/certs"
-    ca_key:   ca-root.key
-    ca_crt:   ca-root.crt
+    ca_key: ca-root.key
+    ca_crt: ca-root.crt
     server_key: wildcard-socialdevs-tls.key
     server_csr: wildcard-socialdevs-tls.csr
     server_crt: wildcard-socialdevs-tls.crt
 
     # Identidad de la CA
-    country:      ES
-    state:        Madrid
-    locality:     Madrid
+    country: ES
+    state: Madrid
+    locality: Madrid
     organization: FlatcarMicroCloud
-    common_name:  "*.socialdevs.site"
+    common_name: "*.socialdevs.site"
 
-    # SANs adicionales (Subject Alternative Names)
+    # SANs adicionales
     extra_sans:
       - socialdevs.site
       - grafana.socialdevs.site
@@ -46,7 +46,7 @@
     force_recreate: false
 
   tasks:
-    - name: 📁 Crear directorio de certificados si no existe
+    - name: 📁 Crear directorio de certificados
       file:
         path: "{{ certs_dir }}"
         state: directory
@@ -60,12 +60,12 @@
         mode: "0600"
         force: "{{ force_recreate | bool }}"
 
-    - name: 📜 Crear certificado de CA raíz (autofirmado)
-      community.crypto.openssl_certificate:
+    - name: 📜 Crear certificado autofirmado de la CA
+      community.crypto.x509_certificate:
         path: "{{ certs_dir }}/{{ ca_crt }}"
         privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
+        subject: "/C={{ country }}/ST={{ state }}/L={{ locality }}/O={{ organization }}/CN=RootCA"
         provider: selfsigned
-        selfsigned_subject: "/C={{ country }}/ST={{ state }}/L={{ locality }}/O={{ organization }}/CN=RootCA"
         selfsigned_not_after: "+3650d"
         basic_constraints:
           ca: true
@@ -76,7 +76,7 @@
         mode: "0644"
         force: "{{ force_recreate | bool }}"
 
-    - name: 🔑 Generar clave privada del certificado wildcard
+    - name: 🔑 Crear clave privada para el certificado wildcard
       community.crypto.openssl_privatekey:
         path: "{{ certs_dir }}/{{ server_key }}"
         size: 2048
@@ -90,19 +90,16 @@
         privatekey_path: "{{ certs_dir }}/{{ server_key }}"
         common_name: "{{ common_name }}"
         subject_alt_name: >-
-          DNS:{{ common_name }},
-          {% for san in extra_sans %}
-          DNS:{{ san }}{% if not loop.last %},{% endif %}
-          {% endfor %}
+          DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
         mode: "0644"
         force: "{{ force_recreate | bool }}"
 
     - name: ✅ Firmar el CSR con la CA raíz
-      community.crypto.openssl_certificate:
+      community.crypto.x509_certificate:
         path: "{{ certs_dir }}/{{ server_crt }}"
         csr_path: "{{ certs_dir }}/{{ server_csr }}"
         privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
-        certificate: "{{ certs_dir }}/{{ ca_crt }}"
+        signer_cert_path: "{{ certs_dir }}/{{ ca_crt }}"
         provider: ownca
         ownca_not_after: "+3650d"
         ownca_extensions:
@@ -110,10 +107,7 @@
           keyUsage: "digitalSignature,keyEncipherment"
           extendedKeyUsage: "serverAuth"
           subjectAltName: >-
-            DNS:{{ common_name }},
-            {% for san in extra_sans %}
-            DNS:{{ san }}{% if not loop.last %},{% endif %}
-            {% endfor %}
+            DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
         mode: "0644"
         force: "{{ force_recreate | bool }}"
 
@@ -122,3 +116,11 @@
         path: "{{ certs_dir }}/{{ server_csr }}"
         state: absent
       when: not force_recreate | bool
+
+    - name: 📄 Mostrar resumen de archivos generados
+      shell: ls -l "{{ certs_dir }}"
+      register: certs_output
+
+    - name: 📤 Mostrar salida de archivos
+      debug:
+        msg: "{{ certs_output.stdout_lines }}"
