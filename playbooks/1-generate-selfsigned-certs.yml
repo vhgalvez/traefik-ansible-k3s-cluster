@@ -119,9 +119,7 @@
           - name: subjectAltName
             value: >-
               DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
-        mode: "0644"
         force: "{{ force_recreate | bool }}"
-
 
     - name: 🧹 Borrar CSRs temporales (opcional)
       file:
