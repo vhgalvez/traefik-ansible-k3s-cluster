@@ -109,7 +109,7 @@
         ownca_path: "{{ certs_dir }}/{{ ca_crt }}"
         provider: ownca
         ownca_not_after: "+3650d"
-        ownca_extensions:
+        attributes:
           - name: basicConstraints
             value: "CA:FALSE"
           - name: keyUsage
