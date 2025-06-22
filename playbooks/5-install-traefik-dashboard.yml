@@ -1,6 +1,6 @@
 # playbooks/5-install-traefik-dashboard.yml
 # ========================================================
-#  Instalar Traefik con Dashboard interno protegido
+# 🚀 Instalar Traefik con Dashboard interno protegido
 # ========================================================
 
 - name: 🚀 Instalar Traefik con Dashboard interno protegido
@@ -24,17 +24,20 @@
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+    tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
     rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"
 
   tasks:
+
+    # ✅ Validar herramientas necesarias
     - name: 📋 Verificar si kubectl está instalado
       stat:
         path: "{{ kubectl_bin_path }}"
       register: kubectl_check
 
-    - name: Abortamos si kubectl no está instalado
+    - name: ❌ Abortamos si kubectl no está instalado
       fail:
-        msg: "❌ kubectl no está instalado en la ruta {{ kubectl_bin_path }}. Por favor, instálalo."
+        msg: "❌ kubectl no está instalado en {{ kubectl_bin_path }}."
       when: not kubectl_check.stat.exists
 
     - name: 📋 Verificar si helm está instalado
@@ -42,77 +45,79 @@
         path: "{{ helm_bin_path }}"
       register: helm_check
 
-    - name: Abortamos si helm no está instalado
+    - name: ❌ Abortamos si helm no está instalado
       fail:
-        msg: "❌ helm no está instalado en la ruta {{ helm_bin_path }}. Por favor, instálalo."
+        msg: "❌ helm no está instalado en {{ helm_bin_path }}."
       when: not helm_check.stat.exists
 
-    - name: 📁 Asegurar directorio local files/
-      ansible.builtin.file:
+    # 📁 Crear carpeta files si no existe
+    - name: 📁 Asegurar directorio {{ files_dir }}
+      file:
         path: "{{ files_dir }}"
         state: directory
         mode: "0755"
 
-    - name: 📄 Renderizar values.yaml desde plantilla
-      ansible.builtin.template:
+    # 📄 Renderizar valores Helm desde plantilla
+    - name: 📄 Renderizar traefik-values.yaml
+      template:
         src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
-    # 🧹 Limpieza: eliminar Traefik por defecto si quedó instalado
-    - name: 🧼 Verificar y eliminar Traefik por defecto
+    # 🧹 Limpieza previa (Traefik default)
+    - name: 🧼 Verificar y eliminar Traefik preinstalado por K3s
       block:
-        - name: 🔍 Buscar Deployment por release name
-          ansible.builtin.shell: >
+
+        - name: 🔍 Verificar Deployment traefik
+          shell: >
             {{ kubectl_bin_path }} get deployment {{ traefik_release_name }} -n {{ traefik_namespace }}
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
-            PATH: "{{ env_path }}"
           register: traefik_deploy_check
           failed_when: false
           changed_when: false
 
-        - name: ❌ Eliminar Deployment si existe
-          ansible.builtin.shell: >
+        - name: ❌ Eliminar Deployment traefik
+          shell: >
             {{ kubectl_bin_path }} delete deployment {{ traefik_release_name }} -n {{ traefik_namespace }} --wait=true --timeout=60s
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
           when: traefik_deploy_check.rc == 0
 
-        - name: 🔍 Buscar HelmChart traefik en kube-system (solo si K3s instaló uno por defecto)
-          ansible.builtin.shell: >
+        - name: 🔍 Verificar HelmChart traefik de K3s
+          shell: >
             {{ kubectl_bin_path }} get helmchart traefik -n {{ traefik_namespace }}
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
-          register: k3s_helmchart_status
+          register: k3s_helmchart_check
           failed_when: false
           changed_when: false
 
-        - name: ❌ Eliminar HelmChart si existe
-          ansible.builtin.shell: >
+        - name: ❌ Eliminar HelmChart traefik de K3s
+          shell: >
             {{ kubectl_bin_path }} delete helmchart traefik -n {{ traefik_namespace }} --wait=true --timeout=60s
           environment:
             KUBECONFIG: "{{ kubeconfig_path }}"
-          when: k3s_helmchart_status.rc == 0
+          when: k3s_helmchart_check.rc == 0
 
-    # ➕ Añadir repositorio Helm de Traefik
+    # ➕ Añadir repositorio Traefik Helm Chart
     - name: ➕ Añadir repositorio Helm de Traefik
-      ansible.builtin.shell: >
+      shell: >
         {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
         {{ helm_bin_path }} repo update
       environment:
         PATH: "{{ env_path }}"
 
-    # 📥 Aplicar Secret sellado de autenticación
-    - name: 📥 Aplicar Secret sellado (auth)
+    # 🔐 Aplicar Secret sellado
+    - name: 🔐 Aplicar Secret sellado (auth)
       kubernetes.core.k8s:
         state: present
-        kubeconfig: "{{ kubeconfig_path }}"
         src: "{{ sealed_secret_path }}"
         namespace: "{{ traefik_namespace }}"
+        kubeconfig: "{{ kubeconfig_path }}"
       when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
 
-    - name: ⏳ Esperar Secret desencriptado
-      ansible.builtin.shell: >
+    - name: ⏳ Esperar a que el Secret se desencripte
+      shell: >
         {{ kubectl_bin_path }} -n {{ traefik_namespace }} get secret {{ traefik_dashboard_secret_name }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
@@ -121,31 +126,35 @@
       delay: 5
       until: wait_for_secret.rc == 0
 
-    - name: 📥 Descargar e instalar CRDs oficiales de Traefik v3.0
-      ansible.builtin.shell: |
-        set -euo pipefail
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml | kubectl apply -f -
+    # 📥 Instalar CRDs de Traefik v3.0
+    - name: 📥 Instalar CRDs oficiales Traefik v3.0
+      shell: |
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml | {{ kubectl_bin_path }} apply -f -
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       changed_when: true
 
-    # 📦 Instalar Traefik desde Helm Chart
-    - name: 📦 Instalar Traefik desde Helm Chart
-      ansible.builtin.shell: >
-        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik --namespace {{ traefik_namespace }} --create-namespace --version {{ traefik_chart_version }} --values {{ traefik_values_file }}
+    # 📦 Instalar Traefik vía Helm
+    - name: 📦 Instalar Traefik desde Helm
+      shell: >
+        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
+        --namespace {{ traefik_namespace }}
+        --create-namespace
+        --version {{ traefik_chart_version }}
+        --values {{ traefik_values_file }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
 
-    - name: ⏳ Esperar despliegue de Traefik
-      ansible.builtin.shell: >
-        {{ kubectl_bin_path }} rollout status deploy/{{ traefik_release_name }} -n {{ traefik_namespace }}
+    - name: ⏳ Esperar despliegue Traefik
+      shell: >
+        {{ kubectl_bin_path }} rollout status deployment/{{ traefik_release_name }} -n {{ traefik_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # 🌐 Renderizar y aplicar IngressRoute del Dashboard
+    # 🌐 IngressRoute del Dashboard
     - name: 🌐 Renderizar IngressRoute del Dashboard
-      ansible.builtin.template:
+      template:
         src: "{{ ingressroute_template }}"
         dest: "{{ rendered_ingressroute }}"
 
@@ -156,9 +165,9 @@
         src: "{{ rendered_ingressroute }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 🌐 Renderizar y aplicar Middleware de Autenticación
-    - name: 🌐 Renderizar Middleware de Autenticación
-      ansible.builtin.template:
+    # 🔐 Middleware de Autenticación
+    - name: 🔐 Renderizar Middleware de Autenticación
+      template:
         src: "{{ middleware_template }}"
         dest: "{{ rendered_middleware }}"
 
@@ -169,10 +178,10 @@
         src: "{{ rendered_middleware }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 🚀 Renderizar y aplicar TLSStore global
-    - name: 📄 Renderizar TLSStore desde plantilla
-      ansible.builtin.template:
-        src: "../templates/traefik/tlsstore-default.yaml.j2"
+    # 📄 TLSStore global
+    - name: 📄 Renderizar TLSStore global
+      template:
+        src: "{{ tlsstore_template }}"
         dest: "{{ rendered_tlsstore_file }}"
 
     - name: 🚀 Aplicar TLSStore global

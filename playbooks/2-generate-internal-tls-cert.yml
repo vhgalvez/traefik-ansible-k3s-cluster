@@ -1,79 +1,64 @@
 # playbooks/2-generate-internal-tls-cert.yml
 # ===============================================================
-# Crear Secret TLS a partir de certificados autofirmados
-# - Genera el Secret `wildcard-socialdevs-tls` en el namespace kube-system
+# 🔐 Crear Secret TLS autofirmado para dominios internos
+# - Secret: wildcard-socialdevs-tls
+# - Namespace: kube-system (global para todos los servicios)
+# - Fuente: archivos CRT/KEY generados localmente
 # ===============================================================
 
 - name: 🔐 Crear Secret TLS autofirmado para dominios internos
   hosts: localhost
   gather_facts: false
 
-  vars_files:
-    - ../vars/main.yml
-
   vars:
     certs_dir: "{{ playbook_dir }}/files/certs"
     cert_name: "wildcard-socialdevs-tls"
-    rendered_secret: "{{ playbook_dir }}/files/internal-tls-secret.yaml"
-    kubeconfig_path: "/home/victory/.kube/config"
-    internal_tls_secret_name: "wildcard-socialdevs-tls"
-    namespace: "kube-system"
+    secret_name: "wildcard-socialdevs-tls"
+    namespace: "kube-system"  # ⚠️ Debe estar en kube-system para uso global con TLSStore
+    rendered: "{{ playbook_dir }}/files/internal-tls-secret.yaml"
+    kubeconfig: "/home/victory/.kube/config"
 
   tasks:
-    # Asegurarse de que los archivos de certificado tengan los permisos correctos
-    - name: Asegurar que los archivos de certificado tengan los permisos correctos
+
+    - name: 📁 Asegurar permisos adecuados en .crt y .key
       ansible.builtin.file:
         path: "{{ certs_dir }}/{{ item }}"
-        mode: '0644'
+        mode: "0644"
       loop:
         - "{{ cert_name }}.crt"
         - "{{ cert_name }}.key"
-      ignore_errors: yes  # Ignora errores si el archivo ya tiene los permisos correctos
+      ignore_errors: true
 
-    # Verificar existencia de los archivos
-    - name: 📦 Validar existencia de certificado
+    - name: ✅ Validar existencia de archivos .crt y .key
       stat:
-        path: "{{ certs_dir }}/{{ cert_name }}.crt"
-      register: cert_crt_stat
+        path: "{{ certs_dir }}/{{ cert_name }}.{{ item }}"
+      loop: ["crt", "key"]
+      register: stat_results
 
-    - name: 🔐 Validar existencia de clave privada
-      stat:
-        path: "{{ certs_dir }}/{{ cert_name }}.key"
-      register: cert_key_stat
-
-    - name: ❌ Abortar si falta el certificado o clave privada
+    - name: 🚫 Detener si falta algún archivo de certificado
       fail:
-        msg: "❌ Faltan los archivos necesarios: {{ cert_name }}.crt o .key"
-      when: not cert_crt_stat.stat.exists or not cert_key_stat.stat.exists
+        msg: "❌ Falta el archivo requerido: {{ item.stat.path }}"
+      when: not item.stat.exists
+      loop: "{{ stat_results.results }}"
 
-    # Leer certificado (wildcard-socialdevs-tls.crt)
-    - name: 📦 Leer certificado ({{ cert_name }}.crt)
+    - name: 🔐 Leer archivos .crt y .key y codificar en base64
       slurp:
-        src: "{{ certs_dir }}/{{ cert_name }}.crt"
-      register: cert_crt
+        src: "{{ certs_dir }}/{{ cert_name }}.{{ item }}"
+      loop: ["crt", "key"]
+      register: slurp_results
 
-    # Leer clave privada (wildcard-socialdevs-tls.key)
-    - name: 🔐 Leer clave privada ({{ cert_name }}.key)
-      slurp:
-        src: "{{ certs_dir }}/{{ cert_name }}.key"
-      register: cert_key
-
-    # Renderizar plantilla YAML del Secret TLS
-    - name: 📝 Renderizar plantilla YAML del Secret TLS (base64)
+    - name: 📝 Renderizar plantilla del Secret TLS
       template:
-        src: ../templates/secrets/tls-secret.yaml.j2
-        dest: "{{ rendered_secret }}"
+        src: "../templates/secrets/tls-secret.yaml.j2"
+        dest: "{{ rendered }}"
       vars:
-        # Certificado y clave privada ya están en base64, así que los usamos directamente
-        cert_base64: "{{ cert_crt.content }}"
-        key_base64: "{{ cert_key.content }}"
-        secret_name: "{{ internal_tls_secret_name }}"
-        namespace: "{{ namespace }}"
+        cert_base64: "{{ slurp_results.results[0].content }}"
+        key_base64: "{{ slurp_results.results[1].content }}"
+        secret_name: "{{ secret_name }}"
+        traefik_namespace: "{{ namespace }}"  # 🌍 Se utiliza para el Secret y para TLSStore
 
-    # Aplicar Secret TLS al clúster (namespace: {{ namespace }})
-    - name: "🚀 Aplicar Secret TLS al clúster (namespace: {{ namespace }})"
+    - name: 🚀 Aplicar Secret TLS en el clúster Kubernetes
       kubernetes.core.k8s:
-        kubeconfig: "{{ kubeconfig_path }}"
-        definition: "{{ lookup('file', rendered_secret) }}"
+        kubeconfig: "{{ kubeconfig }}"
+        definition: "{{ lookup('file', rendered) }}"
         state: present
-      failed_when: false # Esta opción ayuda a que el playbook no falle si el Secret ya está creado

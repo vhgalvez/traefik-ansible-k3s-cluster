@@ -26,30 +26,33 @@
     server_csr: wildcard-socialdevs-tls.csr
     server_crt: wildcard-socialdevs-tls.crt
 
-    # Distinguish names:
+    # Identidad de la CA
     country:      ES
     state:        Madrid
     locality:     Madrid
     organization: FlatcarMicroCloud
     common_name:  "*.socialdevs.site"
 
+    # SANs adicionales (Subject Alternative Names)
     extra_sans:
       - socialdevs.site
-      - jenkins.socialdevs.site
       - grafana.socialdevs.site
+      - jenkins.socialdevs.site
       - argocd.socialdevs.site
       - prometheus.socialdevs.site
+      - longhorn.socialdevs.site
+      - traefik.socialdevs.site
 
     force_recreate: false
 
   tasks:
-    - name: 📁 Crear directorio para certificados
+    - name: 📁 Crear directorio de certificados si no existe
       file:
         path: "{{ certs_dir }}"
         state: directory
         mode: "0755"
 
-    - name: 🔐 Crear clave privada de CA raíz
+    - name: 🔐 Crear clave privada de la CA
       community.crypto.openssl_privatekey:
         path: "{{ certs_dir }}/{{ ca_key }}"
         size: 4096
@@ -57,7 +60,7 @@
         mode: "0600"
         force: "{{ force_recreate | bool }}"
 
-    - name: 📜 Generar certificado de CA raíz (autofirmado)
+    - name: 📜 Crear certificado de CA raíz (autofirmado)
       community.crypto.openssl_certificate:
         path: "{{ certs_dir }}/{{ ca_crt }}"
         privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
@@ -73,7 +76,7 @@
         mode: "0644"
         force: "{{ force_recreate | bool }}"
 
-    - name: 🔑 Generar clave privada para el servidor
+    - name: 🔑 Generar clave privada del certificado wildcard
       community.crypto.openssl_privatekey:
         path: "{{ certs_dir }}/{{ server_key }}"
         size: 2048
@@ -81,7 +84,7 @@
         mode: "0600"
         force: "{{ force_recreate | bool }}"
 
-    - name: 📄 Crear CSR para el wildcard
+    - name: 📝 Crear CSR para el wildcard (*.socialdevs.site)
       community.crypto.openssl_csr:
         path: "{{ certs_dir }}/{{ server_csr }}"
         privatekey_path: "{{ certs_dir }}/{{ server_key }}"
@@ -94,7 +97,7 @@
         mode: "0644"
         force: "{{ force_recreate | bool }}"
 
-    - name: ✍️ Firmar CSR con CA raíz
+    - name: ✅ Firmar el CSR con la CA raíz
       community.crypto.openssl_certificate:
         path: "{{ certs_dir }}/{{ server_crt }}"
         csr_path: "{{ certs_dir }}/{{ server_csr }}"
@@ -114,7 +117,7 @@
         mode: "0644"
         force: "{{ force_recreate | bool }}"
 
-    - name: 🧹 Eliminar CSR temporal (opcional)
+    - name: 🧹 Borrar CSR temporal (opcional)
       file:
         path: "{{ certs_dir }}/{{ server_csr }}"
         state: absent

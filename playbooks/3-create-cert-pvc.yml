@@ -1,10 +1,12 @@
 # playbooks/3-create-cert-pvc.yml
 # ============================================================
-# 📦 Crear PVC con Longhorn y copiar certificados TLS
-# Se monta en Traefik desde /etc/traefik/certs
+# 📦 Crear PVC Longhorn y copiar certificados TLS al volumen
+# - PVC: usado por Traefik en /etc/traefik/certs
+# - Se copia el Secret TLS (wildcard-socialdevs-tls) al PVC
+# - El Job se limpia tras finalizar
 # ============================================================
 
-- name: 📦 Crear PVC Longhorn para certificados y copiar certificados TLS
+- name: 📦 Crear PVC Longhorn para certificados TLS
   hosts: localhost
   gather_facts: false
 
@@ -18,11 +20,11 @@
     pvc_size: "{{ traefik_pvc_size }}"
     storage_class: "{{ traefik_pvc_sc }}"
     kubeconfig_path: "/home/victory/.kube/config"
+    job_name: "copy-wildcard-cert"
 
   tasks:
 
-    # 🧺 Verificar si el PVC ya existe
-    - name: 📋 Verificar existencia del PVC
+    - name: 📋 Verificar si el PVC ya existe
       kubernetes.core.k8s_info:
         api_version: v1
         kind: PersistentVolumeClaim
@@ -33,11 +35,11 @@
       failed_when: false
       changed_when: false
 
-    # 📦 Crear PVC si no existe
     - name: 📦 Crear PVC si no existe
-      when: pvc_check.resources is defined and pvc_check.resources | length == 0
+      when: pvc_check.resources | length == 0
       kubernetes.core.k8s:
         state: present
+        kubeconfig: "{{ kubeconfig_path }}"
         definition:
           apiVersion: v1
           kind: PersistentVolumeClaim
@@ -50,10 +52,8 @@
               requests:
                 storage: "{{ pvc_size }}"
             storageClassName: "{{ storage_class }}"
-        kubeconfig: "{{ kubeconfig_path }}"
 
-    # 📨 Crear Job para copiar certificados al PVC
-    - name: 📨 Crear Job para copiar certificados al PVC
+    - name: 📨 Crear Job temporal para copiar certificados al PVC
       kubernetes.core.k8s:
         state: present
         kubeconfig: "{{ kubeconfig_path }}"
@@ -61,10 +61,10 @@
           apiVersion: batch/v1
           kind: Job
           metadata:
-            name: copy-wildcard-cert
+            name: "{{ job_name }}"
             namespace: "{{ pvc_namespace }}"
           spec:
-            ttlSecondsAfterFinished: 60
+            ttlSecondsAfterFinished: 120
             template:
               spec:
                 restartPolicy: Never
@@ -73,7 +73,9 @@
                     image: alpine:3.19
                     command: ["/bin/sh", "-c"]
                     args:
-                      - "cp /src/tls.crt /dst/wildcard-socialdevs-tls.crt && cp /src/tls.key /dst/wildcard-socialdevs-tls.key"
+                      - |
+                        cp /src/tls.crt /dst/wildcard-socialdevs-tls.crt && \
+                        cp /src/tls.key /dst/wildcard-socialdevs-tls.key
                     volumeMounts:
                       - name: src
                         mountPath: /src
@@ -88,25 +90,23 @@
                     persistentVolumeClaim:
                       claimName: "{{ pvc_name }}"
 
-    # ⏳ Esperar a que el Job finalice correctamente
-    - name: ⏳ Esperar a que el Job finalice correctamente
+    - name: ⏳ Esperar a que el Job termine exitosamente
       kubernetes.core.k8s_info:
         api_version: batch/v1
         kind: Job
+        name: "{{ job_name }}"
         namespace: "{{ pvc_namespace }}"
-        name: copy-wildcard-cert
         kubeconfig: "{{ kubeconfig_path }}"
       register: job_info
       until: job_info.resources[0].status.succeeded | default(0) | int >= 1
       retries: 20
       delay: 6
 
-    # 🧹 Eliminar Job después de completar (limpieza)
-    - name: 🧹 Eliminar Job después de completar (limpieza)
+    - name: 🧹 Eliminar Job temporal tras su ejecución
       kubernetes.core.k8s:
         state: absent
         kind: Job
-        name: copy-wildcard-cert
+        name: "{{ job_name }}"
         namespace: "{{ pvc_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
       ignore_errors: true
