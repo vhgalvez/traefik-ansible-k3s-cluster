@@ -1,7 +1,6 @@
-# playbooks/uninstall-traefik-dashboard.yml
+# playbooks\uninstall-traefik-dashboard.yml
 # =========================================================
-# 🧹 Desinstalación robusta de Traefik + recursos
-# - No falla si el clúster no responde
+# 🧹 Desinstalación completa y segura de Traefik + recursos
 # =========================================================
 ---
 - name: 🧹 Desinstalar Traefik y limpiar recursos relacionados
@@ -16,99 +15,69 @@
     helm_bin_path: "/usr/local/bin/helm"
     kubectl_bin_path: "/usr/local/bin/kubectl"
     files_dir: "{{ playbook_dir }}/files"
-
-    #  👉  Valores de Traefik (sobrescribibles desde vars/main.yml)
-    traefik_namespace: "{{ traefik_namespace | default('kube-system') }}"
-    traefik_release_name: "{{ traefik_release_name | default('traefik') }}"
-    traefik_pvc_name: "{{ traefik_pvc_name | default('certificados-longhorn') }}"
-    traefik_dashboard_secret_name: "{{ traefik_dashboard_secret_name | default('traefik-dashboard-secret') }}"
-    internal_tls_secret_name: "{{ internal_tls_secret_name | default('wildcard-socialdevs-tls') }}"
+    traefik_namespace: "kube-system"  # Define the namespace
+    traefik_release_name: "traefik"  # Define the Helm release name
+    traefik_pvc_name: "certificados-longhorn"  # PVC name for certificates
+    traefik_dashboard_secret_name: "traefik-dashboard-secret"
+    internal_tls_secret_name: "wildcard-socialdevs-tls"
 
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
     PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
   tasks:
-    # 0 ────────────────────────────────────────────────────────
-    - name: 🔍 Comprobar conectividad al API-Server
-      command: "{{ kubectl_bin_path }} version --short"
-      register: api_check
-      changed_when: false
-      failed_when: false
-
-    - name: 🛈 Mostrar resultado conectividad
-      debug:
-        msg: >
-          {{
-            '✅ API-Server accesible' if api_check.rc == 0
-            else '⚠️  API-Server NO accesible; se omitirán tareas kubectl/helm'
-          }}
-
     # 1 ────────────────────────────────────────────────────────
     - name: 🗑️ Borrar directorio temporal playbooks/files
-      file:
+      ansible.builtin.file:
         path: "{{ files_dir }}"
         state: absent
         force: true
 
     # 2 ────────────────────────────────────────────────────────
-    - block:
-        - name: 🔍 ¿Existe release Traefik?
-          shell: "{{ helm_bin_path }} status {{ traefik_release_name }} -n {{ traefik_namespace }} --quiet || true"
-          register: helm_status
-          changed_when: false
+    - name: 🔍 ¿Existe release Traefik?
+      shell: "{{ helm_bin_path }} status {{ traefik_release_name }} -n {{ traefik_namespace }} --quiet || true"
+      register: helm_status
+      changed_when: false
 
-        - name: ❌ Desinstalar Helm release (si existe)
-          when: helm_status.stdout != ""
-          shell: "{{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }} --wait --timeout 120s"
-
-      when: api_check.rc == 0
-      rescue:
-        - debug:
-            msg: "⚠️  No se pudo acceder a Helm/cluster; se continúa (modo tolerante)."
+    - name: ❌ Desinstalar Helm release (si existe)
+      when: helm_status.stdout != ""
+      shell: "{{ helm_bin_path }} uninstall {{ traefik_release_name }} -n {{ traefik_namespace }} --wait --timeout 120s"
 
     # 3 ────────────────────────────────────────────────────────
     - name: ❌ Eliminar Job copy-wildcard-cert (si existe)
       shell: "{{ kubectl_bin_path }} delete job copy-wildcard-cert -n {{ traefik_namespace }} --ignore-not-found --wait=false"
-      when: api_check.rc == 0
-      failed_when: false
 
     # 4 ────────────────────────────────────────────────────────
-    - block:
-        - name: 🔍 Obtener JSON del PVC
-          shell: "{{ kubectl_bin_path }} get pvc {{ traefik_pvc_name }} -n {{ traefik_namespace }} -o json || true"
-          register: pvc_json
-          changed_when: false
+    - name: 🔍 Obtener JSON del PVC
+      shell: "{{ kubectl_bin_path }} get pvc {{ traefik_pvc_name }} -n {{ traefik_namespace }} -o json || true"
+      register: pvc_json
+      changed_when: false
 
-        - name: 🧪 Tiene finalizer pvc-protection?
-          set_fact:
-            pvc_needs_patch: "{{ 'kubernetes.io/pvc-protection' in pvc_json.stdout }}"
+    - name: 🧪 Tiene finalizer pvc-protection?
+      set_fact:
+        pvc_needs_patch: "{{ 'kubernetes.io/pvc-protection' in pvc_json.stdout }}"
 
-        - name: 🧰 Quitar finalizers si el PVC está bloqueado
-          when: pvc_needs_patch
-          shell: |
-            {{ kubectl_bin_path }} patch pvc {{ traefik_pvc_name }} \
-              -n {{ traefik_namespace }} \
-              --type merge \
-              -p '{"metadata":{"finalizers":[]}}'
+    - name: 🧰 Quitar finalizers si el PVC está bloqueado
+      when: pvc_needs_patch
+      shell: |
+        {{ kubectl_bin_path }} patch pvc {{ traefik_pvc_name }} \
+          -n {{ traefik_namespace }} \
+          --type merge \
+          -p '{"metadata":{"finalizers":[]}}'
 
-        - name: ❌ Eliminar PVC
-          shell: "{{ kubectl_bin_path }} delete pvc {{ traefik_pvc_name }} -n {{ traefik_namespace }} --ignore-not-found --wait=false"
+    - name: ❌ Eliminar PVC certificados-longhorn
+      shell: "{{ kubectl_bin_path }} delete pvc {{ traefik_pvc_name }} -n {{ traefik_namespace }} --ignore-not-found --wait=false"
 
-        - name: 🔍 Buscar PV asociado al PVC
-          shell: >
-            {{ kubectl_bin_path }} get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="{{ traefik_pvc_name }}")].metadata.name}'
-          register: pv_name
-          changed_when: false
+    # Detectar y borrar PV huérfano
+    - name: 🔍 Buscar PV asociado al PVC
+      shell: >
+        {{ kubectl_bin_path }} get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="{{ traefik_pvc_name }}")].metadata.name}'
+      register: pv_name
+      changed_when: false
 
-        - name: ❌ Eliminar PV asociado
-          when: pv_name.stdout != ""
-          shell: "{{ kubectl_bin_path }} delete pv {{ pv_name.stdout }} --ignore-not-found --wait=false"
-
-      when: api_check.rc == 0
-      rescue:
-        - debug:
-            msg: "⚠️  No se pudo eliminar PVC/PV; cluster inaccesible. Continuamos."
+    - name: ❌ Eliminar PV asociado
+      when: pv_name.stdout != ""
+      shell: "{{ kubectl_bin_path }} delete pv {{ pv_name.stdout }} --ignore-not-found --wait=false"
 
     # 5 ────────────────────────────────────────────────────────
     - name: ❌ Eliminar Secret y SealedSecret (auth + TLS)
@@ -117,8 +86,6 @@
         {{ kubectl_bin_path }} delete sealedsecret {{ traefik_dashboard_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
         {{ kubectl_bin_path }} delete secret {{ internal_tls_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
         {{ kubectl_bin_path }} delete sealedsecret {{ internal_tls_secret_name }} -n {{ traefik_namespace }} --ignore-not-found
-      when: api_check.rc == 0
-      failed_when: false
 
     # 6 ────────────────────────────────────────────────────────
     - name: ❌ Eliminar CRDs Traefik v3
@@ -134,16 +101,12 @@
       loop_control:
         loop_var: crd
       shell: "{{ kubectl_bin_path }} delete crd {{ crd }}.traefik.io --ignore-not-found"
-      when: api_check.rc == 0
-      failed_when: false
 
     # 7 ────────────────────────────────────────────────────────
     - name: ❌ Eliminar Service traefik
       shell: "{{ kubectl_bin_path }} delete svc traefik -n {{ traefik_namespace }} --ignore-not-found --wait=false"
-      when: api_check.rc == 0
-      failed_when: false
 
     # 8 ────────────────────────────────────────────────────────
     - name: ✅ Confirmación final
       debug:
-        msg: "✅ Proceso de limpieza completado. Recursos eliminados o cluster inaccesible pero sin errores fatales."
+        msg: "✅ Traefik, Job, PVC, PV, CRDs, Service y secretos eliminados satisfactoriamente."
