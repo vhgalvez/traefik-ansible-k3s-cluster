@@ -68,13 +68,12 @@
         selfsigned_not_after: "+3650d"
         selfsigned_version: 3
         selfsigned_create_subject_key_identifier: create_if_not_provided
-        attributes:
-          common_name: "RootCA"
-          country_name: "{{ country }}"
-          state_or_province_name: "{{ state }}"
-          locality_name: "{{ locality }}"
-          organization_name: "{{ organization }}"
-        mode: "0644"
+        subject:
+          C: "{{ country }}"
+          ST: "{{ state }}"
+          L: "{{ locality }}"
+          O: "{{ organization }}"
+          CN: "RootCA"
         force: "{{ force_recreate | bool }}"
 
     - name: 🔑 Crear clave privada para el certificado wildcard
