@@ -67,7 +67,7 @@
         provider: selfsigned
         selfsigned_not_after: "+3650d"
         selfsigned_version: 3
-        selfsigned_create_subject_key_identifier: true
+        selfsigned_create_subject_key_identifier: create_if_not_provided
         subject:
           common_name: "RootCA"
           country_name: "{{ country }}"
