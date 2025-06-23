@@ -20,19 +20,9 @@ spec:
       kind: Rule
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
-          namespace: {{ traefik_namespace | default('kube-system') }}
+          namespace: {{ traefik_namespace | default('kube-system') }}  # Asegurando que el namespace se establezca correctamente
       services:
         - name: api@internal
           kind: TraefikService
   tls:
     secretName: {{ internal_tls_secret_name }}
-
-# tlsstore-default.yaml.j2
-apiVersion: traefik.io/v1alpha1
-kind: TLSStore
-metadata:
-  name: default
-  namespace: "{{ traefik_namespace | default('kube-system') }}"
-spec:
-  defaultCertificate:
-    secretName: "{{ internal_tls_secret_name }}"

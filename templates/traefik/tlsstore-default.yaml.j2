@@ -3,7 +3,7 @@ apiVersion: traefik.io/v1alpha1
 kind: TLSStore
 metadata:
   name: default
-  namespace: "{{ traefik_namespace }}"
+  namespace: "{{ traefik_namespace | default('kube-system') }}"
 spec:
   defaultCertificate:
     secretName: "{{ internal_tls_secret_name }}"
