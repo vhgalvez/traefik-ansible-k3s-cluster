@@ -9,7 +9,7 @@ traefik_chart_version: "36.1.0"
 traefik_dashboard_secret_name: "traefik-dashboard-secret"
 traefik_dashboard_middleware_name: "traefik-auth"
 traefik_auth_user: "{{ lookup('env', 'TRAEFIK_AUTH_USER') | default('admin', true) }}"
-traefik_auth_pass: "{{ lookup('env', 'TRAEFIK_AUTH_PASS') | default('', true) }}"
+traefik_auth_pass: "{{ lookup('env', 'TRAEFIK_AUTH_PASS') | default('SuperSecure123', true) }}"
 
 # 📧 Email para Let's Encrypt
 letsencrypt_email: "admin@socialdevs.site"
