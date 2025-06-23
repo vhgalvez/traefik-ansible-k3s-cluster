@@ -139,9 +139,9 @@
       when: not force_recreate | bool
 
     - name: 📄 Listar ficheros finales
-      ansible.builtin.shell: ls -l "{{ certs_dir }}"
+      ansible.builtin.shell: ls -1 "{{ certs_dir }}"
       register: certs_out
 
-    - name: 📤 Mostrar listado
+    - name: 📤 Mostrar listado de archivos generados
       ansible.builtin.debug:
         msg: "{{ certs_out.stdout_lines }}"
