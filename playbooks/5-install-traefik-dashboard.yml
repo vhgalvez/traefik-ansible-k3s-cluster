@@ -28,7 +28,6 @@
     rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"
 
   tasks:
-
     # ✅ Validar herramientas necesarias
     - name: 📋 Verificar si kubectl está instalado
       stat:
@@ -66,7 +65,6 @@
     # 🧹 Limpieza previa (Traefik default)
     - name: 🧼 Verificar y eliminar Traefik preinstalado por K3s
       block:
-
         - name: 🔍 Verificar Deployment traefik
           shell: >
             {{ kubectl_bin_path }} get deployment {{ traefik_release_name }} -n {{ traefik_namespace }}
@@ -125,6 +123,7 @@
       retries: 6
       delay: 5
       until: wait_for_secret.rc == 0
+      failed_when: wait_for_secret.rc != 0
 
     # 📥 Instalar CRDs de Traefik v3.0
     - name: 📥 Instalar CRDs oficiales Traefik v3.0
