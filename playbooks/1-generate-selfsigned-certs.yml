@@ -115,6 +115,14 @@
             value: >-
               DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
         force: "{{ force_recreate | bool }}"
+      register: cert_signed_result
+
+    # Aplicar permisos después manualmente (como ya haces)
+    - name: ⚙️ Ajustar permisos certificado wildcard
+      ansible.builtin.file:
+        path: "{{ certs_dir }}/{{ server_crt }}"
+        mode: "0644"
+
 
     # 🔐 Ajuste de permisos con file (evita chattr en crypto modules)
     - name: ⚙️ Ajustar permisos clave privada de la CA
