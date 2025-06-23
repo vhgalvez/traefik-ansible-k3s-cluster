@@ -14,35 +14,24 @@
 #  ➜ Útil para desarrollo, clusters internos o laboratorios
 # =========================================
 
-# playbooks/01_generate-ca-and-wildcard.yml
-# =========================================
-#  Genera una CA raíz autofirmada y un
-#  certificado wildcard firmado (*.socialdevs.site)
-#  para uso interno en Kubernetes (Traefik TLS)
-#
-#  ✔ Archivos en: /opt/certs/
-#  ✔ Certificados: wildcard-socialdevs-tls.crt y .key
-#  ✔ CA: ca-root.crt (importable en navegador)
-# =========================================
-
 - name: 🛡️ Generar CA raíz y certificado wildcard firmado
   hosts: localhost
   gather_facts: false
 
   vars:
     certs_dir: "/opt/certs"
-    ca_key: ca-root.key
-    ca_csr: ca-root.csr
-    ca_crt: ca-root.crt
-    server_key: wildcard-socialdevs-tls.key
-    server_csr: wildcard-socialdevs-tls.csr
-    server_crt: wildcard-socialdevs-tls.crt
+    ca_key:       ca-root.key
+    ca_csr:       ca-root.csr
+    ca_crt:       ca-root.crt
+    server_key:   wildcard-socialdevs-tls.key
+    server_csr:   wildcard-socialdevs-tls.csr
+    server_crt:   wildcard-socialdevs-tls.crt
 
-    country: ES
-    state: Madrid
-    locality: Madrid
+    country:      ES
+    state:        Madrid
+    locality:     Madrid
     organization: FlatcarMicroCloud
-    common_name: "*.socialdevs.site"
+    common_name:  "*.socialdevs.site"
 
     extra_sans:
       - socialdevs.site
@@ -57,7 +46,7 @@
 
   tasks:
     - name: 📁 Crear directorio de certificados
-      file:
+      ansible.builtin.file:
         path: "{{ certs_dir }}"
         state: directory
         mode: "0755"
@@ -67,7 +56,6 @@
         path: "{{ certs_dir }}/{{ ca_key }}"
         size: 4096
         type: RSA
-        mode: "0600"
         force: "{{ force_recreate | bool }}"
 
     - name: 📝 Crear CSR de la CA
@@ -97,7 +85,6 @@
         path: "{{ certs_dir }}/{{ server_key }}"
         size: 2048
         type: RSA
-        mode: "0600"
         force: "{{ force_recreate | bool }}"
 
     - name: 📝 Crear CSR para el wildcard (*.socialdevs.site)
@@ -107,7 +94,6 @@
         common_name: "{{ common_name }}"
         subject_alt_name: >-
           DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
-        mode: "0644"
         force: "{{ force_recreate | bool }}"
 
     - name: ✅ Firmar el CSR con la CA raíz
@@ -130,29 +116,29 @@
               DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
         force: "{{ force_recreate | bool }}"
 
-    # 🔐 Permisos correctos post generación
+    # 🔐 Ajuste de permisos con file (evita chattr en crypto modules)
     - name: ⚙️ Ajustar permisos clave privada de la CA
-      file:
+      ansible.builtin.file:
         path: "{{ certs_dir }}/{{ ca_key }}"
         mode: "0600"
 
     - name: ⚙️ Ajustar permisos certificado de la CA
-      file:
+      ansible.builtin.file:
         path: "{{ certs_dir }}/{{ ca_crt }}"
         mode: "0644"
 
     - name: ⚙️ Ajustar permisos clave privada del wildcard
-      file:
+      ansible.builtin.file:
         path: "{{ certs_dir }}/{{ server_key }}"
         mode: "0600"
 
     - name: ⚙️ Ajustar permisos certificado wildcard
-      file:
+      ansible.builtin.file:
         path: "{{ certs_dir }}/{{ server_crt }}"
         mode: "0644"
 
     - name: 🧹 Borrar CSRs temporales (opcional)
-      file:
+      ansible.builtin.file:
         path: "{{ item }}"
         state: absent
       loop:
@@ -161,9 +147,9 @@
       when: not force_recreate | bool
 
     - name: 📄 Mostrar resumen de archivos generados
-      shell: ls -l "{{ certs_dir }}"
+      ansible.builtin.shell: ls -l "{{ certs_dir }}"
       register: certs_output
 
     - name: 📤 Mostrar salida de archivos
-      debug:
+      ansible.builtin.debug:
         msg: "{{ certs_output.stdout_lines }}"
