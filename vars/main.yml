@@ -1,7 +1,7 @@
 # vars/main.yml
 
 # 📆 Traefik Helm Chart
-traefik_namespace: "{{ traefik_namespace | default('kube-system') }}"  # Asegúrate de que esté correctamente manejado con default
+traefik_namespace: "kube-system"
 traefik_release_name: traefik
 traefik_chart_version: "36.1.0"
 
