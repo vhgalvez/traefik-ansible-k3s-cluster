@@ -248,6 +248,7 @@ Los certificados TLS necesarios ya están configurados para ser utilizados globa
 - **PVC**: El PVC `certificados-longhorn` en el namespace `kube-system` contiene los certificados en los archivos `*.crt` y `*.key`.
 - **TLSStore**: El TLSStore por defecto en Traefik apunta al certificado dentro del contenedor montado desde el PVC, lo que permite que este certificado sea utilizado globalmente.
 
+TLSStore Global
 Esto significa que, para cualquier IngressRoute en cualquier namespace, puedes omitir la definición de `secretName` en la configuración del TLS. Traefik utilizará el certificado configurado en el TLSStore global.
 
 #### Ejemplo de configuración de IngressRoute

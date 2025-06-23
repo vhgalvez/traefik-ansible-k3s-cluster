@@ -1,12 +1,11 @@
 # vars/main.yml
 
 # 📆 Traefik Helm Chart
-traefik_namespace: kube-system
+traefik_namespace: "{{ traefik_namespace | default('kube-system') }}"  # Asegúrate de que esté correctamente manejado con default
 traefik_release_name: traefik
 traefik_chart_version: "36.1.0"
 
 # 🔐 Autenticación del Dashboard
-# Se cargan desde variables de entorno, con fallback seguro
 traefik_dashboard_secret_name: traefik-dashboard-secret
 traefik_dashboard_middleware_name: traefik-auth
 traefik_auth_user: "{{ lookup('env', 'TRAEFIK_AUTH_USER') | default('admin', true) }}"
