@@ -20,12 +20,12 @@
 
   vars:
     certs_dir: "{{ playbook_dir }}/files/certs"
-    ca_key:       ca-root.key
-    ca_csr:       ca-root.csr
-    ca_crt:       ca-root.crt
-    server_key:   wildcard-socialdevs-tls.key
-    server_csr:   wildcard-socialdevs-tls.csr
-    server_crt:   wildcard-socialdevs-tls.crt
+    ca_key:     ca-root.key
+    ca_csr:     ca-root.csr
+    ca_crt:     ca-root.crt
+    srv_key:    wildcard-socialdevs-tls.key
+    srv_csr:    wildcard-socialdevs-tls.csr
+    srv_crt:    wildcard-socialdevs-tls.crt
 
     country:      ES
     state:        Madrid
@@ -80,36 +80,34 @@
         selfsigned_create_subject_key_identifier: create_if_not_provided
         force: "{{ force_recreate | bool }}"
 
-    - name: 🔑 Crear clave privada para el certificado wildcard
+    - name: 🔑 Crear clave privada para el wildcard
       community.crypto.openssl_privatekey:
-        path: "{{ certs_dir }}/{{ server_key }}"
+        path: "{{ certs_dir }}/{{ srv_key }}"
         size: 2048
         type: RSA
         force: "{{ force_recreate | bool }}"
 
-    - name: 📝 Crear CSR para el wildcard (*.socialdevs.site)
+    - name: 📝 Crear CSR para el wildcard (*.socialdevs.site) con SANs
       community.crypto.openssl_csr:
-        path: "{{ certs_dir }}/{{ server_csr }}"
-        privatekey_path: "{{ certs_dir }}/{{ server_key }}"
+        path: "{{ certs_dir }}/{{ srv_csr }}"
+        privatekey_path: "{{ certs_dir }}/{{ srv_key }}"
         common_name: "{{ common_name }}"
-        subject_alt_name: >-
-          DNS:{{ common_name }},
-          {{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
+        subject_alt_name:
+          - "DNS:{{ common_name }}"
+          {% for san in extra_sans %}
+          - "DNS:{{ san }}"
+          {% endfor %}
         force: "{{ force_recreate | bool }}"
 
-    - name: ✅ Firmar el CSR con la CA raíz (sin atributos extra)
+    - name: ✅ Firmar el CSR del wildcard con la CA raíz
       community.crypto.x509_certificate:
-        path: "{{ certs_dir }}/{{ server_crt }}"
-        csr_path: "{{ certs_dir }}/{{ server_csr }}"
+        path: "{{ certs_dir }}/{{ srv_crt }}"
+        csr_path: "{{ certs_dir }}/{{ srv_csr }}"
         provider: ownca
         ownca_path: "{{ certs_dir }}/{{ ca_crt }}"
         ownca_privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
         ownca_not_after: "+3650d"
         force: "{{ force_recreate | bool }}"
-
-    # —————————————————————————————————————————————————————————————
-    # 🔐 Ajuste de permisos con ansible.builtin.file (evita chattr)
-    # —————————————————————————————————————————————————————————————
 
     - name: ⚙️ Ajustar permisos clave privada de la CA
       ansible.builtin.file:
@@ -123,27 +121,27 @@
 
     - name: ⚙️ Ajustar permisos clave privada del wildcard
       ansible.builtin.file:
-        path: "{{ certs_dir }}/{{ server_key }}"
+        path: "{{ certs_dir }}/{{ srv_key }}"
         mode: "0600"
 
     - name: ⚙️ Ajustar permisos certificado wildcard
       ansible.builtin.file:
-        path: "{{ certs_dir }}/{{ server_crt }}"
+        path: "{{ certs_dir }}/{{ srv_crt }}"
         mode: "0644"
 
-    - name: 🧹 Borrar CSRs temporales (opcional)
+    - name: 🧹 Borrar CSRs temporales
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
       loop:
         - "{{ certs_dir }}/{{ ca_csr }}"
-        - "{{ certs_dir }}/{{ server_csr }}"
+        - "{{ certs_dir }}/{{ srv_csr }}"
       when: not force_recreate | bool
 
-    - name: 📄 Mostrar resumen de archivos generados
+    - name: 📄 Listar ficheros finales
       ansible.builtin.shell: ls -l "{{ certs_dir }}"
-      register: certs_output
+      register: certs_out
 
-    - name: 📤 Mostrar salida de archivos
+    - name: 📤 Mostrar listado
       ansible.builtin.debug:
-        msg: "{{ certs_output.stdout_lines }}"
+        msg: "{{ certs_out.stdout_lines }}"
