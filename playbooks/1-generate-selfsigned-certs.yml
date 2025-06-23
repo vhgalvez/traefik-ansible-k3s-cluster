@@ -20,18 +20,18 @@
 
   vars:
     certs_dir: "{{ playbook_dir }}/files/certs"
-    ca_key:     ca-root.key
-    ca_csr:     ca-root.csr
-    ca_crt:     ca-root.crt
-    srv_key:    wildcard-socialdevs-tls.key
-    srv_csr:    wildcard-socialdevs-tls.csr
-    srv_crt:    wildcard-socialdevs-tls.crt
+    ca_key: ca-root.key
+    ca_csr: ca-root.csr
+    ca_crt: ca-root.crt
+    srv_key: wildcard-socialdevs-tls.key
+    srv_csr: wildcard-socialdevs-tls.csr
+    srv_crt: wildcard-socialdevs-tls.crt
 
-    country:      ES
-    state:        Madrid
-    locality:     Madrid
+    country: ES
+    state: Madrid
+    locality: Madrid
     organization: FlatcarMicroCloud
-    common_name:  "*.socialdevs.site"
+    common_name: "*.socialdevs.site"
 
     extra_sans:
       - socialdevs.site
@@ -92,11 +92,8 @@
         path: "{{ certs_dir }}/{{ srv_csr }}"
         privatekey_path: "{{ certs_dir }}/{{ srv_key }}"
         common_name: "{{ common_name }}"
-        subject_alt_name:
-          - "DNS:{{ common_name }}"
-          {% for san in extra_sans %}
-          - "DNS:{{ san }}"
-          {% endfor %}
+        subject_alt_name: >-
+          {{ ['DNS:' + common_name] + extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | list }}
         force: "{{ force_recreate | bool }}"
 
     - name: ✅ Firmar el CSR del wildcard con la CA raíz
