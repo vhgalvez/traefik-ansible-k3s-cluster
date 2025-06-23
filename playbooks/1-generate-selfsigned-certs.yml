@@ -96,7 +96,7 @@
           DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
         force: "{{ force_recreate | bool }}"
 
-    - name: ✅ Firmar el CSR con la CA raíz
+    - name: ✅ Firmar el CSR con la CA raíz (sin atributos)
       community.crypto.x509_certificate:
         path: "{{ certs_dir }}/{{ server_crt }}"
         csr_path: "{{ certs_dir }}/{{ server_csr }}"
@@ -105,28 +105,28 @@
         ownca_privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
         ownca_not_after: "+3650d"
         force: "{{ force_recreate | bool }}"
-        attributes:
-          - name: basicConstraints
-            value: "CA:FALSE"
-          - name: keyUsage
-            value: "digitalSignature,keyEncipherment"
-          - name: extendedKeyUsage
-            value: "serverAuth"
-          - name: subjectAltName
-            value: >-
-              DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
 
-    - name: ⚙️ Ajustar permisos de archivos clave
+    - name: ⚙️ Ajustar permisos clave privada de la CA
       ansible.builtin.file:
-        path: "{{ item.path }}"
-        mode: "{{ item.mode }}"
-      loop:
-        - { path: "{{ certs_dir }}/{{ ca_key }}",              mode: "0600" }
-        - { path: "{{ certs_dir }}/{{ ca_crt }}",              mode: "0644" }
-        - { path: "{{ certs_dir }}/{{ server_key }}",          mode: "0600" }
-        - { path: "{{ certs_dir }}/{{ server_crt }}",          mode: "0644" }
+        path: "{{ certs_dir }}/{{ ca_key }}"
+        mode: "0600"
 
-    - name: 🧹 Borrar CSRs temporales
+    - name: ⚙️ Ajustar permisos certificado de la CA
+      ansible.builtin.file:
+        path: "{{ certs_dir }}/{{ ca_crt }}"
+        mode: "0644"
+
+    - name: ⚙️ Ajustar permisos clave privada del wildcard
+      ansible.builtin.file:
+        path: "{{ certs_dir }}/{{ server_key }}"
+        mode: "0600"
+
+    - name: ⚙️ Ajustar permisos certificado wildcard
+      ansible.builtin.file:
+        path: "{{ certs_dir }}/{{ server_crt }}"
+        mode: "0644"
+
+    - name: 🧹 Borrar CSRs temporales (opcional)
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
