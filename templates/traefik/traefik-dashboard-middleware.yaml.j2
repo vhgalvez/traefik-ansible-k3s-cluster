@@ -2,13 +2,13 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: {{ traefik_dashboard_middleware_name }}
-  namespace: {{ traefik_namespace }}
+  name: {{ traefik_dashboard_middleware_name }}  # Usando directamente la variable
+  namespace: {{ traefik_namespace }}  # Usando directamente la variable
   annotations:
     sealedsecrets.bitnami.com/managed: "true"
     maintained-by: devops@socialdevs.site
     created-by: ansible
 spec:
   basicAuth:
-    secret: {{ traefik_dashboard_secret_name }}
+    secret: {{ traefik_dashboard_secret_name }}  # Usando directamente la variable
     removeHeader: true
