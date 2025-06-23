@@ -330,3 +330,7 @@ sudo chmod +x check_traefik.sh
 
 
 sudo ansible-galaxy collection install community.crypto --upgrade
+
+
+source .env && export TRAEFIK_AUTH_USER && export TRAEFIK_AUTH_PASS && sudo -E ansible-playbook playbooks/deploy_traefik.yml
+
