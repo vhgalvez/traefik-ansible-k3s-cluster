@@ -1,32 +1,34 @@
 # vars/main.yml
 
-# 📆 Traefik Helm Chart
+# 📆 Helm Chart de Traefik
 traefik_namespace: "kube-system"
-traefik_release_name: "traefik"             # Nombre de la release de Helm
+traefik_release_name: "traefik"
 traefik_chart_version: "36.1.0"
 
-# 🔐 Autenticación del Dashboard
-traefik_dashboard_secret_name: traefik-dashboard-secret
-traefik_dashboard_middleware_name: traefik-auth
+# 🔐 Credenciales de acceso al dashboard
+traefik_dashboard_secret_name: "traefik-dashboard-secret"
+traefik_dashboard_middleware_name: "traefik-auth"
 traefik_auth_user: "{{ lookup('env', 'TRAEFIK_AUTH_USER') | default('admin', true) }}"
 traefik_auth_pass: "{{ lookup('env', 'TRAEFIK_AUTH_PASS') | default('', true) }}"
 
-# 📧 Let's Encrypt
+# 📧 Email para Let's Encrypt
 letsencrypt_email: "admin@socialdevs.site"
 
-# 💾 Persistencia (solo para values_pvc.yaml)
+# 💾 Configuración de almacenamiento persistente (PVC) para Traefik
 traefik_storage_path: "/certs"
 traefik_pvc_name: "certificados-longhorn"
 traefik_pvc_size: "1Gi"
 traefik_pvc_sc: "longhorn"
 
-# ✅ Certificado TLS Interno (Wildcard)
+# ✅ Certificado TLS interno (wildcard)
 internal_tls_secret_name: "wildcard-socialdevs-tls"
-app_name: "traefik"
 internal_domain: "traefik.socialdevs.site"
 public_domain: "public.socialdevs.site"
+
+# 🧩 Datos generales de la app y servicio
+app_name: "traefik"
 service_name: "traefik"
 service_port: 80
 
-# 🌐 Dirección IP del master principal (para pruebas locales, etc.)
+# 🌐 IP del master principal (para referencias o pruebas)
 master1_ip: "10.17.4.21"
