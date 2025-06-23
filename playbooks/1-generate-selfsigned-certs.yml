@@ -19,7 +19,7 @@
   gather_facts: false
 
   vars:
-    certs_dir: "/opt/certs"
+    certs_dir: "{{ playbook_dir }}/files/certs"
     ca_key:       ca-root.key
     ca_csr:       ca-root.csr
     ca_crt:       ca-root.crt
@@ -104,6 +104,7 @@
         ownca_path: "{{ certs_dir }}/{{ ca_crt }}"
         ownca_privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
         ownca_not_after: "+3650d"
+        force: "{{ force_recreate | bool }}"
         attributes:
           - name: basicConstraints
             value: "CA:FALSE"
@@ -114,38 +115,18 @@
           - name: subjectAltName
             value: >-
               DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
-        force: "{{ force_recreate | bool }}"
-      register: cert_signed_result
 
-    # Aplicar permisos después manualmente (como ya haces)
-    - name: ⚙️ Ajustar permisos certificado wildcard
+    - name: ⚙️ Ajustar permisos de archivos clave
       ansible.builtin.file:
-        path: "{{ certs_dir }}/{{ server_crt }}"
-        mode: "0644"
+        path: "{{ item.path }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ certs_dir }}/{{ ca_key }}",              mode: "0600" }
+        - { path: "{{ certs_dir }}/{{ ca_crt }}",              mode: "0644" }
+        - { path: "{{ certs_dir }}/{{ server_key }}",          mode: "0600" }
+        - { path: "{{ certs_dir }}/{{ server_crt }}",          mode: "0644" }
 
-
-    # 🔐 Ajuste de permisos con file (evita chattr en crypto modules)
-    - name: ⚙️ Ajustar permisos clave privada de la CA
-      ansible.builtin.file:
-        path: "{{ certs_dir }}/{{ ca_key }}"
-        mode: "0600"
-
-    - name: ⚙️ Ajustar permisos certificado de la CA
-      ansible.builtin.file:
-        path: "{{ certs_dir }}/{{ ca_crt }}"
-        mode: "0644"
-
-    - name: ⚙️ Ajustar permisos clave privada del wildcard
-      ansible.builtin.file:
-        path: "{{ certs_dir }}/{{ server_key }}"
-        mode: "0600"
-
-    - name: ⚙️ Ajustar permisos certificado wildcard
-      ansible.builtin.file:
-        path: "{{ certs_dir }}/{{ server_crt }}"
-        mode: "0644"
-
-    - name: 🧹 Borrar CSRs temporales (opcional)
+    - name: 🧹 Borrar CSRs temporales
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
