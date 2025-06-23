@@ -10,6 +10,9 @@
   hosts: localhost
   gather_facts: false
 
+  vars_files:
+    - ../vars/main.yml
+
   vars:
     certs_dir: "{{ playbook_dir }}/files/certs"
     cert_name: "wildcard-socialdevs-tls"
