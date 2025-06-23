@@ -93,10 +93,11 @@
         privatekey_path: "{{ certs_dir }}/{{ server_key }}"
         common_name: "{{ common_name }}"
         subject_alt_name: >-
-          DNS:{{ common_name }},{{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
+          DNS:{{ common_name }},
+          {{ extra_sans | map('regex_replace', '^(.*)$', 'DNS:\\1') | join(',') }}
         force: "{{ force_recreate | bool }}"
 
-    - name: ✅ Firmar el CSR con la CA raíz (sin atributos)
+    - name: ✅ Firmar el CSR con la CA raíz (sin atributos extra)
       community.crypto.x509_certificate:
         path: "{{ certs_dir }}/{{ server_crt }}"
         csr_path: "{{ certs_dir }}/{{ server_csr }}"
@@ -105,6 +106,10 @@
         ownca_privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
         ownca_not_after: "+3650d"
         force: "{{ force_recreate | bool }}"
+
+    # —————————————————————————————————————————————————————————————
+    # 🔐 Ajuste de permisos con ansible.builtin.file (evita chattr)
+    # —————————————————————————————————————————————————————————————
 
     - name: ⚙️ Ajustar permisos clave privada de la CA
       ansible.builtin.file:
