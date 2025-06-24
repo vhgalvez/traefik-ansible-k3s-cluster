@@ -334,3 +334,5 @@ sudo ansible-galaxy collection install community.crypto --upgrade
 
 source .env && export TRAEFIK_AUTH_USER && export TRAEFIK_AUTH_PASS && sudo -E ansible-playbook playbooks/deploy_traefik.yml
 
+
+scp victory@192.168.0.40:/home/victory/code-FlatcarMicroCloud/traefik-ansible-k3s-cluster/playbooks/files/certs/*crt d:/certs/

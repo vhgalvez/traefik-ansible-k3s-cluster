@@ -72,7 +72,7 @@
         organization_name: "{{ organization }}"
         force: "{{ force_recreate | bool }}"
 
-    - name: 📜 Crear certificado autofirmado de la CA desde CSR
+    - name: 📜 Crear certificado autofirmado de la CA con extensión CA:TRUE
       community.crypto.x509_certificate:
         path: "{{ certs_dir }}/{{ ca_crt }}"
         csr_path: "{{ certs_dir }}/{{ ca_csr }}"
@@ -81,6 +81,13 @@
         selfsigned_not_after: "+3650d"
         selfsigned_version: 3
         selfsigned_create_subject_key_identifier: create_if_not_provided
+        extensions:
+          - name: basicConstraints
+            critical: true
+            value: "CA:TRUE"
+          - name: keyUsage
+            critical: true
+            value: "keyCertSign, cRLSign"
         force: "{{ force_recreate | bool }}"
 
     - name: 🔑 Crear clave privada para el wildcard
