@@ -26,6 +26,7 @@
     ca_key: ca-root.key
     ca_csr: ca-root.csr
     ca_crt: ca-root.crt
+    ca_ext: ca-ext.cnf
     srv_key: wildcard-socialdevs-tls.key
     srv_csr: wildcard-socialdevs-tls.csr
     srv_crt: wildcard-socialdevs-tls.crt
@@ -49,7 +50,7 @@
 
   tasks:
     - name: 📁 Crear directorio de certificados
-      ansible.builtin.file:
+      file:
         path: "{{ certs_dir }}"
         state: directory
         mode: "0755"
@@ -72,23 +73,32 @@
         organization_name: "{{ organization }}"
         force: "{{ force_recreate | bool }}"
 
-    - name: 📜 Crear certificado autofirmado de la CA con extensión CA:TRUE
-      community.crypto.x509_certificate:
-        path: "{{ certs_dir }}/{{ ca_crt }}"
-        csr_path: "{{ certs_dir }}/{{ ca_csr }}"
-        privatekey_path: "{{ certs_dir }}/{{ ca_key }}"
-        provider: selfsigned
-        selfsigned_not_after: "+3650d"
-        selfsigned_version: 3
-        selfsigned_create_subject_key_identifier: create_if_not_provided
-        extensions:
-          - name: basicConstraints
-            critical: true
-            value: "CA:TRUE"
-          - name: keyUsage
-            critical: true
-            value: "keyCertSign, cRLSign"
-        force: "{{ force_recreate | bool }}"
+    - name: 🛠️ Generar fichero de extensiones para la CA
+      copy:
+        dest: "{{ certs_dir }}/{{ ca_ext }}"
+        content: |
+          basicConstraints=critical,CA:TRUE
+          keyUsage=critical,keyCertSign,cRLSign
+          subjectKeyIdentifier=hash
+          authorityKeyIdentifier=keyid:always,issuer:always
+        mode: "0644"
+
+    - name: 📜 Crear certificado autofirmado de la CA con extensiones
+      command: >
+        openssl x509
+          -req
+          -in {{ certs_dir }}/{{ ca_csr }}
+          -signkey {{ certs_dir }}/{{ ca_key }}
+          -days 3650
+          -extfile {{ certs_dir }}/{{ ca_ext }}
+          -out {{ certs_dir }}/{{ ca_crt }}
+      args:
+        creates: "{{ certs_dir }}/{{ ca_crt }}"
+
+    - name: 🧹 Eliminar fichero de extensiones de la CA
+      file:
+        path: "{{ certs_dir }}/{{ ca_ext }}"
+        state: absent
 
     - name: 🔑 Crear clave privada para el wildcard
       community.crypto.openssl_privatekey:
@@ -117,27 +127,27 @@
         force: "{{ force_recreate | bool }}"
 
     - name: ⚙️ Ajustar permisos clave privada de la CA
-      ansible.builtin.file:
+      file:
         path: "{{ certs_dir }}/{{ ca_key }}"
         mode: "0600"
 
     - name: ⚙️ Ajustar permisos certificado de la CA
-      ansible.builtin.file:
+      file:
         path: "{{ certs_dir }}/{{ ca_crt }}"
         mode: "0644"
 
     - name: ⚙️ Ajustar permisos clave privada del wildcard
-      ansible.builtin.file:
+      file:
         path: "{{ certs_dir }}/{{ srv_key }}"
         mode: "0600"
 
     - name: ⚙️ Ajustar permisos certificado wildcard
-      ansible.builtin.file:
+      file:
         path: "{{ certs_dir }}/{{ srv_crt }}"
         mode: "0644"
 
     - name: 🧹 Borrar CSRs temporales
-      ansible.builtin.file:
+      file:
         path: "{{ item }}"
         state: absent
       loop:
@@ -146,9 +156,9 @@
       when: not force_recreate | bool
 
     - name: 📄 Listar ficheros finales
-      ansible.builtin.shell: ls -1 "{{ certs_dir }}"
+      shell: ls -1 "{{ certs_dir }}"
       register: certs_out
 
     - name: 📤 Mostrar listado de archivos generados
-      ansible.builtin.debug:
+      debug:
         msg: "{{ certs_out.stdout_lines }}"
