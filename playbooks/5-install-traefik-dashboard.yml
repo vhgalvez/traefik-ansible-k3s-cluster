@@ -138,10 +138,14 @@
     # 8) Smoke-test al Dashboard
     - name: 🌐 Probar acceso al dashboard (200/302/401 aceptables)
       shell: >
-        curl -k -u {{ traefik_auth_user }}:{{ traefik_auth_pass }}
+        curl --cacert {{ files_dir }}/certs/ca-root.crt
+        -u {{ traefik_auth_user }}:{{ traefik_auth_pass }}
         https://{{ internal_domain }}/dashboard/
         --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
       register: dashboard_http
       retries: 6
       delay: 5
       until: dashboard_http.stdout in ['200','302','401']
+      environment:
+        PATH: "{{ env_path }}"
+        KUBECONFIG: "{{ kubeconfig_path }}"
