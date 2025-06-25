@@ -76,13 +76,7 @@ metrics:
     entryPoint: metrics
     addEntryPointsLabels: true
     addServicesLabels: true
-    buckets:
-      - 0.1
-      - 0.3
-      - 0.5
-      - 1.0
-      - 2.0
-      - 5.0
+    buckets: "0.1,0.3,0.5,1.0,2.0,5.0"
 
 # TLSStore por defecto (PVC montado)
 tls:

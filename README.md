@@ -345,3 +345,8 @@ source .env && export TRAEFIK_AUTH_USER && export TRAEFIK_AUTH_PASS && sudo -E a
 
 
 scp victory@192.168.0.40:/home/victory/code-FlatcarMicroCloud/traefik-ansible-k3s-cluster/playbooks/files/certs/*crt d:/certs/
+
+
+curl --http1.1 --cacert playbooks/files/certs/ca-root.crt \
+  -u admin:SuperSecure123 \
+  https://traefik.socialdevs.site/dashboard/ -v
