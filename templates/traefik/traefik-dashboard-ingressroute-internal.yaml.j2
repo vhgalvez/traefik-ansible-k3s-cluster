@@ -7,8 +7,6 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ app_name }}
     app.kubernetes.io/component: ingress
-    access: internal
-    environment: prod
   annotations:
     maintained-by: devops@socialdevs.site
     created-by: ansible
@@ -16,25 +14,13 @@ spec:
   entryPoints:
     - websecure
   routes:
-    # 1) Rutas /api → servicio api@internal
-    - match: Host(`{{ internal_domain }}`) && PathPrefix(`/api`)
+    - match: "Host(`traefik.socialdevs.site`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
       kind: Rule
+      middlewares:
+        - name: {{ traefik_dashboard_middleware_name }}
+          namespace: {{ traefik_namespace }}
       services:
         - name: api@internal
           kind: TraefikService
-      middlewares:
-        - name: {{ traefik_dashboard_middleware_name }}
-          namespace: {{ traefik_namespace }}
-
-    # 2) Rutas estáticas y UI → servicio dashboard@internal
-    - match: Host(`{{ internal_domain }}`) && PathPrefix(`/`)
-      kind: Rule
-      services:
-        - name: dashboard@internal
-          kind: TraefikService
-      middlewares:
-        - name: {{ traefik_dashboard_middleware_name }}
-          namespace: {{ traefik_namespace }}
-
   tls:
     secretName: {{ internal_tls_secret_name }}
