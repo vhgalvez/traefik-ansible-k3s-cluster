@@ -108,17 +108,6 @@
         kubeconfig: "{{ kubeconfig_path }}"
       when: sealed_secret_path is defined and lookup('file', sealed_secret_path, errors='ignore') is not none
 
-    - name: ⏳ Esperar a que el Secret se desencripte
-      shell: >
-        {{ kubectl_bin_path }} -n {{ traefik_namespace }} get secret {{ traefik_dashboard_secret_name }}
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: wait_for_secret
-      retries: 6
-      delay: 5
-      until: wait_for_secret.rc == 0
-      failed_when: wait_for_secret.rc != 0
-
     - name: 📥 Instalar CRDs oficiales Traefik v3.0
       shell: |
         curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml | {{ kubectl_bin_path }} apply -f -
