@@ -1,11 +1,11 @@
-# templates\traefik\values_pvc.yaml.j2
+# templates/traefik/values_pvc.yaml.j2
 #######################################################################
-#         Traefik valores Helm para doble sistema de certificados   #
-#     • Autofirmado (local) por defecto                               #
-#     • Let's Encrypt (público) vía HTTP-01                           #
+#         Traefik valores Helm para doble sistema de certificados       #
+#     • Autofirmado (local) por defecto                                 #
+#     • Let's Encrypt (público) vía HTTP-01                             #
 #######################################################################
 
-# Volumen PVC para certificados
+# despliegue y volumen PVC para certificados
 deployment:
   replicas: 1
   podSecurityContext:
@@ -20,16 +20,19 @@ additionalVolumeMounts:
     mountPath: /etc/traefik/certs
     readOnly: true
 
+# logging
 logs:
   general:
     level: INFO
   access:
     enabled: true
 
+# seguridad del contenedor
 securityContext:
   runAsUser: 1000
   runAsGroup: 1000
 
+# entryPoints definidos
 entryPoints:
   web:
     address: ":80"
@@ -47,15 +50,27 @@ entryPoints:
   traefik:
     address: ":9000"
 
+# puertos NodePort
 ports:
-  web:       { port: 80,   nodePort: 32591, protocol: TCP }
-  websecure: { port: 443,  nodePort: 31541, protocol: TCP }
-  metrics:   { port: 9100, nodePort: 31900, protocol: TCP }
+  web:
+    port: 80
+    nodePort: 32591
+    protocol: TCP
+  websecure:
+    port: 443
+    nodePort: 31541
+    protocol: TCP
+  metrics:
+    port: 9100
+    nodePort: 31900
+    protocol: TCP
 
+# tipo de servicio
 service:
   type: NodePort
   externalTrafficPolicy: Cluster
 
+# métricas Prometheus
 metrics:
   prometheus:
     entryPoint: metrics
@@ -63,6 +78,7 @@ metrics:
     addServicesLabels: true
     buckets: "0.1,0.3,1.2,5.0"
 
+# TLSStore por defecto (PVC montado)
 tls:
   stores:
     default:
@@ -70,6 +86,7 @@ tls:
         certFile: "/etc/traefik/certs/wildcard-socialdevs-tls.crt"
         keyFile:  "/etc/traefik/certs/wildcard-socialdevs-tls.key"
 
+# resolvers ACME Let's Encrypt
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -78,6 +95,7 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
 
+# argumentos CLI adicionales
 additionalArguments:
   - "--api.dashboard=true"
   - "--ping=true"
