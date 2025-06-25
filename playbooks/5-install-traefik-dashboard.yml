@@ -20,7 +20,7 @@
     traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
     sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
     traefik_values_template: "../templates/traefik/values_pvc.yaml.j2"
-    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute.yaml.j2"
+    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
