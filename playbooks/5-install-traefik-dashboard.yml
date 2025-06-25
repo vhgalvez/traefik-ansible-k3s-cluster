@@ -24,13 +24,10 @@
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-    strip_middleware_template: "../templates/traefik/strip-prefix-middleware.yaml.j2"
-    rendered_strip_middleware: "{{ files_dir }}/strip-prefix-middleware.yaml"
     tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
     rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"
 
   tasks:
-    # ✅ Validar herramientas necesarias
     - name: 📋 Verificar si kubectl está instalado
       stat:
         path: "{{ kubectl_bin_path }}"
@@ -51,20 +48,17 @@
         msg: "❌ helm no está instalado en {{ helm_bin_path }}."
       when: not helm_check.stat.exists
 
-    # 📁 Crear carpeta files si no existe
     - name: 📁 Asegurar directorio {{ files_dir }}
       file:
         path: "{{ files_dir }}"
         state: directory
         mode: "0755"
 
-    # 📄 Renderizar valores Helm desde plantilla
     - name: 📄 Renderizar traefik-values.yaml
       template:
         src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
-    # 🧹 Limpieza previa (Traefik default)
     - name: 🧼 Verificar y eliminar Traefik preinstalado por K3s
       block:
         - name: 🔍 Verificar Deployment traefik
@@ -99,7 +93,6 @@
             KUBECONFIG: "{{ kubeconfig_path }}"
           when: k3s_helmchart_check.rc == 0
 
-    # ➕ Añadir repositorio Traefik Helm Chart
     - name: ➕ Añadir repositorio Helm de Traefik
       shell: >
         {{ helm_bin_path }} repo add traefik https://traefik.github.io/charts &&
@@ -107,7 +100,6 @@
       environment:
         PATH: "{{ env_path }}"
 
-    # 🔐 Aplicar Secret sellado
     - name: 🔐 Aplicar Secret sellado (auth)
       kubernetes.core.k8s:
         state: present
@@ -127,7 +119,6 @@
       until: wait_for_secret.rc == 0
       failed_when: wait_for_secret.rc != 0
 
-    # 📥 Instalar CRDs de Traefik v3.0
     - name: 📥 Instalar CRDs oficiales Traefik v3.0
       shell: |
         curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml | {{ kubectl_bin_path }} apply -f -
@@ -135,7 +126,6 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
       changed_when: true
 
-    # 📦 Instalar Traefik vía Helm
     - name: 📦 Instalar Traefik desde Helm
       shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
@@ -153,7 +143,6 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # 🌐 IngressRoute del Dashboard
     - name: 🌐 Renderizar IngressRoute del Dashboard
       template:
         src: "{{ ingressroute_template }}"
@@ -166,7 +155,6 @@
         src: "{{ rendered_ingressroute }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 🔐 Middleware de Autenticación
     - name: 🔐 Renderizar Middleware de Autenticación
       template:
         src: "{{ middleware_template }}"
@@ -179,20 +167,6 @@
         src: "{{ rendered_middleware }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 🧩 Middleware strip-prefix (/dashboard, /api)
-    - name: 🧩 Renderizar Middleware strip-prefix
-      template:
-        src: "{{ strip_middleware_template }}"
-        dest: "{{ rendered_strip_middleware }}"
-
-    - name: 🚀 Aplicar Middleware strip-prefix
-      kubernetes.core.k8s:
-        state: present
-        namespace: "{{ traefik_namespace }}"
-        src: "{{ rendered_strip_middleware }}"
-        kubeconfig: "{{ kubeconfig_path }}"
-
-    # 📄 TLSStore global
     - name: 📄 Renderizar TLSStore global
       template:
         src: "{{ tlsstore_template }}"
