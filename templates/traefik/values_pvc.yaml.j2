@@ -1,13 +1,11 @@
 # templates\traefik\values_pvc.yaml.j2
 #######################################################################
-#         Traefik  valores Helm para doble sistema de certificados   #
+#         Traefik valores Helm para doble sistema de certificados   #
 #     • Autofirmado (local) por defecto                               #
-#     • Let's Encrypt (público) vía HTTP-01 bajo resolver “letsencrypt”#
+#     • Let's Encrypt (público) vía HTTP-01                           #
 #######################################################################
 
-############################
-# Despliegue y volumen PVC #
-############################
+# Volumen PVC para certificados
 deployment:
   replicas: 1
   podSecurityContext:
@@ -22,25 +20,16 @@ additionalVolumeMounts:
     mountPath: /etc/traefik/certs
     readOnly: true
 
-############
-#  Logging #
-############
 logs:
   general:
     level: INFO
   access:
     enabled: true
 
-#########################
-#  Seguridad contenedor #
-#########################
 securityContext:
-  runAsUser:  1000
+  runAsUser: 1000
   runAsGroup: 1000
 
-###############
-# EntryPoints #
-###############
 entryPoints:
   web:
     address: ":80"
@@ -49,21 +38,15 @@ entryPoints:
         entryPoint:
           to: websecure
           scheme: https
-
   websecure:
     address: ":443"
     http:
-      tls: {}   # Negotiation control mediante TLSStore / certResolver
-
+      tls: {}
   metrics:
     address: ":9100"
-
   traefik:
     address: ":9000"
 
-#########
-# Puertos #
-#########
 ports:
   web:       { port: 80,   nodePort: 32591, protocol: TCP }
   websecure: { port: 443,  nodePort: 31541, protocol: TCP }
@@ -73,9 +56,6 @@ service:
   type: NodePort
   externalTrafficPolicy: Cluster
 
-################
-# Prometheus   #
-################
 metrics:
   prometheus:
     entryPoint: metrics
@@ -83,12 +63,6 @@ metrics:
     addServicesLabels: true
     buckets: "0.1,0.3,1.2,5.0"
 
-#############################
-# TLSStore por DEFECTO (PVC)#
-# ⚠️ Se requiere que los archivos tengan nombres exactos:
-#    - wildcard-socialdevs-tls.crt
-#    - wildcard-socialdevs-tls.key
-#############################
 tls:
   stores:
     default:
@@ -96,9 +70,6 @@ tls:
         certFile: "/etc/traefik/certs/wildcard-socialdevs-tls.crt"
         keyFile:  "/etc/traefik/certs/wildcard-socialdevs-tls.key"
 
-###########################################
-# Resolver ACME para Let's Encrypt público #
-###########################################
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -107,37 +78,25 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
 
-###########################################
-# Argumentos CLI adicionales              #
-###########################################
 additionalArguments:
-  # Core / observabilidad
   - "--api.dashboard=true"
   - "--ping=true"
-
-  # EntryPoints
   - "--entrypoints.web.address=:80"
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
   - "--entrypoints.websecure.address=:443"
   - "--entrypoints.websecure.http.tls=true"
   - "--entrypoints.metrics.address=:9100"
-
-  # Prometheus
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
   - "--metrics.prometheus.addEntryPointsLabels=true"
   - "--metrics.prometheus.addServicesLabels=true"
   - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
-
-  # Providers Kubernetes
   - "--providers.kubernetescrd"
   - "--providers.kubernetescrd.allowEmptyServices=true"
   - "--providers.kubernetesingress"
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice={{ traefik_namespace }}/{{ traefik_release_name }}"
-
-  # ACME (Let's Encrypt) - Redundante por seguridad
   - "--certificatesresolvers.letsencrypt.acme.email={{ letsencrypt_email }}"
   - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
   - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
