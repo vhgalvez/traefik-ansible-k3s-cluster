@@ -26,6 +26,9 @@
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
     tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
     rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"
+    strip_middleware_template: "../templates/traefik/strip-prefix-middleware.yaml.j2"
+    rendered_strip_middleware: "{{ files_dir }}/strip-prefix-middleware.yaml"
+
 
   tasks:
     # ✅ Validar herramientas necesarias
