@@ -20,15 +20,14 @@
     traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
     sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
     traefik_values_template: "../templates/traefik/values_pvc.yaml.j2"
-    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
+    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute.yaml.j2"
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-    tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
-    rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"
     strip_middleware_template: "../templates/traefik/strip-prefix-middleware.yaml.j2"
     rendered_strip_middleware: "{{ files_dir }}/strip-prefix-middleware.yaml"
-
+    tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
+    rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"
 
   tasks:
     # ✅ Validar herramientas necesarias
@@ -178,6 +177,19 @@
         state: present
         namespace: "{{ traefik_namespace }}"
         src: "{{ rendered_middleware }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+
+    # 🧩 Middleware strip-prefix (/dashboard, /api)
+    - name: 🧩 Renderizar Middleware strip-prefix
+      template:
+        src: "{{ strip_middleware_template }}"
+        dest: "{{ rendered_strip_middleware }}"
+
+    - name: 🚀 Aplicar Middleware strip-prefix
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ traefik_namespace }}"
+        src: "{{ rendered_strip_middleware }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
     # 📄 TLSStore global
