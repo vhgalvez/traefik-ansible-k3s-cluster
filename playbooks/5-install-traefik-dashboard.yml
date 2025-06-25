@@ -24,6 +24,8 @@
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+    strip_prefix_middleware_template: "../templates/traefik/traefik-dashboard-stripprefix-middleware.yaml.j2"
+    rendered_strip_prefix_middleware: "{{ files_dir }}/traefik-dashboard-stripprefix-middleware.yaml"
     tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
     rendered_tlsstore_file: "{{ files_dir }}/tlsstore-default.yaml"
 
@@ -132,18 +134,6 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    - name: 🌐 Renderizar IngressRoute del Dashboard
-      template:
-        src: "{{ ingressroute_template }}"
-        dest: "{{ rendered_ingressroute }}"
-
-    - name: 🚀 Aplicar IngressRoute del Dashboard
-      kubernetes.core.k8s:
-        state: present
-        namespace: "{{ traefik_namespace }}"
-        src: "{{ rendered_ingressroute }}"
-        kubeconfig: "{{ kubeconfig_path }}"
-
     - name: 🔐 Renderizar Middleware de Autenticación
       template:
         src: "{{ middleware_template }}"
@@ -154,6 +144,30 @@
         state: present
         namespace: "{{ traefik_namespace }}"
         src: "{{ rendered_middleware }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+
+    - name: 🔐 Renderizar Middleware de StripPrefix para Dashboard
+      template:
+        src: "{{ strip_prefix_middleware_template }}"
+        dest: "{{ rendered_strip_prefix_middleware }}"
+
+    - name: 🚀 Aplicar Middleware de StripPrefix para Dashboard
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ traefik_namespace }}"
+        src: "{{ rendered_strip_prefix_middleware }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+
+    - name: 🌐 Renderizar IngressRoute del Dashboard
+      template:
+        src: "{{ ingressroute_template }}"
+        dest: "{{ rendered_ingressroute }}"
+
+    - name: 🚀 Aplicar IngressRoute del Dashboard
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ traefik_namespace }}"
+        src: "{{ rendered_ingressroute }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
     - name: 📄 Renderizar TLSStore global
@@ -169,7 +183,10 @@
 
     - name: 🌐 Probar acceso al dashboard (200 / 302 / 401 aceptables)
       shell: >
-        curl -k -u {{ traefik_auth_user }}:{{ traefik_auth_pass }} https://{{ internal_domain }}/dashboard/ --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
+        curl --cacert {{ files_dir }}/certs/ca-root.crt
+        -u {{ traefik_auth_user }}:{{ traefik_auth_pass }}
+        https://{{ internal_domain }}/dashboard/
+        --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
       register: dashboard_http_code
       retries: 6
       delay: 5

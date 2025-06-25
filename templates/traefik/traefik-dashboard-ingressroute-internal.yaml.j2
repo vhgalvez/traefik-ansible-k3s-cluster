@@ -14,10 +14,12 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: "Host(`traefik.socialdevs.site`) && PathPrefix(`/dashboard`)"
+    - match: "Host(`{{ internal_domain }}`) && PathPrefix(`/dashboard`)"
       kind: Rule
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
+          namespace: {{ traefik_namespace }}
+        - name: strip-dashboard-prefix
           namespace: {{ traefik_namespace }}
       services:
         - name: api@internal

@@ -1,4 +1,4 @@
-# templates/traefik/strip-prefix-middleware.yaml.j2
+# templates\traefik\traefik-dashboard-stripprefix-middleware.yaml.j2
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -7,7 +7,6 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ app_name }}
     app.kubernetes.io/component: middleware
-    environment: prod
   annotations:
     maintained-by: devops@socialdevs.site
     created-by: ansible
@@ -15,4 +14,4 @@ spec:
   stripPrefix:
     prefixes:
       - "/dashboard"
-    forceSlash: true
+    forceSlash: false
