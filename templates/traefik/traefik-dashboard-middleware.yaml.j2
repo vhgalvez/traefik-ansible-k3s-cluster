@@ -2,13 +2,15 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: {{ traefik_dashboard_middleware_name }}  # Usando directamente la variable
-  namespace: {{ traefik_namespace }}  # Usando directamente la variable
+  name: {{ traefik_dashboard_middleware_name }}
+  namespace: {{ traefik_namespace }}
   annotations:
     sealedsecrets.bitnami.com/managed: "true"
     maintained-by: devops@socialdevs.site
     created-by: ansible
 spec:
   basicAuth:
-    secret: {{ traefik_dashboard_secret_name }}  # Usando directamente la variable
-    removeHeader: true
+    secret: {{ traefik_dashboard_secret_name }}
+    removeHeader: true         # Oculta cabecera Authorization tras validación (recomendado)
+    realm: "Traefik Dashboard" # Opcional: mensaje del cuadro de login básico
+    headerField: "X-WebAuth"   # Opcional: define cabecera personalizada para auditoría si lo deseas

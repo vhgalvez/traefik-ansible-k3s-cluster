@@ -2,8 +2,8 @@
 apiVersion: traefik.io/v1alpha1
 kind: TLSStore
 metadata:
-  name: default
-  namespace: "{{ traefik_namespace | default('kube-system') }}"
+  name: default  # Este nombre es obligatorio para que sea el TLSStore global
+  namespace: "{{ traefik_namespace | default('kube-system') }}"  # Bien: usa traefik_namespace o kube-system por defecto
 spec:
   defaultCertificate:
-    secretName: "{{ internal_tls_secret_name }}"
+    secretName: "{{ internal_tls_secret_name }}"  # Debe apuntar a un Secret TLS válido (tipo kubernetes.io/tls)
