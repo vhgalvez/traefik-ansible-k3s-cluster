@@ -14,7 +14,7 @@ deployment:
   podSecurityContext:
     fsGroup: 1000
 
-  # 🔒 No crear ni importar la IngressClass “traefik”
+  # 🔒 No crear ni registrar IngressClass “traefik”
   ingressClass:
     enabled: false
 
@@ -41,7 +41,7 @@ logs:
 # Seguridad contenedor  #
 #########################
 securityContext:
-  runAsUser:  1000
+  runAsUser: 1000
   runAsGroup: 1000
 
 ###############
@@ -89,14 +89,14 @@ ports:
     port: 9100
     nodePort: 31900
     expose:
-      default: true       # ← objeto requerido por el chart
+      default: true
     protocol: TCP
 
   traefik:
     port: 9000
-    nodePort: 30090        # NodePort para el dashboard interno
+    nodePort: 30090
     expose:
-      default: true        # ← objeto requerido por el chart
+      default: true
     protocol: TCP
 
 ############
@@ -129,7 +129,7 @@ metrics:
 #########################
 ingressRoute:
   dashboard:
-    enabled: false   # lo gestionamos con nuestro propio IngressRoute
+    enabled: false  # 🔒 Lo gestionamos por IngressRoute propia
 
 api:
   dashboard: true
@@ -145,7 +145,7 @@ tls:
         keyFile:  "/etc/traefik/certs/wildcard-socialdevs-tls.key"
 
 #####################################################
-# ACME: Let's Encrypt (solo se activa externamente) #
+# ACME: Let's Encrypt (activo solo en dominios pub) #
 #####################################################
 certificatesResolvers:
   letsencrypt:
