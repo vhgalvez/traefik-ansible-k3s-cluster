@@ -1,8 +1,7 @@
 # playbooks/5-install-traefik-dashboard.yml
-# ========================================================
+# =========================================================
 # 🚀 Instalar Traefik con Dashboard interno protegido
-# ========================================================
-
+# =========================================================
 - name: 🚀 Instalar Traefik con Dashboard interno protegido
   hosts: localhost
   gather_facts: false
@@ -13,73 +12,96 @@
 
   vars:
     kubeconfig_path: "/home/victory/.kube/config"
-    helm_bin_path: "/usr/local/bin/helm"
+    helm_bin_path:   "/usr/local/bin/helm"
     kubectl_bin_path: "/usr/local/bin/kubectl"
     env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     files_dir: "{{ playbook_dir }}/files"
 
-    traefik_values_template: "../templates/traefik/values_pvc.yaml.j2"
-    traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
-    middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
-    rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
-    rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
-    tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
-    rendered_tlsstore: "{{ files_dir }}/tlsstore-default.yaml"
-    sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
+    traefik_values_template:  "../templates/traefik/values_pvc.yaml.j2"
+    traefik_values_file:      "{{ files_dir }}/traefik-values.yaml"
+    middleware_template:      "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
+    rendered_middleware:      "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+    ingressroute_template:    "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
+    rendered_ingressroute:    "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
+    tlsstore_template:        "../templates/traefik/tlsstore-default.yaml.j2"
+    rendered_tlsstore:        "{{ files_dir }}/tlsstore-default.yaml"
+    sealed_secret_path:       "{{ files_dir }}/traefik-dashboard-sealed.yaml"
 
-  tasks:
-    - name: 📋 Comprobar kubectl instalado
+  pre_tasks:
+    ###################################################################
+    # 0. Checks y prerrequisitos
+    ###################################################################
+    - name: 📋 Verificar que kubectl y helm están disponibles
       stat:
-        path: "{{ kubectl_bin_path }}"
-      register: kubectl_check
+        path: "{{ item }}"
+      loop:
+        - "{{ kubectl_bin_path }}"
+        - "{{ helm_bin_path }}"
+      register: bin_checks
+      changed_when: false
 
-    - name: ❌ kubectl no instalado
+    - name: ❌ Faltarían binarios obligatorios
       fail:
-        msg: "kubectl no está en {{ kubectl_bin_path }}"
-      when: not kubectl_check.stat.exists
+        msg: "Falta {{ item.stat.path }}"
+      loop: "{{ bin_checks.results }}"
+      when: not item.stat.exists
 
-    - name: 📋 Comprobar helm instalado
-      stat:
-        path: "{{ helm_bin_path }}"
-      register: helm_check
-
-    - name: ❌ helm no está instalado
-      fail:
-        msg: "helm no está en {{ helm_bin_path }}"
-      when: not helm_check.stat.exists
-
-    - name: 📁 Crear directorio de archivos renderizados
+    - name: 📁 Crear directorio local de artefactos
       file:
         path: "{{ files_dir }}"
         state: directory
         mode: "0755"
 
-    # 1) Renderizar valores de Helm
-    - name: 📄 Renderizar traefik-values.yaml
+    - name: 📄 Renderizar traefik-values.yaml (lo necesitaremos enseguida)
       template:
         src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
-    # 2) Instalar CRDs de Traefik v3
-    - name: 📥 Instalar CRDs oficiales de Traefik v3
+  tasks:
+    ###################################################################
+    # 1. CRDs — deben existir antes que Helm despliegue Traefik
+    ###################################################################
+    - name: 📥 Instalar CRDs Traefik v3
       shell: |
-        curl -sSfL \
-          https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
         | {{ kubectl_bin_path }} apply -f -
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
 
-    - name: ⏳ Esperar a que los CRDs estén listos
-      shell: |
-        until {{ kubectl_bin_path }} get crd ingressroutes.traefik.io >/dev/null 2>&1; do sleep 2; done
+    - name: ⏳ Esperar CRDs principales (IngressRoute & Middleware)
+      shell: >
+        {{ kubectl_bin_path }} get crd ingressroutes.traefik.io middleware.traefik.io >/dev/null 2>&1
+      retries: 12            # ≈ 1 min
+      delay: 5
+      register: crd_ready
+      until: crd_ready.rc == 0
+      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
+
+    ###################################################################
+    # 2. SealedSecret de basic-auth  →  primero el CR encriptado
+    ###################################################################
+    - name: 🔐 Aplicar SealedSecret (basic-auth)
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ sealed_secret_path }}"
+        namespace: "{{ traefik_namespace }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+
+    - name: 🔍 Esperar a que SealedSecret exista
+      kubernetes.core.k8s_info:
+        api_version: bitnami.com/v1alpha1
+        kind: SealedSecret
+        namespace: "{{ traefik_namespace }}"
+        name: "{{ traefik_dashboard_secret_name }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+      register: ss_info
       retries: 10
-      delay: 2
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+      delay: 3
+      until: ss_info.resources | length == 1
 
-    # 3) Desplegar Traefik con Helm
-    - name: 📦 Instalar o actualizar Traefik via Helm
+    ###################################################################
+    # 3. Instalar/actualizar Traefik con Helm
+    ###################################################################
+    - name: 📦 Helm upgrade/install Traefik
       shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
         --namespace {{ traefik_namespace }} --create-namespace
@@ -88,90 +110,87 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
 
-    - name: ⏳ Esperar a que Traefik esté listo
+    - name: ⏳ Esperar rollout completo
       shell: >
         {{ kubectl_bin_path }} -n {{ traefik_namespace }}
         rollout status deployment/{{ traefik_release_name }} --timeout=180s
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
 
-    # 4) Aplicar SealedSecret de autenticación
-    - name: 🔐 Aplicar SealedSecret del dashboard
-      kubernetes.core.k8s:
-        state: present
-        src: "{{ sealed_secret_path }}"
+    ###################################################################
+    # 4. Esperar al Secret descifrado por el controller
+    ###################################################################
+    - name: ⏳ Esperar Secret traefik-dashboard-secret generado
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
         namespace: "{{ traefik_namespace }}"
+        name: "{{ traefik_dashboard_secret_name }}"
         kubeconfig: "{{ kubeconfig_path }}"
-
-    # 4.1) Confirmar que el SealedSecret se creó
-    - name: 🔍 Esperar a que el SealedSecret aparezca
-      shell: "{{ kubectl_bin_path }} -n {{ traefik_namespace }} get sealedsecret {{ traefik_dashboard_secret_name }}"
-      register: ss_ready
-      retries: 10
+      register: real_secret
+      retries: 30            # ≈ 90 s
       delay: 3
-      until: ss_ready.rc == 0
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
+      until: real_secret.resources | length == 1
 
-    # 4.2) Esperar a que el controller genere el Secret
-    - name: ⏳ Esperar a que el Secret de basic-auth exista
-      shell: "{{ kubectl_bin_path }} -n {{ traefik_namespace }} get secret {{ traefik_dashboard_secret_name }}"
-      register: secret_ready
-      retries: 30 # 30 × 3 s  ≈ 90 s
-      delay: 3
-      until: secret_ready.rc == 0
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-
-    # 5) Middleware de autenticación
-    - name: 🔐 Renderizar Middleware basicAuth
+    ###################################################################
+    # 5. Middleware  +  IngressRoute  +  TLSStore
+    ###################################################################
+    - name: 🔐 Renderizar y aplicar Middleware basicAuth
       template:
         src: "{{ middleware_template }}"
         dest: "{{ rendered_middleware }}"
+      notify: apply_middleware
 
-    - name: 🚀 Aplicar Middleware basicAuth
+    - name: 🌐 Renderizar y aplicar IngressRoute dashboard
+      template:
+        src: "{{ ingressroute_template }}"
+        dest: "{{ rendered_ingressroute }}"
+      notify: apply_ingress
+
+    - name: 📄 Renderizar y aplicar TLSStore
+      template:
+        src: "{{ tlsstore_template }}"
+        dest: "{{ rendered_tlsstore }}"
+      notify: apply_tlsstore
+
+  handlers:
+    - name: apply_middleware
       kubernetes.core.k8s:
         state: present
         src: "{{ rendered_middleware }}"
         namespace: "{{ traefik_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 6) IngressRoute del dashboard
-    - name: 🌐 Renderizar IngressRoute del Dashboard
-      template:
-        src: "{{ ingressroute_template }}"
-        dest: "{{ rendered_ingressroute }}"
-
-    - name: 🚀 Aplicar IngressRoute del Dashboard
+    - name: apply_ingress
       kubernetes.core.k8s:
         state: present
         src: "{{ rendered_ingressroute }}"
         namespace: "{{ traefik_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 7) TLSStore global
-    - name: 📄 Renderizar TLSStore global
-      template:
-        src: "{{ tlsstore_template }}"
-        dest: "{{ rendered_tlsstore }}"
-
-    - name: 🚀 Aplicar TLSStore global
+    - name: apply_tlsstore
       kubernetes.core.k8s:
         state: present
         src: "{{ rendered_tlsstore }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 8) Prueba de acceso al dashboard (espera 200/302/401)
-    - name: 🌐 Probar acceso al dashboard (200/302/401 aceptables)
+  post_tasks:
+    ###################################################################
+    # 6. Smoke-test del dashboard
+    ###################################################################
+    - name: 🌐 Probar acceso al dashboard (200/302/401 válidos)
       shell: >
         curl --cacert {{ files_dir }}/certs/ca-root.crt
         -u {{ traefik_auth_user }}:{{ traefik_auth_pass }}
         https://{{ internal_domain }}/dashboard/
         --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
-      register: dashboard_http
+      register: dash_code
       retries: 6
       delay: 5
-      until: dashboard_http.stdout in ['200','302','401']
+      until: dash_code.stdout | int in [200, 302, 401]
       environment:
         PATH: "{{ env_path }}"
         KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: ✅ Resultado final
+      debug:
+        msg: "Dashboard responde con código {{ dash_code.stdout }} (OK)"
