@@ -105,6 +105,7 @@
       template:
         src: "{{ middleware_template }}"
         dest: "{{ rendered_middleware }}"
+
     - name: 🚀 Aplicar Middleware basicAuth
       kubernetes.core.k8s:
         state: present
@@ -117,6 +118,7 @@
       template:
         src: "{{ ingressroute_template }}"
         dest: "{{ rendered_ingressroute }}"
+
     - name: 🚀 Aplicar IngressRoute del Dashboard
       kubernetes.core.k8s:
         state: present
@@ -129,6 +131,7 @@
       template:
         src: "{{ tlsstore_template }}"
         dest: "{{ rendered_tlsstore }}"
+
     - name: 🚀 Aplicar TLSStore global
       kubernetes.core.k8s:
         state: present

@@ -14,7 +14,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`{{ internal_domain }}`) && PathPrefix(`/`)
+    - match: Host(`{{ internal_domain }}`) && PathPrefix(`/dashboard`)
       kind: Rule
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
