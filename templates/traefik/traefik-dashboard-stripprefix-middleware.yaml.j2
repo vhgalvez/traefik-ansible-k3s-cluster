@@ -11,7 +11,7 @@ metadata:
     maintained-by: devops@socialdevs.site
     created-by: ansible
 spec:
-  replacePathPrefix:
+  stripPrefix:
     prefixes:
-      - prefix: "/dashboard"
-        replacement: "/"
+      - "/dashboard"
+    forceSlash: true
