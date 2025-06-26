@@ -2,22 +2,18 @@
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: ingress-traefik-dashboard-internal
+  name: ingress-traefik-dashboard
   namespace: "{{ traefik_namespace }}"
   labels:
     app.kubernetes.io/name: "{{ app_name }}"
-    app.kubernetes.io/component: ingress
-  annotations:
-    maintained-by: devops@socialdevs.site
-    created-by: ansible
 spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`{{ internal_domain }}`) && PathPrefix(`/dashboard`)
+    - match: Host(`{{ internal_domain }}`) && ( PathPrefix(`/dashboard`) || PathPrefix(`/api`) )
       kind: Rule
       middlewares:
         - name: "{{ traefik_dashboard_middleware_name }}"
       services:
-        - name: "{{ traefik_release_name }}"
-          port: traefik
+        - name: api@internal          # dashboard + API de Traefik
+          kind: TraefikService
