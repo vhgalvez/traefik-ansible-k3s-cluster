@@ -9,6 +9,7 @@
 # Despliegue y volumen PVC #
 ############################
 deployment:
+  enabled: true
   replicas: 1
   podSecurityContext:
     fsGroup: 1000
@@ -79,8 +80,14 @@ ports:
 # Servicio #
 ############
 service:
+  enabled: true
   type: NodePort
   externalTrafficPolicy: Cluster
+  ports:
+    web:
+      port: 80
+    websecure:
+      port: 443
 
 ################
 # Prometheus   #
@@ -92,9 +99,19 @@ metrics:
     addServicesLabels: true
     buckets: "0.1,0.3,0.5,1.0,2.0,5.0"
 
-###########################################
-# TLSStore por DEFECTO (PVC montado)      #
-###########################################
+#########################
+# Dashboard / API       #
+#########################
+ingressRoute:
+  dashboard:
+    enabled: false  # lo gestionamos nosotros con nuestro propio IngressRoute
+
+api:
+  dashboard: true
+
+#########################
+# TLSStore por defecto  #
+#########################
 tls:
   stores:
     default:
@@ -102,9 +119,9 @@ tls:
         certFile: "/etc/traefik/certs/wildcard-socialdevs-tls.crt"
         keyFile:  "/etc/traefik/certs/wildcard-socialdevs-tls.key"
 
-###########################################
-# Resolver ACME para Let's Encrypt público#
-###########################################
+#####################################################
+# ACME: Let's Encrypt (solo se activa externamente) #
+#####################################################
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -134,7 +151,6 @@ additionalArguments:
   - "--metrics.prometheus.entrypoint=metrics"
   - "--metrics.prometheus.addEntryPointsLabels=true"
   - "--metrics.prometheus.addServicesLabels=true"
-  # (Se ha eliminado aquí el flag "--metrics.prometheus.buckets", que ahora está sólo definido en YAML)
 
   # Providers Kubernetes
   - "--providers.kubernetescrd"
@@ -143,7 +159,7 @@ additionalArguments:
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice={{ traefik_namespace }}/{{ traefik_release_name }}"
 
-  # ACME (Let's Encrypt) - redundante por seguridad
+  # ACME (Let's Encrypt)
   - "--certificatesresolvers.letsencrypt.acme.email={{ letsencrypt_email }}"
   - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
   - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
