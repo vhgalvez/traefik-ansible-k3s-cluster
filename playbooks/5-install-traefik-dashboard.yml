@@ -12,20 +12,20 @@
 
   vars:
     kubeconfig_path: "/home/victory/.kube/config"
-    helm_bin_path:   "/usr/local/bin/helm"
+    helm_bin_path: "/usr/local/bin/helm"
     kubectl_bin_path: "/usr/local/bin/kubectl"
     env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     files_dir: "{{ playbook_dir }}/files"
 
-    traefik_values_template:  "../templates/traefik/values_pvc.yaml.j2"
-    traefik_values_file:      "{{ files_dir }}/traefik-values.yaml"
-    middleware_template:      "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
-    rendered_middleware:      "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-    ingressroute_template:    "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
-    rendered_ingressroute:    "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
-    tlsstore_template:        "../templates/traefik/tlsstore-default.yaml.j2"
-    rendered_tlsstore:        "{{ files_dir }}/tlsstore-default.yaml"
-    sealed_secret_path:       "{{ files_dir }}/traefik-dashboard-sealed.yaml"
+    traefik_values_template: "../templates/traefik/values_pvc.yaml.j2"
+    traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
+    middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
+    rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
+    rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
+    tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
+    rendered_tlsstore: "{{ files_dir }}/tlsstore-default.yaml"
+    sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
 
   pre_tasks:
     ###################################################################
@@ -68,13 +68,16 @@
       environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
 
     - name: ⏳ Esperar CRDs principales (IngressRoute & Middleware)
-      shell: >
-        {{ kubectl_bin_path }} get crd ingressroutes.traefik.io middleware.traefik.io >/dev/null 2>&1
-      retries: 12            # ≈ 1 min
-      delay: 5
-      register: crd_ready
-      until: crd_ready.rc == 0
-      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
+      shell: |
+        {{ kubectl_bin_path }} get crd \
+          ingressroutes.traefik.io \
+          middlewares.traefik.io >/dev/null 2>&1
+      register: crd_check
+      retries: 20 # 20 × 3 s ≈ 1 min
+      delay: 3
+      until: crd_check.rc == 0
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
 
     ###################################################################
     # 2. SealedSecret de basic-auth  →  primero el CR encriptado
@@ -127,7 +130,7 @@
         name: "{{ traefik_dashboard_secret_name }}"
         kubeconfig: "{{ kubeconfig_path }}"
       register: real_secret
-      retries: 30            # ≈ 90 s
+      retries: 30 # ≈ 90 s
       delay: 3
       until: real_secret.resources | length == 1
 
