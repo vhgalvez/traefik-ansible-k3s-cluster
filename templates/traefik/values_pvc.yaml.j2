@@ -14,7 +14,7 @@ deployment:
   podSecurityContext:
     fsGroup: 1000
 
-  # 🔒 No crear ni importar el IngressClass “traefik”
+  # 🔒 No crear ni importar la IngressClass “traefik”
   ingressClass:
     enabled: false
 
@@ -38,10 +38,10 @@ logs:
     enabled: true
 
 #########################
-# Seguridad contenedor #
+# Seguridad contenedor  #
 #########################
 securityContext:
-  runAsUser: 1000
+  runAsUser:  1000
   runAsGroup: 1000
 
 ###############
@@ -55,38 +55,48 @@ entryPoints:
         entryPoint:
           to: websecure
           scheme: https
+
   websecure:
     address: ":443"
     http:
       tls: {}
+
   metrics:
     address: ":9100"
+
   traefik:
     address: ":9000"
 
 #########
-# Puertos#
+# Puertos
 #########
 ports:
   web:
     port: 80
     nodePort: 32591
-    expose: true
+    expose:
+      default: true
     protocol: TCP
+
   websecure:
     port: 443
     nodePort: 31541
-    expose: true
+    expose:
+      default: true
     protocol: TCP
+
   metrics:
     port: 9100
     nodePort: 31900
-    expose: true
+    expose:
+      default: true       # ← objeto requerido por el chart
     protocol: TCP
+
   traefik:
     port: 9000
-    nodePort: 30090    # NodePort para el dashboard interno
-    expose: true       # indispensable para que Helm cree el puerto en el Service
+    nodePort: 30090        # NodePort para el dashboard interno
+    expose:
+      default: true        # ← objeto requerido por el chart
     protocol: TCP
 
 ############
@@ -119,7 +129,7 @@ metrics:
 #########################
 ingressRoute:
   dashboard:
-    enabled: false  # lo gestionamos con nuestro propio IngressRoute
+    enabled: false   # lo gestionamos con nuestro propio IngressRoute
 
 api:
   dashboard: true
@@ -149,8 +159,11 @@ certificatesResolvers:
 # Argumentos CLI adicionales              #
 ###########################################
 additionalArguments:
+  # Core / observabilidad
   - "--api.dashboard=true"
   - "--ping=true"
+
+  # EntryPoints
   - "--entrypoints.web.address=:80"
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
@@ -158,15 +171,21 @@ additionalArguments:
   - "--entrypoints.websecure.http.tls=true"
   - "--entrypoints.metrics.address=:9100"
   - "--entrypoints.traefik.address=:9000"
+
+  # Prometheus
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
   - "--metrics.prometheus.addEntryPointsLabels=true"
   - "--metrics.prometheus.addServicesLabels=true"
+
+  # Providers Kubernetes
   - "--providers.kubernetescrd"
   - "--providers.kubernetescrd.allowEmptyServices=true"
   - "--providers.kubernetesingress"
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice={{ traefik_namespace }}/{{ traefik_release_name }}"
+
+  # ACME (Let's Encrypt)
   - "--certificatesresolvers.letsencrypt.acme.email={{ letsencrypt_email }}"
   - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
   - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
