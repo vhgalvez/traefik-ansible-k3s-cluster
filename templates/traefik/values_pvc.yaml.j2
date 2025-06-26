@@ -5,7 +5,9 @@
 #     • Let's Encrypt (público) vía HTTP-01                           #
 #######################################################################
 
-# despliegue y volumen PVC para certificados
+############################
+# Despliegue y volumen PVC #
+############################
 deployment:
   replicas: 1
   podSecurityContext:
@@ -20,19 +22,25 @@ additionalVolumeMounts:
     mountPath: /etc/traefik/certs
     readOnly: true
 
-# logging
+############
+# Logging  #
+############
 logs:
   general:
     level: INFO
   access:
     enabled: true
 
-# seguridad del contenedor
+#########################
+# Seguridad contenedor #
+#########################
 securityContext:
   runAsUser: 1000
   runAsGroup: 1000
 
-# entryPoints definidos
+###############
+# EntryPoints #
+###############
 entryPoints:
   web:
     address: ":80"
@@ -50,7 +58,9 @@ entryPoints:
   traefik:
     address: ":9000"
 
-# puertos NodePort
+#########
+# Puertos#
+#########
 ports:
   web:
     port: 80
@@ -65,12 +75,16 @@ ports:
     nodePort: 31900
     protocol: TCP
 
-# tipo de servicio
+############
+# Servicio #
+############
 service:
   type: NodePort
   externalTrafficPolicy: Cluster
 
-# métricas Prometheus
+################
+# Prometheus   #
+################
 metrics:
   prometheus:
     entryPoint: metrics
@@ -78,7 +92,9 @@ metrics:
     addServicesLabels: true
     buckets: "0.1,0.3,0.5,1.0,2.0,5.0"
 
-# TLSStore por defecto (PVC montado)
+###########################################
+# TLSStore por DEFECTO (PVC montado)      #
+###########################################
 tls:
   stores:
     default:
@@ -86,7 +102,9 @@ tls:
         certFile: "/etc/traefik/certs/wildcard-socialdevs-tls.crt"
         keyFile:  "/etc/traefik/certs/wildcard-socialdevs-tls.key"
 
-# resolvers ACME Let's Encrypt
+###########################################
+# Resolver ACME para Let's Encrypt público#
+###########################################
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -95,26 +113,37 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
 
-# argumentos CLI adicionales
+###########################################
+# Argumentos CLI adicionales              #
+###########################################
 additionalArguments:
+  # Core / observabilidad
   - "--api.dashboard=true"
   - "--ping=true"
+
+  # EntryPoints
   - "--entrypoints.web.address=:80"
   - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
   - "--entrypoints.websecure.address=:443"
   - "--entrypoints.websecure.http.tls=true"
   - "--entrypoints.metrics.address=:9100"
+
+  # Prometheus
   - "--metrics.prometheus=true"
   - "--metrics.prometheus.entrypoint=metrics"
   - "--metrics.prometheus.addEntryPointsLabels=true"
   - "--metrics.prometheus.addServicesLabels=true"
-  - "--metrics.prometheus.buckets=0.1,0.3,0.5,1.0,2.0,5.0"
+  # <-- aquí eliminamos el flag de buckets duplicado
+
+  # Providers Kubernetes
   - "--providers.kubernetescrd"
   - "--providers.kubernetescrd.allowEmptyServices=true"
   - "--providers.kubernetesingress"
   - "--providers.kubernetesingress.allowEmptyServices=true"
   - "--providers.kubernetesingress.ingressendpoint.publishedservice={{ traefik_namespace }}/{{ traefik_release_name }}"
+
+  # ACME (Let's Encrypt) - redundante por seguridad
   - "--certificatesresolvers.letsencrypt.acme.email={{ letsencrypt_email }}"
   - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
   - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
