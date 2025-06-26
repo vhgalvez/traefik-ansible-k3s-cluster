@@ -18,20 +18,16 @@
     env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     files_dir: "{{ playbook_dir }}/files"
 
-    # plantillas y rutas de destino
-    traefik_values_template: "../templates/traefik/values_pvc.yaml.j2"
-    traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
-
-    middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
-    rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-
-    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
-    rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
-
-    tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
-    rendered_tlsstore: "{{ files_dir }}/tlsstore-default.yaml"
-
-    sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
+    # Plantillas y rutas de destino
+    traefik_values_template:    "../templates/traefik/values_pvc.yaml.j2"
+    traefik_values_file:        "{{ files_dir }}/traefik-values.yaml"
+    middleware_template:        "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
+    rendered_middleware:        "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+    ingressroute_template:      "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
+    rendered_ingressroute:      "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
+    tlsstore_template:          "../templates/traefik/tlsstore-default.yaml.j2"
+    rendered_tlsstore:          "{{ files_dir }}/tlsstore-default.yaml"
+    sealed_secret_path:         "{{ files_dir }}/traefik-dashboard-sealed.yaml"
 
   tasks:
     - name: 📋 Comprobar kubectl instalado
@@ -70,7 +66,7 @@
     - name: 📥 Instalar CRDs oficiales de Traefik
       shell: |
         curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
-          | {{ kubectl_bin_path }} apply -f -
+        | {{ kubectl_bin_path }} apply -f -
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
@@ -85,15 +81,16 @@
     # 3) Helm install/upgrade Traefik
     - name: 📦 Instalar/actualizar Traefik via Helm
       shell: >
-        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik --namespace {{ traefik_namespace }} --create-namespace --version {{ traefik_chart_version }} --values {{ traefik_values_file }}
+        {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
+        --namespace {{ traefik_namespace }} --create-namespace
+        --version {{ traefik_chart_version }} --values {{ traefik_values_file }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
 
     - name: ⏳ Esperar despliegue de Traefik
       shell: >
-        {{ kubectl_bin_path }} rollout status deployment/{{ traefik_release_name }}
-          -n {{ traefik_namespace }} --timeout=120s
+        {{ kubectl_bin_path }} rollout status deployment/{{ traefik_release_name }} -n {{ traefik_namespace }} --timeout=120s
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
@@ -139,9 +136,9 @@
     - name: 🌐 Probar acceso al dashboard (200/302/401 aceptables)
       shell: >
         curl --cacert {{ files_dir }}/certs/ca-root.crt
-          -u {{ traefik_auth_user }}:{{ traefik_auth_pass }}
-          https://{{ internal_domain }}/dashboard/
-          --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
+        -u {{ traefik_auth_user }}:{{ traefik_auth_pass }}
+        https://{{ internal_domain }}/dashboard/
+        --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
       register: dashboard_http
       retries: 6
       delay: 5
