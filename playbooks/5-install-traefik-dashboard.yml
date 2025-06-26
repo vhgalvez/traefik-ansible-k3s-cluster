@@ -38,21 +38,30 @@
 
   tasks:
     - name: 📋 Comprobar kubectl instalado
-      stat: path="{{ kubectl_bin_path }}"
+      stat:
+        path: "{{ kubectl_bin_path }}"
       register: kubectl_check
+
     - name: ❌ kubectl no instalado
-      fail: msg="kubectl no está en {{ kubectl_bin_path }}"
+      fail:
+        msg: "kubectl no está en {{ kubectl_bin_path }}"
       when: not kubectl_check.stat.exists
 
     - name: 📋 Comprobar helm instalado
-      stat: path="{{ helm_bin_path }}"
+      stat:
+        path: "{{ helm_bin_path }}"
       register: helm_check
+
     - name: ❌ helm no instalado
-      fail: msg="helm no está en {{ helm_bin_path }}"
+      fail:
+        msg: "helm no está en {{ helm_bin_path }}"
       when: not helm_check.stat.exists
 
     - name: 📁 Crear directorio de archivos renderizados
-      file: path="{{ files_dir }}" state=directory mode="0755"
+      file:
+        path: "{{ files_dir }}"
+        state: directory
+        mode: "0755"
 
     # 1) Valores de Helm
     - name: 📄 Renderizar traefik-values.yaml
@@ -60,16 +69,22 @@
         src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
-    # 2) Repositorio y CRDs
-    - name: ➕ Añadir repo de Traefik y actualizar
-      shell: "{{ helm_bin_path }} repo add traefik https://traefik.github.io/charts && {{ helm_bin_path }} repo update"
-      environment: { PATH: "{{ env_path }}" }
-
-    - name: 📥 Instalar CRDs oficiales Traefik v3.0
+    # 2) Instalar CRDs oficiales de Traefik (v3.0.0)
+    - name: 📥 Instalar CRDs oficiales de Traefik
       shell: |
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
+        curl -sSfL https://github.com/traefik/traefik/releases/download/v3.0.0/traefik-crds.yaml \
           | {{ kubectl_bin_path }} apply -f -
-      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    # (Opcional) Esperar a que el CRD 'ingressroutes.traefik.io' esté disponible
+    - name: ⏳ Esperar a que los CRDs de Traefik estén listos
+      shell: |
+        until {{ kubectl_bin_path }} get crd ingressroutes.traefik.io >/dev/null 2>&1; do sleep 2; done
+      retries: 5
+      delay: 2
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
 
     # 3) Helm install/upgrade Traefik
     - name: 📦 Instalar/actualizar Traefik via Helm
@@ -86,7 +101,8 @@
       shell: >
         {{ kubectl_bin_path }} rollout status deployment/{{ traefik_release_name }}
         -n {{ traefik_namespace }} --timeout=120s
-      environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
 
     # 4) Middleware de autenticación
     - name: 🔐 Renderizar Middleware basicAuth
