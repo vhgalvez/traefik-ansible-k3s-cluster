@@ -61,11 +61,12 @@
         src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
-    # 2) Instalar CRDs de Traefik v3.0
+    # 2) Instalar CRDs de Traefik v3
     - name: 📥 Instalar CRDs oficiales de Traefik v3
       shell: |
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/traefik/crds/traefik-crd.yaml |
-        {{ kubectl_bin_path }} apply -f -
+        curl -sSfL \
+          https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
+        | {{ kubectl_bin_path }} apply -f -
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
