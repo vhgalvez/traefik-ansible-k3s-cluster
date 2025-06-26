@@ -80,6 +80,9 @@ ports:
     port: 9100
     nodePort: 31900
     protocol: TCP
+  traefik:
+    port: 9000
+    protocol: TCP
 
 ############
 # Servicio #
@@ -93,6 +96,8 @@ service:
       port: 80
     websecure:
       port: 443
+    traefik:
+      port: 9000
 
 ################
 # Prometheus   #
@@ -150,6 +155,7 @@ additionalArguments:
   - "--entrypoints.websecure.address=:443"
   - "--entrypoints.websecure.http.tls=true"
   - "--entrypoints.metrics.address=:9100"
+  - "--entrypoints.traefik.address=:9000"
 
   # Prometheus
   - "--metrics.prometheus=true"
