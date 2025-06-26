@@ -110,12 +110,14 @@
       retries: 10
       delay: 3
       until: ss_ready.rc == 0
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
 
     # 4.2) Esperar a que el controller genere el Secret
     - name: ⏳ Esperar a que el Secret de basic-auth exista
       shell: "{{ kubectl_bin_path }} -n {{ traefik_namespace }} get secret {{ traefik_dashboard_secret_name }}"
       register: secret_ready
-      retries: 30          # 30 × 3 s  ≈ 90 s
+      retries: 30 # 30 × 3 s  ≈ 90 s
       delay: 3
       until: secret_ready.rc == 0
       environment:
