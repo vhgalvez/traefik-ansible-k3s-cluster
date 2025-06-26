@@ -20,20 +20,21 @@
 
     # plantillas y rutas de destino
     traefik_values_template: "../templates/traefik/values_pvc.yaml.j2"
-    traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
+    traefik_values_file:     "{{ files_dir }}/traefik-values.yaml"
 
-    middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
-    rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+    middleware_template:     "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
+    rendered_middleware:     "{{ files_dir }}/traefik-dashboard-middleware.yaml"
 
-    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
-    rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
+    ingressroute_template:   "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
+    rendered_ingressroute:   "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
 
-    tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
-    rendered_tlsstore: "{{ files_dir }}/tlsstore-default.yaml"
+    tlsstore_template:       "../templates/traefik/tlsstore-default.yaml.j2"
+    rendered_tlsstore:       "{{ files_dir }}/tlsstore-default.yaml"
 
-    sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
+    sealed_secret_path:      "{{ files_dir }}/traefik-dashboard-sealed.yaml"
 
   tasks:
+
     - name: 📋 Comprobar kubectl instalado
       stat:
         path: "{{ kubectl_bin_path }}"
@@ -66,7 +67,7 @@
         src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
-    # 2) Instalar CRDs oficiales de Traefik (v3.0.0)
+    # 2) CRDs de Traefik
     - name: 📥 Instalar CRDs oficiales de Traefik
       shell: |
         curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
@@ -86,21 +87,21 @@
     - name: 📦 Instalar/actualizar Traefik via Helm
       shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
-        --namespace {{ traefik_namespace }} --create-namespace
-        --version {{ traefik_chart_version }}
-        --values {{ traefik_values_file }}
+          --namespace {{ traefik_namespace }} --create-namespace
+          --version {{ traefik_chart_version }}
+          --values {{ traefik_values_file }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-        PATH: "{{ env_path }}"
+        PATH:      "{{ env_path }}"
 
     - name: ⏳ Esperar despliegue de Traefik
       shell: >
         {{ kubectl_bin_path }} rollout status deployment/{{ traefik_release_name }}
-        -n {{ traefik_namespace }} --timeout=120s
+          -n {{ traefik_namespace }} --timeout=120s
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # 4) Middleware de autenticación
+    # 4) Middleware de basicAuth
     - name: 🔐 Renderizar Middleware basicAuth
       template:
         src: "{{ middleware_template }}"
@@ -109,7 +110,7 @@
     - name: 🚀 Aplicar Middleware basicAuth
       kubernetes.core.k8s:
         state: present
-        src: "{{ rendered_middleware }}"
+        src:   "{{ rendered_middleware }}"
         namespace: "{{ traefik_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
@@ -122,7 +123,7 @@
     - name: 🚀 Aplicar IngressRoute del Dashboard
       kubernetes.core.k8s:
         state: present
-        src: "{{ rendered_ingressroute }}"
+        src:   "{{ rendered_ingressroute }}"
         namespace: "{{ traefik_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
@@ -135,20 +136,20 @@
     - name: 🚀 Aplicar TLSStore global
       kubernetes.core.k8s:
         state: present
-        src: "{{ rendered_tlsstore }}"
+        src:   "{{ rendered_tlsstore }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
     # 7) Smoke-test al Dashboard
     - name: 🌐 Probar acceso al dashboard (200/302/401 aceptables)
       shell: >
         curl --cacert {{ files_dir }}/certs/ca-root.crt
-        -u {{ traefik_auth_user }}:{{ traefik_auth_pass }}
-        https://{{ internal_domain }}/dashboard/
-        --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
+          -u {{ traefik_auth_user }}:{{ traefik_auth_pass }}
+          https://{{ internal_domain }}/dashboard/
+          --max-time 10 --silent --output /dev/null --write-out '%{http_code}'
       register: dashboard_http
       retries: 6
-      delay: 5
-      until: dashboard_http.stdout in ['200','302','401']
+      delay:   5
+      until:   dashboard_http.stdout in ['200','302','401']
       environment:
-        PATH: "{{ env_path }}"
+        PATH:      "{{ env_path }}"
         KUBECONFIG: "{{ kubeconfig_path }}"
