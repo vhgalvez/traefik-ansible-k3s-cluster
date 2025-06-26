@@ -13,6 +13,11 @@ deployment:
   replicas: 1
   podSecurityContext:
     fsGroup: 1000
+
+  # 🔒 No crear ni importar el IngressClass “traefik”
+  ingressClass:
+    enabled: false
+
   additionalVolumes:
     - name: certs
       persistentVolumeClaim:
@@ -104,7 +109,7 @@ metrics:
 #########################
 ingressRoute:
   dashboard:
-    enabled: false  # lo gestionamos nosotros con nuestro propio IngressRoute
+    enabled: false  # lo gestionamos con nuestro propio IngressRoute
 
 api:
   dashboard: true
