@@ -19,5 +19,5 @@ spec:
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
       services:
-        - name: {{ service_name }}
-          port: 9000
+        - name: {{ traefik_release_name }}
+          port: websecure
