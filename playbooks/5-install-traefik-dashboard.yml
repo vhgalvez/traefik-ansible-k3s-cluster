@@ -72,7 +72,7 @@
     # 2) Instalar CRDs oficiales de Traefik (v3.0.0)
     - name: 📥 Instalar CRDs oficiales de Traefik
       shell: |
-        curl -sSfL https://github.com/traefik/traefik/releases/download/v3.0.0/traefik-crds.yaml \
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
           | {{ kubectl_bin_path }} apply -f -
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
