@@ -55,30 +55,30 @@
         state: directory
         mode: "0755"
 
-    # 1) Valores de Helm
+    # 1) Renderizar valores de Helm
     - name: 📄 Renderizar traefik-values.yaml
       template:
         src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
-    # 2) CRDs de Traefik
-    - name: 📥 Instalar CRDs oficiales de Traefik
+    # 2) Instalar CRDs de Traefik v3.0
+    - name: 📥 Instalar CRDs oficiales de Traefik v3
       shell: |
-        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml \
-        | {{ kubectl_bin_path }} apply -f -
+        curl -sSfL https://raw.githubusercontent.com/traefik/traefik/v3.0/traefik/crds/traefik-crd.yaml |
+        {{ kubectl_bin_path }} apply -f -
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    - name: ⏳ Esperar a que los CRDs de Traefik estén listos
+    - name: ⏳ Esperar a que los CRDs estén listos
       shell: |
         until {{ kubectl_bin_path }} get crd ingressroutes.traefik.io >/dev/null 2>&1; do sleep 2; done
-      retries: 5
+      retries: 10
       delay: 2
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # 3) Helm install/upgrade Traefik
-    - name: 📦 Instalar/actualizar Traefik via Helm
+    # 3) Desplegar Traefik con Helm
+    - name: 📦 Instalar o actualizar Traefik via Helm
       shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
         --namespace {{ traefik_namespace }} --create-namespace
@@ -87,21 +87,31 @@
         KUBECONFIG: "{{ kubeconfig_path }}"
         PATH: "{{ env_path }}"
 
-    - name: ⏳ Esperar despliegue de Traefik
+    - name: ⏳ Esperar a que Traefik esté listo
       shell: >
-        {{ kubectl_bin_path }} rollout status deployment/{{ traefik_release_name }} -n {{ traefik_namespace }} --timeout=120s
+        {{ kubectl_bin_path }} -n {{ traefik_namespace }}
+        rollout status deployment/{{ traefik_release_name }} --timeout=180s
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # 3.1) Aplicar el SealedSecret de basic-auth
-    - name: 🔐 Aplicar SealedSecret de basic-auth
+    # 4) Aplicar SealedSecret de autenticación
+    - name: 🔐 Aplicar SealedSecret del dashboard
       kubernetes.core.k8s:
         state: present
         src: "{{ sealed_secret_path }}"
         namespace: "{{ traefik_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 4) Middleware de basicAuth
+    - name: ⏳ Esperar a que el Secret de basic-auth exista
+      shell: "{{ kubectl_bin_path }} -n {{ traefik_namespace }} get secret {{ traefik_dashboard_secret_name }}"
+      register: secret_ready
+      retries: 15
+      delay: 4
+      until: secret_ready.rc == 0
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    # 5) Middleware de autenticación
     - name: 🔐 Renderizar Middleware basicAuth
       template:
         src: "{{ middleware_template }}"
@@ -114,7 +124,7 @@
         namespace: "{{ traefik_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 5) IngressRoute del Dashboard
+    # 6) IngressRoute del dashboard
     - name: 🌐 Renderizar IngressRoute del Dashboard
       template:
         src: "{{ ingressroute_template }}"
@@ -127,8 +137,8 @@
         namespace: "{{ traefik_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 6) TLSStore global
-    - name: 📄 Renderizar TLSStore
+    # 7) TLSStore global
+    - name: 📄 Renderizar TLSStore global
       template:
         src: "{{ tlsstore_template }}"
         dest: "{{ rendered_tlsstore }}"
@@ -139,7 +149,7 @@
         src: "{{ rendered_tlsstore }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 7) Smoke-test al Dashboard
+    # 8) Prueba de acceso al dashboard (espera 200/302/401)
     - name: 🌐 Probar acceso al dashboard (200/302/401 aceptables)
       shell: >
         curl --cacert {{ files_dir }}/certs/ca-root.crt
