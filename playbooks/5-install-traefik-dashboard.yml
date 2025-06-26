@@ -12,20 +12,20 @@
 
   vars:
     kubeconfig_path: "/home/victory/.kube/config"
-    helm_bin_path:   "/usr/local/bin/helm"
+    helm_bin_path: "/usr/local/bin/helm"
     kubectl_bin_path: "/usr/local/bin/kubectl"
     env_path: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     files_dir: "{{ playbook_dir }}/files"
 
     traefik_values_template: "../templates/traefik/values_pvc.yaml.j2"
-    traefik_values_file:     "{{ files_dir }}/traefik-values.yaml"
-    middleware_template:     "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
-    rendered_middleware:     "{{ files_dir }}/traefik-dashboard-middleware.yaml"
-    ingressroute_template:   "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
-    rendered_ingressroute:   "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
-    tlsstore_template:       "../templates/traefik/tlsstore-default.yaml.j2"
-    rendered_tlsstore:       "{{ files_dir }}/tlsstore-default.yaml"
-    sealed_secret_path:      "{{ files_dir }}/traefik-dashboard-sealed.yaml"
+    traefik_values_file: "{{ files_dir }}/traefik-values.yaml"
+    middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
+    rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
+    ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
+    rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
+    tlsstore_template: "../templates/traefik/tlsstore-default.yaml.j2"
+    rendered_tlsstore: "{{ files_dir }}/tlsstore-default.yaml"
+    sealed_secret_path: "{{ files_dir }}/traefik-dashboard-sealed.yaml"
 
   ########################################################################
   # 0. Prerrequisitos (binarios + values)
@@ -54,7 +54,7 @@
 
     - name: 📄 Renderizar values de Helm
       template:
-        src:  "{{ traefik_values_template }}"
+        src: "{{ traefik_values_template }}"
         dest: "{{ traefik_values_file }}"
 
   ########################################################################
@@ -84,9 +84,9 @@
       until: crd_wait.rc == 0
       environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
 
-  ########################################################################
-  # 2. SealedSecret de basic-auth  (antes del deployment)
-  ########################################################################
+    ########################################################################
+    # 2. SealedSecret de basic-auth  (antes del deployment)
+    ########################################################################
     - name: 🔐 Aplicar SealedSecret basic-auth
       kubernetes.core.k8s:
         state: present
@@ -106,9 +106,9 @@
       delay: 3
       until: ss_ready.resources | length == 1
 
-  ########################################################################
-  # 3. Helm → Traefik
-  ########################################################################
+    ########################################################################
+    # 3. Helm → Traefik
+    ########################################################################
     - name: 📦 Helm upgrade/install Traefik
       shell: >
         {{ helm_bin_path }} upgrade --install {{ traefik_release_name }} traefik/traefik
@@ -125,9 +125,9 @@
         rollout status deployment/{{ traefik_release_name }} --timeout=180s
       environment: { KUBECONFIG: "{{ kubeconfig_path }}" }
 
-  ########################################################################
-  # 4. Secret generado por el controller
-  ########################################################################
+    ########################################################################
+    # 4. Secret generado por el controller
+    ########################################################################
     - name: ⏳ Esperar Secret traefik-dashboard-secret
       kubernetes.core.k8s_info:
         api_version: v1
@@ -140,24 +140,24 @@
       delay: 3
       until: real_secret.resources | length == 1
 
-  ########################################################################
-  # 5. Middleware + IngressRoute + TLSStore
-  ########################################################################
+    ########################################################################
+    # 5. Middleware + IngressRoute + TLSStore
+    ########################################################################
     - name: 🔐 Renderizar Middleware
       template:
-        src:  "{{ middleware_template }}"
+        src: "{{ middleware_template }}"
         dest: "{{ rendered_middleware }}"
       notify: apply_middleware
 
     - name: 🌐 Renderizar IngressRoute
       template:
-        src:  "{{ ingressroute_template }}"
+        src: "{{ ingressroute_template }}"
         dest: "{{ rendered_ingressroute }}"
       notify: apply_ingress
 
     - name: 📄 Renderizar TLSStore
       template:
-        src:  "{{ tlsstore_template }}"
+        src: "{{ tlsstore_template }}"
         dest: "{{ rendered_tlsstore }}"
       notify: apply_tlsstore
 
