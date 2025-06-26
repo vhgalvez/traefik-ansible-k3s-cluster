@@ -18,7 +18,6 @@ spec:
       kind: Rule
       middlewares:
         - name: {{ traefik_dashboard_middleware_name }}
-        - name: strip-dashboard-prefix
       services:
         - name: {{ service_name }}
           port: 9000

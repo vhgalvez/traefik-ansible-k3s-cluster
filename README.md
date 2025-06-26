@@ -350,3 +350,6 @@ scp victory@192.168.0.40:/home/victory/code-FlatcarMicroCloud/traefik-ansible-k3
 curl --http1.1 --cacert playbooks/files/certs/ca-root.crt \
   -u admin:SuperSecure123 \
   https://traefik.socialdevs.site/dashboard/ -v
+
+
+curl -vk https://traefik.socialdevs.site/dashboard/ --cacert playbooks/files/certs/ca-root.crt -u admin:SuperSecure123

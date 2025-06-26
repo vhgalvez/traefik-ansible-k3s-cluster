@@ -25,9 +25,6 @@
     middleware_template: "../templates/traefik/traefik-dashboard-middleware.yaml.j2"
     rendered_middleware: "{{ files_dir }}/traefik-dashboard-middleware.yaml"
 
-    strip_prefix_middleware_template: "../templates/traefik/traefik-dashboard-stripprefix-middleware.yaml.j2"
-    rendered_strip_prefix: "{{ files_dir }}/traefik-dashboard-stripprefix-middleware.yaml"
-
     ingressroute_template: "../templates/traefik/traefik-dashboard-ingressroute-internal.yaml.j2"
     rendered_ingressroute: "{{ files_dir }}/traefik-dashboard-ingressroute.yaml"
 
@@ -77,7 +74,6 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    # (Opcional) Esperar a que el CRD 'ingressroutes.traefik.io' esté disponible
     - name: ⏳ Esperar a que los CRDs de Traefik estén listos
       shell: |
         until {{ kubectl_bin_path }} get crd ingressroutes.traefik.io >/dev/null 2>&1; do sleep 2; done
@@ -116,19 +112,7 @@
         namespace: "{{ traefik_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 5) Middleware stripPrefix
-    - name: 🔄 Renderizar Middleware stripPrefix
-      template:
-        src: "{{ strip_prefix_middleware_template }}"
-        dest: "{{ rendered_strip_prefix }}"
-    - name: 🚀 Aplicar Middleware stripPrefix
-      kubernetes.core.k8s:
-        state: present
-        src: "{{ rendered_strip_prefix }}"
-        namespace: "{{ traefik_namespace }}"
-        kubeconfig: "{{ kubeconfig_path }}"
-
-    # 6) IngressRoute del Dashboard
+    # 5) IngressRoute del Dashboard
     - name: 🌐 Renderizar IngressRoute del Dashboard
       template:
         src: "{{ ingressroute_template }}"
@@ -140,7 +124,7 @@
         namespace: "{{ traefik_namespace }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 7) TLSStore global
+    # 6) TLSStore global
     - name: 📄 Renderizar TLSStore
       template:
         src: "{{ tlsstore_template }}"
@@ -151,7 +135,7 @@
         src: "{{ rendered_tlsstore }}"
         kubeconfig: "{{ kubeconfig_path }}"
 
-    # 8) Smoke-test al Dashboard
+    # 7) Smoke-test al Dashboard
     - name: 🌐 Probar acceso al dashboard (200/302/401 aceptables)
       shell: >
         curl --cacert {{ files_dir }}/certs/ca-root.crt
