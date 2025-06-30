@@ -317,8 +317,8 @@ echo $LONGHORN_AUTH_PASS
 sudo -E ansible-playbook playbooks/uninstall-traefik-dashboard.yml
 
 
-export TRAEFIK_AUTH_USER=admin
-export TRAEFIK_AUTH_PASS=SuperSecure123
+export TRAEFIK_AUTH_USER="admin"
+export TRAEFIK_AUTH_PASS="SuperSecure123"
 sudo -E ansible-playbook playbooks/deploy_traefik.yml
 
 source .env && export TRAEFIK_AUTH_USER && export TRAEFIK_AUTH_PASS && sudo -E ansible-playbook playbooks/deploy_traefik.yml
